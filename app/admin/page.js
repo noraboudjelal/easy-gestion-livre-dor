@@ -239,6 +239,7 @@ export default function AdminPage() {
                   <th style={styles.th}>Lien</th>
                   <th style={styles.th}>QR code</th>
                   <th style={styles.th}>Messages</th>
+                  <th style={styles.th}></th>
                 </tr>
               </thead>
               <tbody>
@@ -271,6 +272,11 @@ export default function AdminPage() {
                       </a>
                     </td>
                     <td style={styles.td}>{ev.messages?.[0]?.count ?? 0}</td>
+                    <td style={styles.td}>
+                      <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={styles.iconButton}>
+                        imprimer
+                      </a>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -300,6 +306,9 @@ export default function AdminPage() {
                     </button>
                   </div>
                   <div style={styles.subText}>{ev.messages?.[0]?.count ?? 0} message(s)</div>
+                  <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>
+                    imprimer le souvenir
+                  </a>
                 </div>
               ))}
             </div>

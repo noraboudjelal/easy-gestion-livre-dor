@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -25,6 +25,76 @@ function groupByCategory(products) {
   return groups;
 }
 
+function formatPrice(raw) {
+  if (!raw) return raw;
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^(\d+)(?:[.,](\d{1,2}))?\s*€?$/);
+  if (!match) return trimmed;
+  let out = match[1];
+  if (match[2]) out += "," + match[2];
+  return out + " €";
+}
+
+function ProductImage({ src, alt }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div style={styles.photoWrap}>
+      {!loaded && <div style={styles.photoSkeleton} />}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        style={{ ...styles.photo, opacity: loaded ? 1 : 0 }}
+      />
+    </div>
+  );
+}
+
+function Card({ product, accent }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <article
+      ref={ref}
+      style={{
+        ...styles.card,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(14px)",
+      }}
+    >
+      {product.photo_url && <ProductImage src={product.photo_url} alt={product.name} />}
+      <div style={styles.cardBody}>
+        <div style={styles.cardTop}>
+          <h3 style={styles.name}>{product.name}</h3>
+          {product.price && <span style={{ ...styles.price, color: accent }}>{formatPrice(product.price)}</span>}
+        </div>
+        {product.description && <p style={styles.description}>{product.description}</p>}
+      </div>
+    </article>
+  );
+}
+
 export default function CatalogPage() {
   const params = useParams();
   const slug = params?.slug;
@@ -33,6 +103,7 @@ export default function CatalogPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [showTop, setShowTop] = useState(false);
 
   const load = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -63,6 +134,18 @@ export default function CatalogPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    function onScroll() {
+      setShowTop(window.scrollY > 500);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   if (notFound) {
     return (
       <div style={{ ...styles.page, alignItems: "center", justifyContent: "center" }}>
@@ -80,8 +163,9 @@ export default function CatalogPage() {
   return (
     <div style={styles.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
         * { box-sizing: border-box; }
+        @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
       `}</style>
 
       <header style={{ ...styles.header, borderBottomColor: accent }}>
@@ -117,20 +201,7 @@ export default function CatalogPage() {
               )}
               <div style={styles.grid}>
                 {group.items.map((p) => (
-                  <article style={styles.card} key={p.id}>
-                    {p.photo_url && (
-                      <div style={styles.photoWrap}>
-                        <img src={p.photo_url} alt={p.name} style={styles.photo} />
-                      </div>
-                    )}
-                    <div style={styles.cardBody}>
-                      <div style={styles.cardTop}>
-                        <h3 style={styles.name}>{p.name}</h3>
-                        {p.price && <span style={{ ...styles.price, color: accent }}>{p.price}</span>}
-                      </div>
-                      {p.description && <p style={styles.description}>{p.description}</p>}
-                    </div>
-                  </article>
+                  <Card product={p} accent={accent} key={p.id} />
                 ))}
               </div>
             </section>
@@ -138,6 +209,12 @@ export default function CatalogPage() {
       </main>
 
       <footer style={{ ...styles.footer, color: accent }}>Catalogue réalisé par Easy Gestion Toulouse</footer>
+
+      {showTop && (
+        <button onClick={scrollToTop} style={{ ...styles.topButton, background: accent }} aria-label="Retour en haut">
+          ↑
+        </button>
+      )}
     </div>
   );
 }
@@ -152,6 +229,7 @@ const styles = {
     flexDirection: "column",
     alignItems: "center",
     padding: "32px 16px 48px",
+    position: "relative",
   },
   header: {
     width: "100%",
@@ -166,23 +244,50 @@ const styles = {
   main: { width: "100%", maxWidth: "900px", display: "flex", flexDirection: "column", gap: "28px" },
   section: { display: "flex", flexDirection: "column", gap: "12px" },
   categoryTitle: { fontSize: "1.6rem", margin: 0, borderBottom: "1px solid #E6DCC2", paddingBottom: "6px" },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px" },
   empty: { textAlign: "center", color: "#8A7F66", padding: "30px 0" },
   card: {
     background: "#FCFAF2",
     borderRadius: "12px",
     overflow: "hidden",
     border: "1px solid #E6DCC2",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.10)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
     display: "flex",
     flexDirection: "column",
+    transition: "opacity 0.6s ease, transform 0.6s ease",
   },
-  photoWrap: { width: "100%", aspectRatio: "16 / 10", background: "#EFE9DA", overflow: "hidden" },
-  photo: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  photoWrap: {
+    width: "100%",
+    aspectRatio: "16 / 6.5",
+    background: "#EFE9DA",
+    overflow: "hidden",
+    position: "relative",
+  },
+  photoSkeleton: {
+    position: "absolute",
+    inset: 0,
+    background: "linear-gradient(90deg, #EFE9DA 25%, #F6F0E2 50%, #EFE9DA 75%)",
+    backgroundSize: "400px 100%",
+    animation: "shimmer 1.4s infinite linear",
+  },
+  photo: { width: "100%", height: "100%", objectFit: "contain", display: "block", transition: "opacity 0.4s ease" },
   cardBody: { padding: "10px 12px", display: "flex", flexDirection: "column", gap: "4px" },
   cardTop: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" },
-  name: { fontSize: "1.05rem", fontWeight: 700, margin: 0, color: "#1E2A3A", flex: 1 },
+  name: { fontSize: "1.15rem", fontWeight: 800, margin: 0, color: "#1E2A3A", flex: 1 },
   price: { fontSize: "1rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 },
   description: { fontSize: "0.8rem", color: "#5B4636", margin: 0, lineHeight: 1.4 },
   footer: { marginTop: "36px", fontSize: "0.7rem", letterSpacing: "0.08em" },
+  topButton: {
+    position: "fixed",
+    bottom: "20px",
+    right: "20px",
+    width: "44px",
+    height: "44px",
+    borderRadius: "50%",
+    border: "none",
+    color: "#FCFAF2",
+    fontSize: "1.2rem",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
+    cursor: "pointer",
+  },
 };

@@ -140,8 +140,8 @@ export default function GuestbookPage() {
           <p style={styles.eyebrow}>LIVRE D'OR NUMÉRIQUE</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
           <p style={styles.sub}>
-            Laisse un petit mot ci-dessous — il s'affichera juste en dessous, comme sur un vrai
-            livre d'or.
+           Laissez un petit mot qui restera gravé dans nos souvenirs.
+
           </p>
         </header>
 

@@ -463,6 +463,27 @@ export default function AdminPage() {
                       </select>
                     </label>
                   </div>
+                  <div style={styles.swatchRow}>
+                    {[
+                      ["#1E1E1E", "Noir"],
+                      ["#C9B790", "Beige"],
+                      ["#355E3B", "Vert"],
+                      ["#2A4D69", "Bleu"],
+                      ["#B5402D", "Rouge"],
+                    ].map(([hex, label]) => (
+                      <button
+                        type="button"
+                        key={hex}
+                        onClick={() => setCatalogColor(hex)}
+                        title={label}
+                        style={{
+                          ...styles.swatch,
+                          background: hex,
+                          outline: catalogColor === hex ? "2px solid #1E2A3A" : "1px solid #D8CCAB",
+                        }}
+                      />
+                    ))}
+                  </div>
                   <div style={styles.modalActions}>
                     <button type="button" style={styles.cancelButton} onClick={() => setShowCatalogForm(false)}>
                       Annuler
@@ -665,6 +686,8 @@ const styles = {
   label: { display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636" },
   formRow2: { display: "flex", gap: "12px" },
   colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff" },
+  swatchRow: { display: "flex", gap: "8px" },
+  swatch: { width: "28px", height: "28px", borderRadius: "50%", border: "none", cursor: "pointer" },
   input: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D" },
   modalActions: { display: "flex", justifyContent: "flex-end", gap: "8px" },
   cancelButton: { background: "none", border: "1px solid #D8CCAB", borderRadius: "6px", padding: "10px 16px", fontSize: "0.85rem", color: "#5B4636" },

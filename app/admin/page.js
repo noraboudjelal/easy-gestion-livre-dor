@@ -41,6 +41,8 @@ export default function AdminPage() {
   const [showCatalogForm, setShowCatalogForm] = useState(false);
   const [catalogClient, setCatalogClient] = useState("");
   const [catalogTitle, setCatalogTitle] = useState("");
+  const [catalogColor, setCatalogColor] = useState("#B5402D");
+  const [catalogFont, setCatalogFont] = useState("manuscrite");
   const [creatingCatalog, setCreatingCatalog] = useState(false);
   const [copiedCatalogId, setCopiedCatalogId] = useState(null);
 
@@ -145,6 +147,8 @@ export default function AdminPage() {
       client: catalogClient.trim(),
       catalog_title: catalogTitle.trim(),
       slug,
+      accent_color: catalogColor,
+      font_style: catalogFont,
     });
     setCreatingCatalog(false);
     if (error) {
@@ -153,6 +157,8 @@ export default function AdminPage() {
     }
     setCatalogClient("");
     setCatalogTitle("");
+    setCatalogColor("#B5402D");
+    setCatalogFont("manuscrite");
     setShowCatalogForm(false);
     loadCatalogs();
   }
@@ -438,6 +444,25 @@ export default function AdminPage() {
                       required
                     />
                   </label>
+                  <div style={styles.formRow2}>
+                    <label style={styles.label}>
+                      Couleur principale
+                      <input
+                        type="color"
+                        value={catalogColor}
+                        onChange={(e) => setCatalogColor(e.target.value)}
+                        style={styles.colorInput}
+                      />
+                    </label>
+                    <label style={styles.label}>
+                      Police du titre
+                      <select style={styles.input} value={catalogFont} onChange={(e) => setCatalogFont(e.target.value)}>
+                        <option value="manuscrite">Manuscrite (Caveat)</option>
+                        <option value="moderne">Moderne (Inter)</option>
+                        <option value="elegante">Élégante (Playfair)</option>
+                      </select>
+                    </label>
+                  </div>
                   <div style={styles.modalActions}>
                     <button type="button" style={styles.cancelButton} onClick={() => setShowCatalogForm(false)}>
                       Annuler
@@ -638,6 +663,8 @@ const styles = {
   },
   modalTitle: { fontFamily: "'Caveat', cursive", fontSize: "1.6rem", margin: 0, color: "#1E2A3A" },
   label: { display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636" },
+  formRow2: { display: "flex", gap: "12px" },
+  colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff" },
   input: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D" },
   modalActions: { display: "flex", justifyContent: "flex-end", gap: "8px" },
   cancelButton: { background: "none", border: "1px solid #D8CCAB", borderRadius: "6px", padding: "10px 16px", fontSize: "0.85rem", color: "#5B4636" },

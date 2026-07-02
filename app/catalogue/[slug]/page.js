@@ -25,6 +25,15 @@ function groupByCategory(products) {
   return groups;
 }
 
+function hexToRgba(hex, alpha) {
+  const clean = (hex || "#B5402D").replace("#", "");
+  const bigint = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function formatPrice(raw) {
   if (!raw) return raw;
   const trimmed = raw.trim();
@@ -87,7 +96,11 @@ function Card({ product, accent }) {
       <div style={styles.cardBody}>
         <div style={styles.cardTop}>
           <h3 style={styles.name}>{product.name}</h3>
-          {product.price && <span style={{ ...styles.price, color: accent }}>{formatPrice(product.price)}</span>}
+          {product.price && (
+            <span style={{ ...styles.price, color: accent, background: hexToRgba(accent, 0.1) }}>
+              {formatPrice(product.price)}
+            </span>
+          )}
         </div>
         {product.description && <p style={styles.description}>{product.description}</p>}
       </div>
@@ -222,7 +235,7 @@ export default function CatalogPage() {
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#F6F0E2",
+    background: "#F9F5EC",
     fontFamily: "'Inter', sans-serif",
     color: "#2A241D",
     display: "flex",
@@ -244,21 +257,21 @@ const styles = {
   main: { width: "100%", maxWidth: "900px", display: "flex", flexDirection: "column", gap: "28px" },
   section: { display: "flex", flexDirection: "column", gap: "12px" },
   categoryTitle: { fontSize: "1.6rem", margin: 0, borderBottom: "1px solid #E6DCC2", paddingBottom: "6px" },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" },
   empty: { textAlign: "center", color: "#8A7F66", padding: "30px 0" },
   card: {
-    background: "#FCFAF2",
-    borderRadius: "12px",
+    background: "#FFFDF8",
+    borderRadius: "18px",
     overflow: "hidden",
-    border: "1px solid #E6DCC2",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+    border: "1px solid rgba(30,20,10,0.05)",
+    boxShadow: "0 10px 28px rgba(30,20,10,0.09)",
     display: "flex",
     flexDirection: "column",
     transition: "opacity 0.6s ease, transform 0.6s ease",
   },
   photoWrap: {
     width: "100%",
-    aspectRatio: "16 / 6.5",
+    aspectRatio: "16 / 6",
     background: "#EFE9DA",
     overflow: "hidden",
     position: "relative",
@@ -271,12 +284,20 @@ const styles = {
     animation: "shimmer 1.4s infinite linear",
   },
   photo: { width: "100%", height: "100%", objectFit: "contain", display: "block", transition: "opacity 0.4s ease" },
-  cardBody: { padding: "10px 12px", display: "flex", flexDirection: "column", gap: "4px" },
-  cardTop: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px" },
-  name: { fontSize: "1.15rem", fontWeight: 800, margin: 0, color: "#1E2A3A", flex: 1 },
-  price: { fontSize: "1rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 },
-  description: { fontSize: "0.8rem", color: "#5B4636", margin: 0, lineHeight: 1.4 },
-  footer: { marginTop: "36px", fontSize: "0.7rem", letterSpacing: "0.08em" },
+  cardBody: { padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: "6px" },
+  cardTop: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" },
+  name: { fontSize: "1.1rem", fontWeight: 700, margin: 0, color: "#1E2A3A", flex: 1, lineHeight: 1.25 },
+  price: {
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+    letterSpacing: "0.01em",
+    padding: "3px 10px",
+    borderRadius: "999px",
+  },
+  description: { fontSize: "0.82rem", color: "#6B5D4C", margin: 0, lineHeight: 1.5 },
+  footer: { marginTop: "40px", fontSize: "0.68rem", letterSpacing: "0.06em", color: "#A6947A", opacity: 0.8 },
   topButton: {
     position: "fixed",
     bottom: "20px",

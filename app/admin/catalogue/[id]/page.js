@@ -262,6 +262,27 @@ export default function ManageCatalogPage() {
                 </select>
               </label>
             </div>
+            <div style={styles.swatchRow}>
+              {[
+                ["#1E1E1E", "Noir"],
+                ["#C9B790", "Beige"],
+                ["#355E3B", "Vert"],
+                ["#2A4D69", "Bleu"],
+                ["#B5402D", "Rouge"],
+              ].map(([hex, label]) => (
+                <button
+                  type="button"
+                  key={hex}
+                  onClick={() => setAccentColor(hex)}
+                  title={label}
+                  style={{
+                    ...styles.swatch,
+                    background: hex,
+                    outline: accentColor === hex ? "2px solid #1E2A3A" : "1px solid #D8CCAB",
+                  }}
+                />
+              ))}
+            </div>
             <div style={styles.formActions}>
               <button type="button" style={styles.newButton} onClick={handleSaveStyle} disabled={savingStyle}>
                 {savingStyle ? "Enregistrement…" : styleSaved ? "✓ Enregistré" : "Enregistrer l'apparence"}
@@ -374,6 +395,8 @@ const styles = {
   label: { display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636", flex: "1 1 200px" },
   input: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D" },
   colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff" },
+  swatchRow: { display: "flex", gap: "8px" },
+  swatch: { width: "28px", height: "28px", borderRadius: "50%", border: "none", cursor: "pointer" },
   textarea: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D", resize: "vertical" },
   fileInput: { fontSize: "0.8rem" },
   formPhotoPreview: { width: "120px", height: "90px", objectFit: "cover", borderRadius: "5px", border: "1px solid #D8CCAB", marginBottom: "6px" },

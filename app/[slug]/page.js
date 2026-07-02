@@ -35,6 +35,8 @@ export default function GuestbookPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [justSent, setJustSent] = useState(false);
@@ -70,6 +72,22 @@ export default function GuestbookPage() {
     return () => clearInterval(interval);
   }, [loadAll]);
 
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setPhoto(null);
+      setPhotoPreview(null);
+      return;
+    }
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  function removePhoto() {
+    setPhoto(null);
+    setPhotoPreview(null);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!text.trim() || !event) {
@@ -79,16 +97,32 @@ export default function GuestbookPage() {
     setError("");
     setSending(true);
 
+    let photoUrl = null;
+    if (photo && supabase) {
+      const ext = photo.name.split(".").pop() || "jpg";
+      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("guestbook-photos")
+        .upload(path, photo);
+      if (!uploadError) {
+        const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
+        photoUrl = pub?.publicUrl || null;
+      }
+    }
+
     const optimisticEntry = {
       id: "temp-" + Date.now(),
       name: name.trim() || "Anonyme",
       message: text.trim().slice(0, 400),
+      photo_url: photoUrl || photoPreview,
       ink: randomInk(),
       rotation: randomRotation(),
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticEntry]);
     setText("");
+    setPhoto(null);
+    setPhotoPreview(null);
     setJustSent(true);
     setTimeout(() => setJustSent(false), 2500);
 
@@ -96,6 +130,7 @@ export default function GuestbookPage() {
       event_id: event.id,
       name: optimisticEntry.name,
       message: optimisticEntry.message,
+      photo_url: photoUrl,
       ink: optimisticEntry.ink,
       rotation: optimisticEntry.rotation,
     });
@@ -140,8 +175,7 @@ export default function GuestbookPage() {
           <p style={styles.eyebrow}>LIVRE D'OR NUMÉRIQUE</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
           <p style={styles.sub}>
-           Laissez un petit mot qui restera gravé dans nos souvenirs.
-
+            Laissez un petit mot qui restera gravé dans nos souvenirs.
           </p>
         </header>
 
@@ -162,6 +196,26 @@ export default function GuestbookPage() {
             rows={3}
             style={styles.textarea}
           />
+
+          {photoPreview ? (
+            <div style={styles.photoPreviewWrap}>
+              <img src={photoPreview} alt="Aperçu" style={styles.photoPreview} />
+              <button type="button" onClick={removePhoto} style={styles.removePhotoButton}>
+                ✕ retirer la photo
+              </button>
+            </div>
+          ) : (
+            <label style={styles.photoLabel}>
+              📷 Ajouter une photo (optionnel)
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          )}
+
           <div style={styles.formRow}>
             <span style={styles.counter}>{text.length}/400</span>
             <button type="submit" disabled={sending || !event} style={styles.button}>
@@ -193,6 +247,9 @@ export default function GuestbookPage() {
                 key={m.id}
                 style={{ ...styles.entry, transform: `rotate(${m.rotation}deg)`, color: m.ink }}
               >
+                {m.photo_url && (
+                  <img src={m.photo_url} alt="" style={styles.entryPhoto} />
+                )}
                 <p style={styles.entryText}>{m.message}</p>
                 <p style={{ ...styles.entrySignature, color: m.ink }}>
                   — {m.name}
@@ -217,6 +274,10 @@ const styles = {
   form: { display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" },
   input: { fontFamily: "'Special Elite', monospace", fontSize: "0.9rem", padding: "10px 12px", border: "1px solid #C9BD9C", borderRadius: "4px", background: "#FCFAF2", color: "#2A241D" },
   textarea: { fontFamily: "'Caveat', cursive", fontSize: "1.3rem", padding: "10px 12px", border: "1px solid #C9BD9C", borderRadius: "4px", background: "#FCFAF2", color: "#2A241D", resize: "vertical" },
+  photoLabel: { fontFamily: "'Special Elite', monospace", fontSize: "0.8rem", color: "#5B4636", border: "1px dashed #C9BD9C", borderRadius: "4px", padding: "10px 12px", textAlign: "center", cursor: "pointer", background: "#FCFAF2" },
+  photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
+  photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "4px", border: "1px solid #C9BD9C" },
+  removePhotoButton: { alignSelf: "flex-start", fontFamily: "'Special Elite', monospace", fontSize: "0.7rem", color: "#B5402D", background: "none", border: "none", padding: 0, cursor: "pointer" },
   formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   counter: { fontSize: "0.7rem", color: "#8A7F66" },
   button: { fontFamily: "'Special Elite', monospace", fontSize: "0.85rem", padding: "10px 18px", background: "#B5402D", color: "#FCFAF2", border: "none", borderRadius: "4px" },
@@ -227,6 +288,7 @@ const styles = {
   entries: { display: "flex", flexDirection: "column", gap: "18px" },
   empty: { textAlign: "center", color: "#5B4636", fontFamily: "'Caveat', cursive", fontSize: "1.2rem", padding: "20px 0" },
   entry: { background: "#FCFAF2", border: "1px solid #E6DCC2", borderLeft: "3px solid currentColor", borderRadius: "2px", padding: "14px 16px", boxShadow: "0 3px 8px rgba(0,0,0,0.08)" },
+  entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "4px", marginBottom: "10px" },
   entryText: { fontFamily: "'Caveat', cursive", fontSize: "1.4rem", lineHeight: 1.3, margin: "0 0 8px 0" },
   entrySignature: { fontFamily: "'Caveat', cursive", fontSize: "1.1rem", fontWeight: 700, margin: 0, display: "flex", justifyContent: "space-between", alignItems: "baseline" },
   entryDate: { fontFamily: "'Special Elite', monospace", fontSize: "0.65rem", fontWeight: 400, opacity: 0.55 },

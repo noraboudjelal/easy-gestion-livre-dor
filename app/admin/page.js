@@ -192,6 +192,28 @@ export default function AdminPage() {
     setTimeout(() => setCopiedCatalogId(null), 1800);
   }
 
+  async function handleDeleteEvent(id, client) {
+    if (!supabase) return;
+    if (!window.confirm(`Supprimer le livre d'or de "${client}" ? Cette action est définitive.`)) return;
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) {
+      setLoadError("Suppression impossible : " + error.message);
+    } else {
+      loadEvents();
+    }
+  }
+
+  async function handleDeleteCatalog(id, client) {
+    if (!supabase) return;
+    if (!window.confirm(`Supprimer le catalogue de "${client}" ? Cette action est définitive.`)) return;
+    const { error } = await supabase.from("catalogs").delete().eq("id", id);
+    if (error) {
+      setCatalogsError("Suppression impossible : " + error.message);
+    } else {
+      loadCatalogs();
+    }
+  }
+
   if (!authed) {
     return (
       <div style={styles.loginPage}>
@@ -371,9 +393,14 @@ export default function AdminPage() {
                         </td>
                         <td style={styles.td}>{ev.messages?.[0]?.count ?? 0}</td>
                         <td style={styles.td}>
-                          <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={styles.iconButton}>
-                            imprimer
-                          </a>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={styles.iconButton}>
+                              imprimer
+                            </a>
+                            <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
+                              supprimer
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -404,9 +431,14 @@ export default function AdminPage() {
                         </button>
                       </div>
                       <div style={styles.subText}>{ev.messages?.[0]?.count ?? 0} message(s)</div>
-                      <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>
-                        imprimer le souvenir
-                      </a>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
+                          imprimer le souvenir
+                        </a>
+                        <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
+                          supprimer
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -549,9 +581,14 @@ export default function AdminPage() {
                         </td>
                         <td style={styles.td}>{cat.catalog_products?.[0]?.count ?? 0}</td>
                         <td style={styles.td}>
-                          <a href={`/admin/catalogue/${cat.id}`} style={styles.iconButton}>
-                            gérer les produits
-                          </a>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <a href={`/admin/catalogue/${cat.id}`} style={styles.iconButton}>
+                              gérer les produits
+                            </a>
+                            <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>
+                              supprimer
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -581,9 +618,14 @@ export default function AdminPage() {
                         </button>
                       </div>
                       <div style={styles.subText}>{cat.catalog_products?.[0]?.count ?? 0} produit(s)</div>
-                      <a href={`/admin/catalogue/${cat.id}`} style={{ ...styles.iconButton, textAlign: "center" }}>
-                        gérer les produits
-                      </a>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <a href={`/admin/catalogue/${cat.id}`} style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
+                          gérer les produits
+                        </a>
+                        <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>
+                          supprimer
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -700,6 +742,7 @@ const styles = {
   linkRow: { display: "flex", alignItems: "center", gap: "6px" },
   linkText: { fontSize: "0.75rem", color: "#1E2A3A", fontFamily: "monospace", wordBreak: "break-all" },
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "0.7rem" },
+  iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "0.7rem" },
   qrThumb: { display: "flex", alignItems: "center", gap: "4px" },
   mobileCards: { display: "none", flexDirection: "column", gap: "12px" },
   card: { background: "#FCFAF2", borderRadius: "10px", padding: "14px", border: "1px solid #E6DCC2", display: "flex", flexDirection: "column", gap: "8px" },

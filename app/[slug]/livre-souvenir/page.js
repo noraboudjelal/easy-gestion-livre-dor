@@ -31,6 +31,7 @@ const THEMES = {
     titleFont: "'Playfair Display', serif",
     textItalic: true,
     frame: "elegant",
+    tagline: "Des souvenirs qui resteront à jamais.",
   },
   floral: {
     label: "Floral",
@@ -43,6 +44,7 @@ const THEMES = {
     titleFont: "'Caveat', cursive",
     textItalic: false,
     frame: "floral",
+    tagline: "Les plus belles fleurs de ce jour, cueillies en mots.",
   },
   moderne: {
     label: "Moderne",
@@ -55,6 +57,7 @@ const THEMES = {
     titleFont: "'Inter', sans-serif",
     textItalic: false,
     frame: "square",
+    tagline: "Un instant. Des mots. Pour toujours.",
   },
   enfant: {
     label: "Enfant",
@@ -67,6 +70,7 @@ const THEMES = {
     titleFont: "'Caveat', cursive",
     textItalic: false,
     frame: "polaroid",
+    tagline: "Plein de rires à garder pour toujours.",
   },
   luxe: {
     label: "Luxe",
@@ -79,6 +83,7 @@ const THEMES = {
     titleFont: "'Playfair Display', serif",
     textItalic: true,
     frame: "gold",
+    tagline: "Les plus beaux souvenirs, réunis dans un seul livre.",
   },
 };
 
@@ -114,21 +119,21 @@ function seededRotation(id) {
   return ((hash % 60) - 30) / 10; // -3 à +3 degrés
 }
 
-function PhotoFrame({ url, frame, accent, id }) {
+function PhotoFrame({ url, frame, accent, id, size = 96 }) {
   if (!url) return null;
-  const rotation = frame === "polaroid" ? seededRotation(id || "x") : 0;
+  const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.5 : 1) : 0;
 
-  const base = { width: "76px", height: "76px", objectFit: "cover", flexShrink: 0, display: "block" };
+  const base = { width: `${size}px`, height: `${size}px`, objectFit: "cover", flexShrink: 0, display: "block" };
 
   if (frame === "floral") {
     return (
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <div style={{ position: "relative", flexShrink: 0, transform: `rotate(${rotation}deg)` }}>
         <img
           src={url}
           alt=""
           style={{ ...base, borderRadius: "50%", border: `3px solid ${accent}55` }}
         />
-        <span style={{ position: "absolute", bottom: -6, right: -6, fontSize: "1rem" }}>🌸</span>
+        <span style={{ position: "absolute", bottom: -6, right: -6, fontSize: "1.1rem" }}>🌸</span>
       </div>
     );
   }
@@ -136,17 +141,18 @@ function PhotoFrame({ url, frame, accent, id }) {
     return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "2px solid #111" }} />;
   }
   if (frame === "polaroid") {
+    const inner = size - 6;
     return (
       <div
         style={{
           background: "#fff",
-          padding: "6px 6px 14px 6px",
-          boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
+          padding: "6px 6px 18px 6px",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.16)",
           transform: `rotate(${rotation}deg)`,
           flexShrink: 0,
         }}
       >
-        <img src={url} alt="" style={{ ...base, width: "70px", height: "70px" }} />
+        <img src={url} alt="" style={{ ...base, width: `${inner}px`, height: `${inner}px` }} />
       </div>
     );
   }
@@ -155,12 +161,11 @@ function PhotoFrame({ url, frame, accent, id }) {
       <img
         src={url}
         alt=""
-        style={{ ...base, borderRadius: "6px", border: `2px solid ${accent}`, boxShadow: `0 0 0 3px ${accent}22` }}
+        style={{ ...base, borderRadius: "8px", border: `2px solid ${accent}`, boxShadow: `0 0 0 4px ${accent}22` }}
       />
     );
   }
-  // elegant (par défaut)
-  return <img src={url} alt="" style={{ ...base, borderRadius: "8px", border: "1px solid #E6DCC2" }} />;
+  return <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: "1px solid #E6DCC2" }} />;
 }
 
 export default function LivreSouvenirPage() {
@@ -322,27 +327,27 @@ export default function LivreSouvenirPage() {
         className="book-page"
         style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text }}
       >
-        {coverPhotoToShow && (
-          <div style={{ marginBottom: "26px" }}>
-            <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} />
+        {coverPhotoToShow ? (
+          <div style={bookStyles.coverPhotoWrap}>
+            <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} large />
           </div>
+        ) : (
+          <div style={{ color: theme.accent, fontSize: "1.6rem", marginBottom: "24px" }}>{theme.emoji}</div>
         )}
-        <div style={{ color: theme.accent, fontSize: "1.2rem", marginBottom: "18px" }}>{theme.emoji}</div>
         <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
         <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
           {event?.event_title}
         </h1>
-        <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
-        <p style={{ ...bookStyles.coverSub, color: theme.muted }}>
-          {messages.length} mot{messages.length > 1 ? "s" : ""} partagé{messages.length > 1 ? "s" : ""} par nos invités
+        <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
+          {theme.tagline}
         </p>
+        <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
         {firstDate && (
           <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
             {formatDateLong(firstDate)}
             {lastDate && lastDate !== firstDate ? ` — ${formatDateLong(lastDate)}` : ""}
           </p>
         )}
-        <div style={{ color: theme.accent, fontSize: "1.2rem", marginTop: "18px" }}>{theme.emoji}</div>
         <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
       </section>
 
@@ -357,9 +362,17 @@ export default function LivreSouvenirPage() {
             {event?.event_title}
           </p>
           <div style={bookStyles.messagesColumn}>
-            {group.map((m) => (
-              <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
-                <PhotoFrame url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} />
+            {group.map((m, mi) => (
+              <div
+                className="msg-row"
+                style={{
+                  ...bookStyles.msgRow,
+                  flexDirection: m.photo_url ? (mi % 2 === 0 ? "row" : "row-reverse") : "column",
+                  textAlign: m.photo_url ? "left" : "center",
+                }}
+                key={m.id}
+              >
+                <PhotoFrame url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} size={120} />
                 <div style={bookStyles.msgContent}>
                   <p
                     style={{
@@ -402,19 +415,33 @@ export default function LivreSouvenirPage() {
   );
 }
 
-function PhotoFrameCover({ url, frame, accent }) {
-  const base = { width: "160px", height: "160px", objectFit: "cover", display: "block" };
-  if (frame === "floral") return <img src={url} alt="" style={{ ...base, borderRadius: "50%", border: `4px solid ${accent}55` }} />;
+function PhotoFrameCover({ url, frame, accent, large }) {
+  const size = large ? { width: "100%", height: "125mm" } : { width: "160px", height: "160px" };
+  const base = { ...size, objectFit: "cover", display: "block" };
+  if (frame === "floral")
+    return (
+      <img
+        src={url}
+        alt=""
+        style={{ ...base, borderRadius: large ? "16px" : "50%", border: `4px solid ${accent}55` }}
+      />
+    );
   if (frame === "square") return <img src={url} alt="" style={{ ...base, border: "3px solid #111" }} />;
   if (frame === "polaroid")
     return (
-      <div style={{ background: "#fff", padding: "10px 10px 24px 10px", boxShadow: "0 6px 16px rgba(0,0,0,0.18)" }}>
-        <img src={url} alt="" style={{ ...base, width: "150px", height: "150px" }} />
+      <div style={{ background: "#fff", padding: large ? "12px 12px 26px 12px" : "10px 10px 24px 10px", boxShadow: "0 8px 20px rgba(0,0,0,0.18)" }}>
+        <img src={url} alt="" style={{ ...base, width: "100%", height: large ? "112mm" : "150px" }} />
       </div>
     );
   if (frame === "gold")
-    return <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22` }} />;
-  return <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: "1px solid #E6DCC2" }} />;
+    return (
+      <img
+        src={url}
+        alt=""
+        style={{ ...base, borderRadius: "12px", border: `3px solid ${accent}`, boxShadow: `0 0 0 6px ${accent}22` }}
+      />
+    );
+  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2" }} />;
 }
 
 const PAGE_WIDTH = "210mm";
@@ -464,18 +491,19 @@ const bookStyles = {
     maxWidth: PAGE_WIDTH,
     minHeight: PAGE_MIN_HEIGHT,
     boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
-    padding: "70px 60px",
+    padding: "48px 56px 60px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
   },
-  coverEyebrow: { fontSize: "0.75rem", letterSpacing: "0.3em", margin: "0 0 22px 0", fontWeight: 600 },
-  coverTitle: { fontSize: "2.8rem", fontWeight: 600, margin: 0, lineHeight: 1.25, maxWidth: "480px" },
+  coverPhotoWrap: { width: "100%", marginBottom: "32px" },
+  coverEyebrow: { fontSize: "0.75rem", letterSpacing: "0.3em", margin: "0 0 18px 0", fontWeight: 600 },
+  coverTitle: { fontSize: "2.6rem", fontWeight: 600, margin: 0, lineHeight: 1.25, maxWidth: "480px" },
+  coverTagline: { fontSize: "1.4rem", fontStyle: "italic", margin: "18px 0 0 0", maxWidth: "440px", lineHeight: 1.4 },
   coverRule: { width: "70px", height: "2px", margin: "26px 0" },
-  coverSub: { fontSize: "1rem", margin: "0 0 6px 0" },
-  coverDate: { fontSize: "0.85rem", margin: 0, letterSpacing: "0.02em" },
+  coverDate: { fontSize: "0.85rem", margin: "0 0 6px 0", letterSpacing: "0.02em" },
   coverBrand: { fontSize: "0.7rem", letterSpacing: "0.08em", marginTop: "10px" },
   contentPage: {
     width: "100%",
@@ -487,10 +515,10 @@ const bookStyles = {
     flexDirection: "column",
   },
   pageHeader: { fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", borderBottom: "1px solid", paddingBottom: "14px", marginBottom: "40px" },
-  messagesColumn: { flex: 1, display: "flex", flexDirection: "column", gap: "44px", justifyContent: "center" },
-  msgRow: { display: "flex", gap: "20px", alignItems: "flex-start" },
+  messagesColumn: { flex: 1, display: "flex", flexDirection: "column", gap: "50px", justifyContent: "center" },
+  msgRow: { display: "flex", gap: "26px", alignItems: "center" },
   msgContent: { flex: 1 },
-  msgText: { fontSize: "1.15rem", lineHeight: 1.55, margin: "0 0 10px 0" },
+  msgText: { fontSize: "1.2rem", lineHeight: 1.6, margin: "0 0 10px 0" },
   msgSignature: { fontSize: "0.8rem", fontWeight: 600, margin: 0 },
   pageNumber: { textAlign: "center", fontSize: "0.7rem", marginTop: "24px" },
   thanksPage: {

@@ -397,6 +397,9 @@ export default function AdminPage() {
                             <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={styles.iconButton}>
                               imprimer
                             </a>
+                            <a href={`/${ev.slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={styles.iconButton}>
+                              livre souvenir
+                            </a>
                             <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                               supprimer
                             </button>
@@ -434,6 +437,9 @@ export default function AdminPage() {
                       <div style={{ display: "flex", gap: "6px" }}>
                         <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
                           imprimer le souvenir
+                        </a>
+                        <a href={`/${ev.slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
+                          livre souvenir
                         </a>
                         <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                           supprimer

@@ -95,6 +95,7 @@ export default function PrintPage() {
           {messages.length === 0 && <p style={{ color: "#8A7F66" }}>Aucun message.</p>}
           {messages.map((m) => (
             <div className="entry" key={m.id} style={{ ...styles.entry, color: m.ink }}>
+              {m.photo_url && <img src={m.photo_url} alt="" style={styles.entryPhoto} />}
               <p style={styles.entryText}>{m.message}</p>
               <p style={{ ...styles.entrySignature, color: m.ink }}>
                 — {m.name} <span style={styles.entryDate}>{formatDate(m.created_at)}</span>
@@ -151,6 +152,7 @@ const styles = {
   brandFooter: { fontSize: "0.7rem", color: "#A6792B", margin: "0 0 24px 0", borderBottom: "2px solid #B5402D", paddingBottom: "16px" },
   entries: { display: "flex", flexDirection: "column", gap: "22px" },
   entry: { borderLeft: "3px solid currentColor", paddingLeft: "14px" },
+  entryPhoto: { width: "100%", maxWidth: "260px", maxHeight: "200px", objectFit: "cover", borderRadius: "4px", marginBottom: "8px", display: "block" },
   entryText: { fontFamily: "'Caveat', cursive", fontSize: "1.4rem", lineHeight: 1.3, margin: "0 0 6px 0" },
   entrySignature: { fontFamily: "'Caveat', cursive", fontSize: "1.05rem", fontWeight: 700, margin: 0 },
   entryDate: { fontFamily: "'Special Elite', monospace", fontSize: "0.65rem", fontWeight: 400, opacity: 0.6 },

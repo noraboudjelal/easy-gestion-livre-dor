@@ -94,8 +94,8 @@ function paginateMessages(messages) {
   for (const m of messages) {
     const textLen = (m.message || "").length;
     const hasPhoto = !!m.photo_url;
-    const itemWeight = (hasPhoto ? 2.4 : 0.9) + textLen / 220;
-    if (current.length >= 4 || (current.length >= 1 && weight + itemWeight > 3.0)) {
+    const itemWeight = (hasPhoto ? 1.5 : 0.7) + textLen / 240;
+    if (current.length >= 4 || (current.length >= 1 && weight + itemWeight > 3.05)) {
       pages.push(current);
       current = [];
       weight = 0;
@@ -107,8 +107,7 @@ function paginateMessages(messages) {
   if (pages.length > 1 && pages[pages.length - 1].length < 2) {
     const last = pages.pop();
     const prev = pages[pages.length - 1];
-    const prevHasPhoto = prev.some((m) => m.photo_url);
-    if (!prevHasPhoto && prev.length + last.length <= 4) prev.push(...last);
+    if (prev.length + last.length <= 4) prev.push(...last);
     else pages.push(last);
   }
   return pages;
@@ -123,22 +122,22 @@ function seededRotation(id) {
 function AlbumPhoto({ url, frame, accent, id }) {
   if (!url) return null;
   const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.4 : 0.8) : 0;
-  const base = { width: "100%", height: "82mm", objectFit: "cover", display: "block" };
+  const base = { width: "100%", height: "92mm", objectFit: "cover", display: "block" };
 
   if (frame === "floral") {
     return (
-      <div style={{ transform: `rotate(${rotation}deg)`, marginBottom: "16px" }}>
+      <div style={{ transform: `rotate(${rotation}deg)`, marginBottom: "14px", width: "100%" }}>
         <img src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
       </div>
     );
   }
   if (frame === "square") {
-    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "16px" }} />;
+    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "14px" }} />;
   }
   if (frame === "polaroid") {
     return (
-      <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "18px" }}>
-        <img src={url} alt="" style={{ ...base, height: "74mm" }} />
+      <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "16px", width: "100%" }}>
+        <img src={url} alt="" style={{ ...base, height: "82mm" }} />
       </div>
     );
   }
@@ -147,11 +146,11 @@ function AlbumPhoto({ url, frame, accent, id }) {
       <img
         src={url}
         alt=""
-        style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22`, marginBottom: "16px" }}
+        style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22`, marginBottom: "14px" }}
       />
     );
   }
-  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2", marginBottom: "16px" }} />;
+  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2", marginBottom: "14px" }} />;
 }
 
 function PhotoFrame({ url, frame, accent, id, size = 96 }) {
@@ -545,7 +544,7 @@ const bookStyles = {
     maxWidth: PAGE_WIDTH,
     minHeight: PAGE_MIN_HEIGHT,
     boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
-    padding: "56px 64px",
+    padding: "52px 52px",
     display: "flex",
     flexDirection: "column",
   },

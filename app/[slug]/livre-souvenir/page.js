@@ -94,8 +94,8 @@ function paginateMessages(messages) {
   for (const m of messages) {
     const textLen = (m.message || "").length;
     const hasPhoto = !!m.photo_url;
-    const itemWeight = (hasPhoto ? 1.3 : 0.9) + textLen / 200;
-    if (current.length >= 4 || (current.length >= 2 && weight + itemWeight > 3.3)) {
+    const itemWeight = (hasPhoto ? 2.4 : 0.9) + textLen / 220;
+    if (current.length >= 4 || (current.length >= 1 && weight + itemWeight > 3.0)) {
       pages.push(current);
       current = [];
       weight = 0;
@@ -107,7 +107,8 @@ function paginateMessages(messages) {
   if (pages.length > 1 && pages[pages.length - 1].length < 2) {
     const last = pages.pop();
     const prev = pages[pages.length - 1];
-    if (prev.length + last.length <= 4) prev.push(...last);
+    const prevHasPhoto = prev.some((m) => m.photo_url);
+    if (!prevHasPhoto && prev.length + last.length <= 4) prev.push(...last);
     else pages.push(last);
   }
   return pages;
@@ -117,6 +118,40 @@ function seededRotation(id) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 1000;
   return ((hash % 60) - 30) / 10; // -3 à +3 degrés
+}
+
+function AlbumPhoto({ url, frame, accent, id }) {
+  if (!url) return null;
+  const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.4 : 0.8) : 0;
+  const base = { width: "100%", height: "82mm", objectFit: "cover", display: "block" };
+
+  if (frame === "floral") {
+    return (
+      <div style={{ transform: `rotate(${rotation}deg)`, marginBottom: "16px" }}>
+        <img src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
+      </div>
+    );
+  }
+  if (frame === "square") {
+    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "16px" }} />;
+  }
+  if (frame === "polaroid") {
+    return (
+      <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "18px" }}>
+        <img src={url} alt="" style={{ ...base, height: "74mm" }} />
+      </div>
+    );
+  }
+  if (frame === "gold") {
+    return (
+      <img
+        src={url}
+        alt=""
+        style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22`, marginBottom: "16px" }}
+      />
+    );
+  }
+  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2", marginBottom: "16px" }} />;
 }
 
 function PhotoFrame({ url, frame, accent, id, size = 96 }) {
@@ -362,17 +397,17 @@ export default function LivreSouvenirPage() {
             {event?.event_title}
           </p>
           <div style={bookStyles.messagesColumn}>
-            {group.map((m, mi) => (
+            {group.map((m) => (
               <div
                 className="msg-row"
                 style={{
                   ...bookStyles.msgRow,
-                  flexDirection: m.photo_url ? (mi % 2 === 0 ? "row" : "row-reverse") : "column",
-                  textAlign: m.photo_url ? "left" : "center",
+                  flexDirection: "column",
+                  textAlign: m.photo_url ? "center" : "center",
                 }}
                 key={m.id}
               >
-                <PhotoFrame url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} size={120} />
+                <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} />
                 <div style={bookStyles.msgContent}>
                   <p
                     style={{
@@ -515,10 +550,10 @@ const bookStyles = {
     flexDirection: "column",
   },
   pageHeader: { fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", borderBottom: "1px solid", paddingBottom: "14px", marginBottom: "40px" },
-  messagesColumn: { flex: 1, display: "flex", flexDirection: "column", gap: "50px", justifyContent: "center" },
-  msgRow: { display: "flex", gap: "26px", alignItems: "center" },
-  msgContent: { flex: 1 },
-  msgText: { fontSize: "1.2rem", lineHeight: 1.6, margin: "0 0 10px 0" },
+  messagesColumn: { flex: 1, display: "flex", flexDirection: "column", gap: "36px", justifyContent: "center" },
+  msgRow: { display: "flex", flexDirection: "column", alignItems: "center" },
+  msgContent: { maxWidth: "420px", textAlign: "center" },
+  msgText: { fontSize: "1.15rem", lineHeight: 1.6, margin: "0 0 10px 0" },
   msgSignature: { fontSize: "0.8rem", fontWeight: 600, margin: 0 },
   pageNumber: { textAlign: "center", fontSize: "0.7rem", marginTop: "24px" },
   thanksPage: {

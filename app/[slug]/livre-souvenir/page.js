@@ -89,26 +89,8 @@ const THEMES = {
 
 function paginateMessages(messages) {
   const pages = [];
-  let current = [];
-  let weight = 0;
-  for (const m of messages) {
-    const textLen = (m.message || "").length;
-    const hasPhoto = !!m.photo_url;
-    const itemWeight = (hasPhoto ? 1.5 : 0.7) + textLen / 240;
-    if (current.length >= 4 || (current.length >= 1 && weight + itemWeight > 3.05)) {
-      pages.push(current);
-      current = [];
-      weight = 0;
-    }
-    current.push(m);
-    weight += itemWeight;
-  }
-  if (current.length) pages.push(current);
-  if (pages.length > 1 && pages[pages.length - 1].length < 2) {
-    const last = pages.pop();
-    const prev = pages[pages.length - 1];
-    if (prev.length + last.length <= 4) prev.push(...last);
-    else pages.push(last);
+  for (let i = 0; i < messages.length; i += 2) {
+    pages.push(messages.slice(i, i + 2));
   }
   return pages;
 }
@@ -284,6 +266,8 @@ export default function LivreSouvenirPage() {
   const pages = paginateMessages(messages);
   const firstDate = messages[0]?.created_at;
   const lastDate = messages[messages.length - 1]?.created_at;
+  const firstDateLabel = firstDate ? formatDateLong(firstDate) : "";
+  const lastDateLabel = lastDate ? formatDateLong(lastDate) : "";
   const coverPhotoToShow = coverPreview || existingCoverUrl;
 
   if (step === "setup") {
@@ -359,30 +343,44 @@ export default function LivreSouvenirPage() {
       {/* Couverture */}
       <section
         className="book-page"
-        style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text }}
+        style={{
+          ...bookStyles.coverPage,
+          background: theme.sheetBg,
+          color: theme.text,
+          padding: coverPhotoToShow ? 0 : "48px 56px 60px",
+          justifyContent: coverPhotoToShow ? "flex-start" : "center",
+        }}
       >
-        {coverPhotoToShow ? (
-          <div style={bookStyles.coverPhotoWrap}>
-            <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} large />
+        {coverPhotoToShow && (
+          <div style={bookStyles.coverBanner}>
+            <img src={coverPhotoToShow} alt="" style={bookStyles.coverBannerImg} />
           </div>
-        ) : (
-          <div style={{ color: theme.accent, fontSize: "1.6rem", marginBottom: "24px" }}>{theme.emoji}</div>
         )}
-        <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
-        <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
-          {event?.event_title}
-        </h1>
-        <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
-          {theme.tagline}
-        </p>
-        <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
-        {firstDate && (
-          <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
-            {formatDateLong(firstDate)}
-            {lastDate && lastDate !== firstDate ? ` — ${formatDateLong(lastDate)}` : ""}
+        <div
+          style={{
+            ...bookStyles.coverContent,
+            padding: coverPhotoToShow ? "40px 56px 60px" : 0,
+          }}
+        >
+          {!coverPhotoToShow && (
+            <div style={{ color: theme.accent, fontSize: "1.6rem", marginBottom: "24px" }}>{theme.emoji}</div>
+          )}
+          <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
+          <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
+            {event?.event_title}
+          </h1>
+          <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
+            {theme.tagline}
           </p>
-        )}
-        <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
+          <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
+          {firstDateLabel && (
+            <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
+              {firstDateLabel}
+              {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
+            </p>
+          )}
+          <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
+        </div>
       </section>
 
       {/* Pages de messages */}
@@ -525,14 +523,23 @@ const bookStyles = {
     maxWidth: PAGE_WIDTH,
     minHeight: PAGE_MIN_HEIGHT,
     boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
-    padding: "48px 56px 60px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    textAlign: "center",
+    overflow: "hidden",
+  },
+  coverBanner: { width: "100%", height: "140mm", flexShrink: 0, overflow: "hidden" },
+  coverBannerImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  coverContent: {
+    flex: 1,
+    width: "100%",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
   },
-  coverPhotoWrap: { width: "100%", marginBottom: "32px" },
   coverEyebrow: { fontSize: "0.75rem", letterSpacing: "0.3em", margin: "0 0 18px 0", fontWeight: 600 },
   coverTitle: { fontSize: "2.6rem", fontWeight: 600, margin: 0, lineHeight: 1.25, maxWidth: "480px" },
   coverTagline: { fontSize: "1.4rem", fontStyle: "italic", margin: "18px 0 0 0", maxWidth: "440px", lineHeight: 1.4 },

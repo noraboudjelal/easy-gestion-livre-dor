@@ -87,10 +87,127 @@ const THEMES = {
   },
 };
 
+const COVER_STYLES = [
+  { value: "floral", label: "Floral" },
+  { value: "feuillage", label: "Feuillage" },
+  { value: "cadre", label: "Cadre raffiné" },
+];
+
+function CoverOrnamentTop({ style, accent }) {
+  if (style === "feuillage") {
+    return (
+      <svg width="220" height="34" viewBox="0 0 220 34" fill="none" style={{ margin: "0 auto 14px", display: "block" }}>
+        <g stroke={accent} strokeWidth="1.3" fill="none" opacity="0.85">
+          <path d="M110 30 C 95 26, 80 24, 60 18 C 45 13, 30 10, 14 4" />
+          <path d="M70 20 C 66 16, 64 12, 66 6" />
+          <path d="M50 15 C 46 11, 45 7, 47 2" />
+          <path d="M30 8 C 27 5, 27 2, 30 0" />
+          <path d="M110 30 C 125 26, 140 24, 160 18 C 175 13, 190 10, 206 4" />
+          <path d="M150 20 C 154 16, 156 12, 154 6" />
+          <path d="M170 15 C 174 11, 175 7, 173 2" />
+          <path d="M190 8 C 193 5, 193 2, 190 0" />
+        </g>
+      </svg>
+    );
+  }
+  if (style === "cadre") {
+    return (
+      <svg width="140" height="26" viewBox="0 0 140 26" fill="none" style={{ margin: "0 auto 16px", display: "block" }}>
+        <g stroke={accent} strokeWidth="1.2" fill="none">
+          <path d="M2 2 L2 12 M2 2 L18 2" />
+          <path d="M138 2 L138 12 M138 2 L122 2" />
+          <circle cx="70" cy="13" r="2.5" fill={accent} stroke="none" />
+          <path d="M50 13 H62 M78 13 H90" />
+        </g>
+      </svg>
+    );
+  }
+  // floral (par défaut)
+  return (
+    <svg width="90" height="46" viewBox="0 0 90 46" fill="none" style={{ margin: "0 auto 12px", display: "block" }}>
+      <g stroke={accent} fill="none" strokeWidth="1.3" opacity="0.9">
+        <path d="M45 44 C 45 30, 45 20, 45 6" />
+        <ellipse cx="45" cy="10" rx="6" ry="9" transform="rotate(-20 45 10)" />
+        <ellipse cx="45" cy="10" rx="6" ry="9" transform="rotate(20 45 10)" />
+        <ellipse cx="45" cy="6" rx="6" ry="9" />
+        <path d="M45 26 C 38 24, 32 24, 26 28" />
+        <path d="M45 34 C 52 32, 58 32, 64 36" />
+      </g>
+    </svg>
+  );
+}
+
+function CoverOrnamentBottom({ style, accent }) {
+  if (style === "cadre") {
+    return (
+      <svg width="140" height="26" viewBox="0 0 140 26" fill="none" style={{ margin: "16px auto 0", display: "block" }}>
+        <g stroke={accent} strokeWidth="1.2" fill="none">
+          <path d="M2 24 L2 14 M2 24 L18 24" />
+          <path d="M138 24 L138 14 M138 24 L122 24" />
+          <circle cx="70" cy="13" r="2.5" fill={accent} stroke="none" />
+          <path d="M50 13 H62 M78 13 H90" />
+        </g>
+      </svg>
+    );
+  }
+  if (style === "feuillage") return null;
+  return (
+    <svg width="60" height="26" viewBox="0 0 60 26" fill="none" style={{ margin: "14px auto 0", display: "block" }}>
+      <g stroke={accent} fill="none" strokeWidth="1.2" opacity="0.85">
+        <path d="M30 2 C 30 10, 30 16, 30 24" />
+        <path d="M30 12 C 25 10, 20 10, 15 13" />
+        <path d="M30 16 C 35 14, 40 14, 45 17" />
+      </g>
+    </svg>
+  );
+}
+
+function CoverFrame({ style, accent, sheetBg, children }) {
+  if (style === "cadre") {
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          boxShadow: `inset 0 0 0 3px ${sheetBg}, inset 0 0 0 4px ${accent}66, inset 0 0 0 8px ${sheetBg}, inset 0 0 0 9px ${accent}33`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+  if (style === "floral") {
+    return (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          boxShadow: `inset 0 0 0 2px ${accent}55`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      {children}
+    </div>
+  );
+}
+
 function paginateMessages(messages) {
   const pages = [];
-  for (let i = 0; i < messages.length; i += 2) {
-    pages.push(messages.slice(i, i + 2));
+  for (let i = 0; i < messages.length; i += 3) {
+    pages.push(messages.slice(i, i + 3));
   }
   return pages;
 }
@@ -104,22 +221,22 @@ function seededRotation(id) {
 function AlbumPhoto({ url, frame, accent, id }) {
   if (!url) return null;
   const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.4 : 0.8) : 0;
-  const base = { width: "100%", maxWidth: "300px", aspectRatio: "4 / 3", objectFit: "cover", display: "block", margin: "0 auto" };
+  const base = { width: "92px", height: "92px", objectFit: "cover", display: "block", flexShrink: 0 };
 
   if (frame === "floral") {
     return (
-      <div style={{ transform: `rotate(${rotation}deg)`, marginBottom: "14px", width: "100%" }}>
-        <img src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
+      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0 }}>
+        <img src={url} alt="" style={{ ...base, borderRadius: "50%", border: `3px solid ${accent}55` }} />
       </div>
     );
   }
   if (frame === "square") {
-    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "14px" }} />;
+    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "2px solid #111" }} />;
   }
   if (frame === "polaroid") {
     return (
-      <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "16px", maxWidth: "300px", margin: "0 auto 16px" }}>
-        <img src={url} alt="" style={{ ...base, maxWidth: "none" }} />
+      <div style={{ background: "#fff", padding: "6px 6px 16px 6px", boxShadow: "0 4px 10px rgba(0,0,0,0.15)", transform: `rotate(${rotation}deg)`, flexShrink: 0 }}>
+        <img src={url} alt="" style={{ ...base, width: "80px", height: "80px" }} />
       </div>
     );
   }
@@ -128,11 +245,11 @@ function AlbumPhoto({ url, frame, accent, id }) {
       <img
         src={url}
         alt=""
-        style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22`, marginBottom: "14px" }}
+        style={{ ...base, borderRadius: "8px", border: `2px solid ${accent}`, boxShadow: `0 0 0 3px ${accent}22` }}
       />
     );
   }
-  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: `2px solid ${accent}`, boxShadow: "0 6px 16px rgba(30,20,10,0.10)", marginBottom: "14px" }} />;
+  return <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: `2px solid ${accent}` }} />;
 }
 
 function PhotoFrame({ url, frame, accent, id, size = 96 }) {
@@ -195,6 +312,7 @@ export default function LivreSouvenirPage() {
 
   const [step, setStep] = useState("setup"); // "setup" | "book"
   const [themeKey, setThemeKey] = useState("elegant");
+  const [coverStyle, setCoverStyle] = useState("floral");
   const [coverPhoto, setCoverPhoto] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState(null);
@@ -210,6 +328,7 @@ export default function LivreSouvenirPage() {
     }
     setEvent(ev);
     if (ev.book_theme && THEMES[ev.book_theme]) setThemeKey(ev.book_theme);
+    if (ev.book_cover_style) setCoverStyle(ev.book_cover_style);
     if (ev.cover_photo_url) setExistingCoverUrl(ev.cover_photo_url);
 
     const { data: msgs } = await supabase
@@ -249,7 +368,7 @@ export default function LivreSouvenirPage() {
         coverUrl = pub?.publicUrl || coverUrl;
       }
     }
-    await supabase.from("events").update({ book_theme: themeKey, cover_photo_url: coverUrl }).eq("id", event.id);
+    await supabase.from("events").update({ book_theme: themeKey, book_cover_style: coverStyle, cover_photo_url: coverUrl }).eq("id", event.id);
     setExistingCoverUrl(coverUrl);
     setSaving(false);
     setStep("book");
@@ -300,6 +419,26 @@ export default function LivreSouvenirPage() {
             ))}
           </div>
 
+          <p style={{ ...setupStyles.sub, marginTop: "18px", marginBottom: "10px" }}>Style de couverture</p>
+          <div style={setupStyles.coverStyleGrid}>
+            {COVER_STYLES.map((cs) => {
+              const previewTheme = THEMES[themeKey];
+              return (
+                <button
+                  key={cs.value}
+                  onClick={() => setCoverStyle(cs.value)}
+                  style={{
+                    ...setupStyles.coverStyleCard,
+                    outline: coverStyle === cs.value ? `3px solid ${previewTheme.accent}` : "1px solid #D8CCAB",
+                  }}
+                >
+                  <CoverOrnamentTop style={cs.value} accent={previewTheme.accent} />
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#5B4636" }}>{cs.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <label style={setupStyles.uploadLabel}>
             {coverPhotoToShow ? (
               <img src={coverPhotoToShow} alt="" style={setupStyles.uploadPreview} />
@@ -322,6 +461,7 @@ export default function LivreSouvenirPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Caveat:wght@600;700&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .msg-row + .msg-row { border-top: 1px solid var(--sep-color); padding-top: 20px; }
         @page { size: A4; margin: 0; }
         @media print {
           .no-print { display: none !important; }
@@ -345,26 +485,30 @@ export default function LivreSouvenirPage() {
         className="book-page print-page"
         style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text }}
       >
-        {coverPhotoToShow && (
-          <div style={{ marginBottom: "28px" }}>
-            <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} large />
-          </div>
-        )}
-        <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
-        <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
-          {event?.event_title}
-        </h1>
-        <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
-          {theme.tagline}
-        </p>
-        <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
-        {firstDateLabel && (
-          <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
-            {firstDateLabel}
-            {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
+        <CoverFrame style={coverStyle} accent={theme.accent} sheetBg={theme.sheetBg}>
+          {coverPhotoToShow && (
+            <div style={{ marginBottom: "24px" }}>
+              <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} large />
+            </div>
+          )}
+          <CoverOrnamentTop style={coverStyle} accent={theme.accent} />
+          <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
+          <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
+            {event?.event_title}
+          </h1>
+          <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
+            {theme.tagline}
           </p>
-        )}
-        <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
+          <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
+          {firstDateLabel && (
+            <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
+              {firstDateLabel}
+              {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
+            </p>
+          )}
+          <CoverOrnamentBottom style={coverStyle} accent={theme.accent} />
+          <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
+        </CoverFrame>
       </section>
 
       {/* Pages de messages */}
@@ -374,17 +518,9 @@ export default function LivreSouvenirPage() {
           style={{ ...bookStyles.contentPage, background: theme.sheetBg, color: theme.text }}
           key={gi}
         >
-          <div style={bookStyles.messagesColumn}>
+          <div style={{ ...bookStyles.messagesColumn, "--sep-color": theme.muted + "30" }}>
             {group.map((m) => (
-              <div
-                className="msg-row"
-                style={{
-                  ...bookStyles.msgRow,
-                  flexDirection: "column",
-                  textAlign: m.photo_url ? "center" : "center",
-                }}
-                key={m.id}
-              >
+              <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
                 <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} />
                 <div style={bookStyles.msgContent}>
                   <p
@@ -397,7 +533,9 @@ export default function LivreSouvenirPage() {
                   >
                     {m.message}
                   </p>
-                  <p style={{ ...bookStyles.msgSignature, color: theme.accent }}>{m.name}</p>
+                  <p style={{ ...bookStyles.msgSignature, color: theme.accent }}>
+                    {m.name} <span style={{ fontWeight: 400, color: theme.muted }}>· {formatDateShort(m.created_at)}</span>
+                  </p>
                 </div>
               </div>
             ))}
@@ -467,6 +605,8 @@ const setupStyles = {
   sub: { color: "#5B4636", fontSize: "0.9rem", marginBottom: "20px" },
   themeGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "12px", width: "100%" },
   themeCard: { display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", padding: "18px 10px", borderRadius: "10px", border: "none", cursor: "pointer" },
+  coverStyleGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", width: "100%" },
+  coverStyleCard: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: "6px", padding: "14px 8px", borderRadius: "10px", border: "none", cursor: "pointer", background: "#FCFAF2", minHeight: "90px" },
   uploadLabel: {
     marginTop: "24px",
     width: "100%",
@@ -523,11 +663,11 @@ const bookStyles = {
     display: "flex",
     flexDirection: "column",
   },
-  messagesColumn: { display: "flex", flexDirection: "column", gap: "40px" },
-  msgRow: { display: "flex", flexDirection: "column", alignItems: "center" },
-  msgContent: { maxWidth: "380px", textAlign: "center" },
-  msgText: { fontSize: "1.1rem", lineHeight: 1.6, margin: "0 0 10px 0" },
-  msgSignature: { fontSize: "0.8rem", fontWeight: 600, margin: 0 },
+  messagesColumn: { display: "flex", flexDirection: "column", gap: "22px" },
+  msgRow: { display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "16px", textAlign: "left" },
+  msgContent: { flex: 1, minWidth: 0 },
+  msgText: { fontSize: "0.95rem", lineHeight: 1.5, margin: "0 0 6px 0" },
+  msgSignature: { fontSize: "0.78rem", fontWeight: 600, margin: 0 },
   pageNumber: { textAlign: "center", fontSize: "0.7rem", marginTop: "24px" },
   thanksPage: {
     width: "100%",

@@ -267,14 +267,6 @@ function CoverFrame({ accent, sheetBg, children }) {
   );
 }
 
-function paginateMessages(messages) {
-  const pages = [];
-  for (let i = 0; i < messages.length; i += 3) {
-    pages.push(messages.slice(i, i + 3));
-  }
-  return pages;
-}
-
 function seededRotation(id) {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) % 1000;
@@ -467,7 +459,6 @@ export default function LivreSouvenirPage() {
   }
 
   const theme = THEMES[themeKey];
-  const pages = paginateMessages(messages);
   const firstDate = messages[0]?.created_at;
   const lastDate = messages[messages.length - 1]?.created_at;
   const firstDateLabel = firstDate ? formatDateLong(firstDate) : "";
@@ -530,10 +521,10 @@ export default function LivreSouvenirPage() {
         @page { size: A4; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          .print-page { min-height: 297mm; box-shadow: none !important; margin: 0 auto !important; page-break-after: always; }
-          .print-page:last-of-type { page-break-after: auto; }
+          .cover-sheet { min-height: 297mm; box-shadow: none !important; margin: 0 auto !important; page-break-after: always; background-image: none !important; }
+          .content-sheet { box-shadow: none !important; margin: 0 auto !important; }
+          .thanks-sheet { min-height: 297mm; box-shadow: none !important; margin: 0 auto !important; page-break-before: always; }
           .msg-row { break-inside: avoid; }
-          .cover-sheet { background-image: none !important; }
         }
       `}</style>
 
@@ -582,42 +573,38 @@ export default function LivreSouvenirPage() {
         </CoverFrame>
       </section>
 
-      {/* Pages de messages */}
-      {pages.map((group, gi) => (
-        <section
-          className="book-page print-page"
-          style={{ ...bookStyles.contentPage, background: theme.sheetBg, color: theme.text }}
-          key={gi}
-        >
-          <div style={{ ...bookStyles.messagesColumn, "--sep-color": theme.muted + "30" }}>
-            {group.map((m) => (
-              <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
-                <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.frameColor} id={m.id} />
-                <div style={bookStyles.msgContent}>
-                  <p
-                    style={{
-                      ...bookStyles.msgText,
-                      fontFamily: theme.titleFont,
-                      fontStyle: theme.textItalic ? "italic" : "normal",
-                      color: theme.text,
-                    }}
-                  >
-                    {m.message}
-                  </p>
-                  <p style={{ ...bookStyles.msgSignature, color: theme.accent }}>
-                    {m.name} <span style={{ fontWeight: 400, color: theme.muted }}>· {formatDateShort(m.created_at)}</span>
-                  </p>
-                </div>
+      {/* Souvenirs — un seul flux continu, la pagination se fait naturellement à l'impression */}
+      <section
+        className="content-sheet"
+        style={{ ...bookStyles.contentPage, background: theme.sheetBg, color: theme.text }}
+      >
+        <div style={{ ...bookStyles.messagesColumn, "--sep-color": theme.muted + "30" }}>
+          {messages.map((m) => (
+            <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
+              <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.frameColor} id={m.id} />
+              <div style={bookStyles.msgContent}>
+                <p
+                  style={{
+                    ...bookStyles.msgText,
+                    fontFamily: theme.titleFont,
+                    fontStyle: theme.textItalic ? "italic" : "normal",
+                    color: theme.text,
+                  }}
+                >
+                  {m.message}
+                </p>
+                <p style={{ ...bookStyles.msgSignature, color: theme.accent }}>
+                  {m.name} <span style={{ fontWeight: 400, color: theme.muted }}>· {formatDateShort(m.created_at)}</span>
+                </p>
               </div>
-            ))}
-          </div>
-          <p style={{ ...bookStyles.pageNumber, color: theme.muted }}>{gi + 1}</p>
-        </section>
-      ))}
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Remerciement */}
       <section
-        className="book-page print-page"
+        className="book-page thanks-sheet"
         style={{ ...bookStyles.thanksPage, background: theme.sheetBg, color: theme.text }}
       >
         <div style={{ color: theme.accent, fontSize: "1.2rem", marginBottom: "18px" }}>{theme.emoji}</div>

@@ -16,6 +16,10 @@ function shortCode() {
   return Math.random().toString(36).slice(2, 6);
 }
 
+function clientAccessCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [pwd, setPwd] = useState("");
@@ -149,6 +153,7 @@ export default function AdminPage() {
       slug,
       accent_color: catalogColor,
       font_style: catalogFont,
+      client_password: clientAccessCode(),
     });
     setCreatingCatalog(false);
     if (error) {
@@ -171,6 +176,22 @@ export default function AdminPage() {
   function catalogLinkFor(slug) {
     if (typeof window === "undefined") return slug;
     return `${window.location.origin}/catalogue/${slug}`;
+  }
+
+  function clientManageLinkFor(slug) {
+    if (typeof window === "undefined") return slug;
+    return `${window.location.origin}/catalogue/${slug}/gerer`;
+  }
+
+  async function handleRegenerateCode(catalogId) {
+    if (!supabase) return;
+    const newCode = clientAccessCode();
+    const { error } = await supabase.from("catalogs").update({ client_password: newCode }).eq("id", catalogId);
+    if (error) {
+      setCatalogsError("Impossible de régénérer le code : " + error.message);
+    } else {
+      loadCatalogs();
+    }
   }
 
   function qrUrlForLink(link) {
@@ -554,6 +575,7 @@ export default function AdminPage() {
                     <tr>
                       <th style={styles.th}>Client</th>
                       <th style={styles.th}>Lien</th>
+                      <th style={styles.th}>Accès client</th>
                       <th style={styles.th}>QR code</th>
                       <th style={styles.th}>Produits</th>
                       <th style={styles.th}></th>
@@ -573,6 +595,25 @@ export default function AdminPage() {
                               {copiedCatalogId === cat.id ? "✓" : "copier"}
                             </button>
                           </div>
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.linkRow}>
+                            <code style={styles.codeText}>{cat.client_password || "—"}</code>
+                            <button
+                              style={styles.iconButton}
+                              onClick={() => {
+                                const text = `Lien : ${clientManageLinkFor(cat.slug)}\nCode d'accès : ${cat.client_password}`;
+                                if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+                                setCopiedCatalogId(`gerer-${cat.id}`);
+                                setTimeout(() => setCopiedCatalogId(null), 1800);
+                              }}
+                            >
+                              {copiedCatalogId === `gerer-${cat.id}` ? "✓" : "copier lien + code"}
+                            </button>
+                          </div>
+                          <button style={styles.regenerateButton} onClick={() => handleRegenerateCode(cat.id)}>
+                            régénérer le code
+                          </button>
                         </td>
                         <td style={styles.td}>
                           <a href={qrUrlForLink(catalogLinkFor(cat.slug))} target="_blank" rel="noreferrer" style={styles.qrThumb}>
@@ -621,6 +662,20 @@ export default function AdminPage() {
                         <span style={styles.linkText}>{catalogLinkFor(cat.slug)}</span>
                         <button style={styles.iconButton} onClick={() => handleCopyCatalog(cat.id, cat.slug)}>
                           {copiedCatalogId === cat.id ? "✓" : "copier"}
+                        </button>
+                      </div>
+                      <div style={styles.linkRow}>
+                        <code style={styles.codeText}>Code client : {cat.client_password || "—"}</code>
+                        <button
+                          style={styles.iconButton}
+                          onClick={() => {
+                            const text = `Lien : ${clientManageLinkFor(cat.slug)}\nCode d'accès : ${cat.client_password}`;
+                            if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+                            setCopiedCatalogId(`gerer-${cat.id}`);
+                            setTimeout(() => setCopiedCatalogId(null), 1800);
+                          }}
+                        >
+                          {copiedCatalogId === `gerer-${cat.id}` ? "✓" : "copier lien + code"}
                         </button>
                       </div>
                       <div style={styles.subText}>{cat.catalog_products?.[0]?.count ?? 0} produit(s)</div>
@@ -747,6 +802,8 @@ const styles = {
   badge: { fontSize: "0.7rem", background: "#EFE4C8", color: "#7A5A1E", padding: "3px 9px", borderRadius: "20px", fontWeight: 600 },
   linkRow: { display: "flex", alignItems: "center", gap: "6px" },
   linkText: { fontSize: "0.75rem", color: "#1E2A3A", fontFamily: "monospace", wordBreak: "break-all" },
+  codeText: { fontSize: "0.8rem", color: "#B5402D", fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.05em" },
+  regenerateButton: { background: "none", border: "none", color: "#8A7F66", fontSize: "0.65rem", textDecoration: "underline", padding: "4px 0 0 0" },
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "0.7rem" },
   iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "0.7rem" },
   qrThumb: { display: "flex", alignItems: "center", gap: "4px" },

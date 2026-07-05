@@ -104,36 +104,35 @@ function seededRotation(id) {
 function AlbumPhoto({ url, frame, accent, id }) {
   if (!url) return null;
   const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.4 : 0.8) : 0;
-  const base = { width: "100%", objectFit: "cover", display: "block" };
+  const base = { width: "100%", maxWidth: "300px", aspectRatio: "4 / 3", objectFit: "cover", display: "block", margin: "0 auto" };
 
   if (frame === "floral") {
     return (
       <div style={{ transform: `rotate(${rotation}deg)`, marginBottom: "14px", width: "100%" }}>
-        <img className="msg-photo" src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
+        <img src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
       </div>
     );
   }
   if (frame === "square") {
-    return <img className="msg-photo" src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "14px" }} />;
+    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "14px" }} />;
   }
   if (frame === "polaroid") {
     return (
-      <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "16px", width: "100%" }}>
-        <img className="msg-photo" src={url} alt="" style={base} />
+      <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "16px", maxWidth: "300px", margin: "0 auto 16px" }}>
+        <img src={url} alt="" style={{ ...base, maxWidth: "none" }} />
       </div>
     );
   }
   if (frame === "gold") {
     return (
       <img
-        className="msg-photo"
         src={url}
         alt=""
         style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22`, marginBottom: "14px" }}
       />
     );
   }
-  return <img className="msg-photo" src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2", marginBottom: "14px" }} />;
+  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: `2px solid ${accent}`, boxShadow: "0 6px 16px rgba(30,20,10,0.10)", marginBottom: "14px" }} />;
 }
 
 function PhotoFrame({ url, frame, accent, id, size = 96 }) {
@@ -323,21 +322,11 @@ export default function LivreSouvenirPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Caveat:wght@600;700&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
-        .cover-sheet { min-height: 100vh; min-height: 100svh; }
-        .cover-banner { height: 56vh; height: 56svh; }
-        .content-sheet { min-height: auto; }
-        .msg-photo { aspect-ratio: 4 / 5; }
-        .msg-row + .msg-row { border-top: 1px solid var(--sep-color); padding-top: 30px; }
-
         @page { size: A4; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          .cover-sheet { min-height: 297mm; box-shadow: none !important; margin-left: 0 !important; margin-right: 0 !important; width: 100% !important; }
-          .cover-banner { height: 140mm; }
-          .content-sheet { min-height: 297mm; box-shadow: none !important; page-break-after: always; }
-          .content-sheet:last-of-type { page-break-after: auto; }
-          .msg-photo { aspect-ratio: auto; height: 92mm; }
+          .print-page { min-height: 297mm; box-shadow: none !important; margin: 0 auto !important; page-break-after: always; }
+          .print-page:last-of-type { page-break-after: auto; }
           .msg-row { break-inside: avoid; }
         }
       `}</style>
@@ -353,58 +342,49 @@ export default function LivreSouvenirPage() {
 
       {/* Couverture */}
       <section
-        className="book-page cover-sheet"
-        style={{
-          ...bookStyles.coverPage,
-          background: theme.sheetBg,
-          color: theme.text,
-          marginLeft: "-12px",
-          marginRight: "-12px",
-          width: "calc(100% + 24px)",
-        }}
+        className="book-page print-page"
+        style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text }}
       >
         {coverPhotoToShow && (
-          <div className="cover-banner" style={bookStyles.coverBanner}>
-            <img src={coverPhotoToShow} alt="" style={bookStyles.coverBannerImg} />
+          <div style={{ marginBottom: "28px" }}>
+            <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} large />
           </div>
         )}
-        <div
-          style={{
-            ...bookStyles.coverContent,
-            padding: coverPhotoToShow ? "32px 32px 40px" : "48px 32px",
-          }}
-        >
-          {!coverPhotoToShow && (
-            <div style={{ color: theme.accent, fontSize: "1.6rem", marginBottom: "24px" }}>{theme.emoji}</div>
-          )}
-          <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
-          <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
-            {event?.event_title}
-          </h1>
-          <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
-            {theme.tagline}
+        <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
+        <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
+          {event?.event_title}
+        </h1>
+        <p style={{ ...bookStyles.coverTagline, fontFamily: theme.titleFont, color: theme.accent }}>
+          {theme.tagline}
+        </p>
+        <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
+        {firstDateLabel && (
+          <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
+            {firstDateLabel}
+            {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
           </p>
-          <div style={{ ...bookStyles.coverRule, background: theme.accent }} />
-          {firstDateLabel && (
-            <p style={{ ...bookStyles.coverDate, color: theme.muted }}>
-              {firstDateLabel}
-              {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
-            </p>
-          )}
-          <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
-        </div>
+        )}
+        <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
       </section>
 
-      {/* Souvenirs */}
+      {/* Pages de messages */}
       {pages.map((group, gi) => (
         <section
-          className="book-page content-sheet"
+          className="book-page print-page"
           style={{ ...bookStyles.contentPage, background: theme.sheetBg, color: theme.text }}
           key={gi}
         >
-          <div style={{ ...bookStyles.messagesColumn, "--sep-color": theme.muted + "30" }}>
+          <div style={bookStyles.messagesColumn}>
             {group.map((m) => (
-              <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
+              <div
+                className="msg-row"
+                style={{
+                  ...bookStyles.msgRow,
+                  flexDirection: "column",
+                  textAlign: m.photo_url ? "center" : "center",
+                }}
+                key={m.id}
+              >
                 <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} />
                 <div style={bookStyles.msgContent}>
                   <p
@@ -425,12 +405,13 @@ export default function LivreSouvenirPage() {
               </div>
             ))}
           </div>
+          <p style={{ ...bookStyles.pageNumber, color: theme.muted }}>{gi + 1}</p>
         </section>
       ))}
 
       {/* Remerciement */}
       <section
-        className="book-page content-sheet"
+        className="book-page print-page"
         style={{ ...bookStyles.thanksPage, background: theme.sheetBg, color: theme.text }}
       >
         <div style={{ color: theme.accent, fontSize: "1.2rem", marginBottom: "18px" }}>{theme.emoji}</div>
@@ -448,7 +429,9 @@ export default function LivreSouvenirPage() {
 }
 
 function PhotoFrameCover({ url, frame, accent, large }) {
-  const size = large ? { width: "100%", height: "125mm" } : { width: "160px", height: "160px" };
+  const size = large
+    ? { width: "100%", maxWidth: "360px", aspectRatio: "4 / 3", margin: "0 auto" }
+    : { width: "160px", height: "160px" };
   const base = { ...size, objectFit: "cover", display: "block" };
   if (frame === "floral")
     return (
@@ -461,8 +444,8 @@ function PhotoFrameCover({ url, frame, accent, large }) {
   if (frame === "square") return <img src={url} alt="" style={{ ...base, border: "3px solid #111" }} />;
   if (frame === "polaroid")
     return (
-      <div style={{ background: "#fff", padding: large ? "12px 12px 26px 12px" : "10px 10px 24px 10px", boxShadow: "0 8px 20px rgba(0,0,0,0.18)" }}>
-        <img src={url} alt="" style={{ ...base, width: "100%", height: large ? "112mm" : "150px" }} />
+      <div style={{ background: "#fff", padding: large ? "12px 12px 26px 12px" : "10px 10px 24px 10px", boxShadow: "0 8px 20px rgba(0,0,0,0.18)", maxWidth: large ? "360px" : "none", margin: "0 auto" }}>
+        <img src={url} alt="" style={{ ...base, width: "100%", maxWidth: "none" }} />
       </div>
     );
   if (frame === "gold")
@@ -473,7 +456,7 @@ function PhotoFrameCover({ url, frame, accent, large }) {
         style={{ ...base, borderRadius: "12px", border: `3px solid ${accent}`, boxShadow: `0 0 0 6px ${accent}22` }}
       />
     );
-  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2" }} />;
+  return <img src={url} alt="" style={{ ...base, borderRadius: "14px", border: `2px solid ${accent}`, boxShadow: "0 8px 20px rgba(30,20,10,0.14)" }} />;
 }
 
 const PAGE_WIDTH = "210mm";
@@ -514,25 +497,15 @@ const setupStyles = {
 };
 
 const bookStyles = {
-  wrapper: { minHeight: "100vh", padding: "0 12px 60px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" },
-  toolbar: { width: "100%", maxWidth: PAGE_WIDTH, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", marginTop: "16px" },
+  wrapper: { minHeight: "100vh", padding: "24px 12px 60px", display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" },
+  toolbar: { width: "100%", maxWidth: PAGE_WIDTH, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" },
   backButton: { fontFamily: "'Inter', sans-serif", fontSize: "0.85rem", background: "none", border: "none", color: "#5B4636", cursor: "pointer", textDecoration: "underline" },
   printButton: { fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "0.85rem", padding: "10px 18px", color: "#FCFAF2", border: "none", borderRadius: "6px", cursor: "pointer" },
   coverPage: {
     width: "100%",
     maxWidth: PAGE_WIDTH,
     boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    textAlign: "center",
-    overflow: "hidden",
-  },
-  coverBanner: { width: "100%", flexShrink: 0, overflow: "hidden" },
-  coverBannerImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
-  coverContent: {
-    flex: 1,
-    width: "100%",
+    padding: "48px 32px 40px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -540,29 +513,29 @@ const bookStyles = {
     textAlign: "center",
   },
   coverEyebrow: { fontSize: "0.75rem", letterSpacing: "0.3em", margin: "0 0 18px 0", fontWeight: 600 },
-  coverTitle: { fontSize: "2.6rem", fontWeight: 600, margin: 0, lineHeight: 1.25, maxWidth: "480px" },
-  coverTagline: { fontSize: "1.4rem", fontStyle: "italic", margin: "18px 0 0 0", maxWidth: "440px", lineHeight: 1.4 },
+  coverTitle: { fontSize: "2.4rem", fontWeight: 600, margin: 0, lineHeight: 1.25, maxWidth: "480px" },
+  coverTagline: { fontSize: "1.3rem", fontStyle: "italic", margin: "18px 0 0 0", maxWidth: "420px", lineHeight: 1.4 },
   coverRule: { width: "70px", height: "2px", margin: "26px 0" },
   coverDate: { fontSize: "0.85rem", margin: "0 0 6px 0", letterSpacing: "0.02em" },
   coverBrand: { fontSize: "0.7rem", letterSpacing: "0.08em", marginTop: "10px" },
   contentPage: {
     width: "100%",
     maxWidth: PAGE_WIDTH,
-    boxShadow: "0 8px 24px rgba(30,20,10,0.10)",
-    padding: "36px 28px",
+    boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
+    padding: "40px 32px",
     display: "flex",
     flexDirection: "column",
-    marginBottom: "18px",
   },
-  messagesColumn: { display: "flex", flexDirection: "column", gap: "28px" },
+  messagesColumn: { display: "flex", flexDirection: "column", gap: "40px" },
   msgRow: { display: "flex", flexDirection: "column", alignItems: "center" },
-  msgContent: { maxWidth: "420px", textAlign: "center" },
+  msgContent: { maxWidth: "380px", textAlign: "center" },
   msgText: { fontSize: "1.1rem", lineHeight: 1.6, margin: "0 0 10px 0" },
   msgSignature: { fontSize: "0.8rem", fontWeight: 600, margin: 0 },
+  pageNumber: { textAlign: "center", fontSize: "0.7rem", marginTop: "24px" },
   thanksPage: {
     width: "100%",
     maxWidth: PAGE_WIDTH,
-    boxShadow: "0 8px 24px rgba(30,20,10,0.10)",
+    boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
     padding: "56px 32px",
     display: "flex",
     flexDirection: "column",

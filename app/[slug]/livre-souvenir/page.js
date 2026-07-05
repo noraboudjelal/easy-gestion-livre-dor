@@ -19,6 +19,37 @@ function formatDateShort(ts) {
   }
 }
 
+function svgUrl(svg) {
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+function linenPatternUrl(color) {
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="9" height="9"><path d="M0 0 L9 9 M9 0 L0 9" stroke="${color}" stroke-width="0.7" opacity="0.4"/></svg>`
+  );
+}
+
+function floralPatternUrl(color) {
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><g fill="none" stroke="${color}" stroke-width="1.4" opacity="0.22"><path d="M18 130 C30 112 34 96 22 80 C10 96 4 108 18 130Z"/><path d="M80 18 C96 6 112 12 106 30 C92 22 80 14 80 18Z"/><path d="M130 108 C144 94 140 78 124 76 C126 90 116 100 130 108Z"/><path d="M50 60 C62 48 76 52 72 66 C60 60 52 54 50 60Z"/><path d="M100 130 C108 120 118 120 120 130" /></g></svg>`
+  );
+}
+
+function leatherGrainUrl(color) {
+  const dots = [
+    [10, 10], [38, 22], [62, 8], [88, 28], [14, 46], [46, 56], [78, 48],
+    [104, 16], [24, 72], [58, 82], [92, 68], [112, 92], [18, 102], [66, 108], [100, 112],
+  ];
+  const circles = dots.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" fill="${color}" opacity="0.06"/>`).join("");
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">${circles}</svg>`);
+}
+
+function goldVeinPatternUrl(color) {
+  return svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220"><g fill="none" stroke="${color}" stroke-width="1" opacity="0.3"><path d="M0 45 C 45 33, 65 66, 110 55 C 154 44, 176 77, 220 66"/><path d="M0 132 C 55 121, 77 154, 132 143 C 165 137, 187 165, 220 154"/><path d="M22 0 C 33 44, 11 77, 33 121 C 50 154, 27 187, 44 220"/></g></svg>`
+  );
+}
+
 const THEMES = {
   elegant: {
     label: "Élégant",
@@ -33,13 +64,12 @@ const THEMES = {
     textItalic: true,
     frame: "elegant",
     tagline: "Des souvenirs qui resteront à jamais.",
-    coverBackground:
-      "radial-gradient(circle at 18% 12%, rgba(201,162,75,0.20), transparent 42%)," +
-      "radial-gradient(circle at 88% 82%, rgba(181,64,45,0.10), transparent 46%)," +
-      "radial-gradient(circle at 50% 100%, rgba(181,64,45,0.06), transparent 60%)," +
-      "repeating-linear-gradient(45deg, rgba(90,60,20,0.03) 0px, rgba(90,60,20,0.03) 1px, transparent 1px, transparent 5px)," +
-      "repeating-linear-gradient(-45deg, rgba(90,60,20,0.03) 0px, rgba(90,60,20,0.03) 1px, transparent 1px, transparent 5px)," +
-      "#FFFDF8",
+    coverBg: {
+      color: "#FFFDF8",
+      image: `${linenPatternUrl("#5A3A1E")}, radial-gradient(circle at 16% 10%, rgba(201,162,75,0.24), transparent 44%), radial-gradient(circle at 88% 85%, rgba(181,64,45,0.13), transparent 48%)`,
+      size: "9px 9px, auto, auto",
+      repeat: "repeat, no-repeat, no-repeat",
+    },
   },
   floral: {
     label: "Floral",
@@ -54,13 +84,12 @@ const THEMES = {
     textItalic: false,
     frame: "floral",
     tagline: "Les plus belles fleurs de ce jour, cueillies en mots.",
-    coverBackground:
-      "radial-gradient(ellipse at 12% 8%, rgba(233,168,187,0.45), transparent 48%)," +
-      "radial-gradient(ellipse at 88% 15%, rgba(201,113,138,0.32), transparent 45%)," +
-      "radial-gradient(ellipse at 22% 92%, rgba(196,161,122,0.20), transparent 50%)," +
-      "radial-gradient(ellipse at 92% 88%, rgba(233,168,187,0.38), transparent 45%)," +
-      "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.4), transparent 60%)," +
-      "#FFF9F7",
+    coverBg: {
+      color: "#FFF9F7",
+      image: `${floralPatternUrl("#C9718A")}, radial-gradient(ellipse at 14% 10%, rgba(233,168,187,0.42), transparent 48%), radial-gradient(ellipse at 88% 85%, rgba(201,113,138,0.32), transparent 46%)`,
+      size: "150px 150px, auto, auto",
+      repeat: "repeat, no-repeat, no-repeat",
+    },
   },
   moderne: {
     label: "Moderne",
@@ -70,16 +99,17 @@ const THEMES = {
     accent: "#111111",
     frameColor: "#2B2B2B",
     text: "#111111",
-    muted: "#777777",
+    muted: "#6B6B6B",
     titleFont: "'Inter', sans-serif",
     textItalic: false,
     frame: "square",
     tagline: "Un instant. Des mots. Pour toujours.",
-    coverBackground:
-      "repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 3px)," +
-      "repeating-linear-gradient(90deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 3px)," +
-      "radial-gradient(circle at 50% 0%, rgba(0,0,0,0.05), transparent 60%)," +
-      "#FFFFFF",
+    coverBg: {
+      color: "#DCD3C4",
+      image: `${leatherGrainUrl("#2B241C")}, radial-gradient(circle at 50% 0%, rgba(0,0,0,0.08), transparent 60%)`,
+      size: "120px 120px, auto",
+      repeat: "repeat, no-repeat",
+    },
   },
   enfant: {
     label: "Enfant",
@@ -94,12 +124,12 @@ const THEMES = {
     textItalic: false,
     frame: "polaroid",
     tagline: "Plein de rires à garder pour toujours.",
-    coverBackground:
-      "radial-gradient(circle at 18% 18%, rgba(159,216,208,0.42), transparent 46%)," +
-      "radial-gradient(circle at 82% 25%, rgba(255,214,153,0.42), transparent 46%)," +
-      "radial-gradient(circle at 25% 88%, rgba(255,182,193,0.30), transparent 48%)," +
-      "radial-gradient(circle at 85% 90%, rgba(62,143,176,0.18), transparent 46%)," +
-      "#FFFCF2",
+    coverBg: {
+      color: "#FFFCF2",
+      image: `${leatherGrainUrl("#8C8C8C")}, radial-gradient(circle at 18% 18%, rgba(159,216,208,0.42), transparent 46%), radial-gradient(circle at 82% 25%, rgba(255,214,153,0.42), transparent 46%), radial-gradient(circle at 30% 90%, rgba(255,182,193,0.28), transparent 48%)`,
+      size: "100px 100px, auto, auto, auto",
+      repeat: "repeat, no-repeat, no-repeat, no-repeat",
+    },
   },
   luxe: {
     label: "Luxe",
@@ -114,12 +144,12 @@ const THEMES = {
     textItalic: true,
     frame: "gold",
     tagline: "Les plus beaux souvenirs, réunis dans un seul livre.",
-    coverBackground:
-      "linear-gradient(135deg, rgba(201,162,75,0.22) 0%, transparent 28%, rgba(201,162,75,0.12) 52%, transparent 78%, rgba(201,162,75,0.16) 100%)," +
-      "radial-gradient(circle at 85% 12%, rgba(201,162,75,0.30), transparent 48%)," +
-      "radial-gradient(circle at 12% 88%, rgba(201,162,75,0.20), transparent 46%)," +
-      "repeating-linear-gradient(45deg, rgba(201,162,75,0.04) 0px, rgba(201,162,75,0.04) 1px, transparent 1px, transparent 6px)," +
-      "#14110F",
+    coverBg: {
+      color: "#14110F",
+      image: `${goldVeinPatternUrl("#C9A24B")}, linear-gradient(135deg, rgba(201,162,75,0.25) 0%, transparent 30%, rgba(201,162,75,0.14) 55%, transparent 80%), radial-gradient(circle at 85% 15%, rgba(201,162,75,0.30), transparent 48%)`,
+      size: "220px 220px, auto, auto",
+      repeat: "repeat, no-repeat, no-repeat",
+    },
   },
 };
 
@@ -496,7 +526,15 @@ export default function LivreSouvenirPage() {
       {/* Couverture */}
       <section
         className="book-page print-page"
-        style={{ ...bookStyles.coverPage, background: theme.coverBackground, color: theme.text, position: "relative" }}
+        style={{
+          ...bookStyles.coverPage,
+          backgroundColor: theme.coverBg.color,
+          backgroundImage: theme.coverBg.image,
+          backgroundSize: theme.coverBg.size,
+          backgroundRepeat: theme.coverBg.repeat,
+          color: theme.text,
+          position: "relative",
+        }}
       >
         <CoverFrame accent={theme.frameColor} sheetBg={theme.sheetBg}>
           {coverPhotoToShow && (
@@ -575,7 +613,7 @@ export default function LivreSouvenirPage() {
 
 function PhotoFrameCover({ url, frame, accent, large }) {
   const size = large
-    ? { width: "100%", maxWidth: "360px", aspectRatio: "4 / 3", margin: "0 auto" }
+    ? { width: "100%", maxWidth: "440px", aspectRatio: "4 / 3", margin: "0 auto" }
     : { width: "160px", height: "160px" };
   const base = { ...size, objectFit: "cover", display: "block" };
   if (frame === "floral")
@@ -583,13 +621,25 @@ function PhotoFrameCover({ url, frame, accent, large }) {
       <img
         src={url}
         alt=""
-        style={{ ...base, borderRadius: large ? "16px" : "50%", border: `4px solid ${accent}55` }}
+        style={{
+          ...base,
+          borderRadius: large ? "18px" : "50%",
+          border: `3px solid ${accent}`,
+          boxShadow: `0 0 0 6px #fff, 0 0 0 7px ${accent}55, 0 14px 30px rgba(90,40,50,0.22)`,
+        }}
       />
     );
-  if (frame === "square") return <img src={url} alt="" style={{ ...base, border: "3px solid #111" }} />;
+  if (frame === "square")
+    return (
+      <img
+        src={url}
+        alt=""
+        style={{ ...base, border: "3px solid #111", boxShadow: "0 0 0 6px #fff, 0 0 0 7px #111, 0 14px 30px rgba(0,0,0,0.22)" }}
+      />
+    );
   if (frame === "polaroid")
     return (
-      <div style={{ background: "#fff", padding: large ? "12px 12px 26px 12px" : "10px 10px 24px 10px", boxShadow: "0 8px 20px rgba(0,0,0,0.18)", maxWidth: large ? "360px" : "none", margin: "0 auto" }}>
+      <div style={{ background: "#fff", padding: large ? "14px 14px 30px 14px" : "10px 10px 24px 10px", boxShadow: "0 12px 26px rgba(0,0,0,0.20)", maxWidth: large ? "440px" : "none", margin: "0 auto" }}>
         <img src={url} alt="" style={{ ...base, width: "100%", maxWidth: "none" }} />
       </div>
     );
@@ -598,10 +648,26 @@ function PhotoFrameCover({ url, frame, accent, large }) {
       <img
         src={url}
         alt=""
-        style={{ ...base, borderRadius: "12px", border: `3px solid ${accent}`, boxShadow: `0 0 0 6px ${accent}22` }}
+        style={{
+          ...base,
+          borderRadius: "12px",
+          border: `3px solid ${accent}`,
+          boxShadow: `0 0 0 5px #14110F, 0 0 0 7px ${accent}, 0 16px 34px rgba(0,0,0,0.45)`,
+        }}
       />
     );
-  return <img src={url} alt="" style={{ ...base, borderRadius: "14px", border: `2px solid ${accent}`, boxShadow: "0 8px 20px rgba(30,20,10,0.14)" }} />;
+  return (
+    <img
+      src={url}
+      alt=""
+      style={{
+        ...base,
+        borderRadius: "16px",
+        border: `3px solid ${accent}`,
+        boxShadow: `0 0 0 6px #fff, 0 0 0 7px ${accent}, 0 14px 30px rgba(30,20,10,0.20)`,
+      }}
+    />
+  );
 }
 
 const PAGE_WIDTH = "210mm";

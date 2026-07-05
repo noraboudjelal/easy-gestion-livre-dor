@@ -283,36 +283,48 @@ function seededRotation(id) {
 
 function AlbumPhoto({ url, frame, accent, id }) {
   if (!url) return null;
-  const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.4 : 0.8) : 0;
+  // Légère rotation naturelle, différente pour chaque photo, discrète (entre -3 et +3 degrés)
+  const rotation = seededRotation(id || "x") * 0.55;
   const base = { width: "92px", height: "92px", objectFit: "cover", display: "block", flexShrink: 0 };
+  const tiltShadow = "0 6px 14px rgba(30,20,10,0.20)";
 
   if (frame === "floral") {
     return (
-      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0 }}>
+      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
         <img src={url} alt="" style={{ ...base, borderRadius: "50%", border: `3px solid ${accent}55` }} />
       </div>
     );
   }
   if (frame === "square") {
-    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "2px solid #111" }} />;
+    return (
+      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+        <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "2px solid #111" }} />
+      </div>
+    );
   }
   if (frame === "polaroid") {
     return (
-      <div style={{ background: "#fff", padding: "6px 6px 16px 6px", boxShadow: "0 4px 10px rgba(0,0,0,0.15)", transform: `rotate(${rotation}deg)`, flexShrink: 0 }}>
+      <div style={{ background: "#fff", padding: "6px 6px 16px 6px", boxShadow: tiltShadow, transform: `rotate(${rotation}deg)`, flexShrink: 0 }}>
         <img src={url} alt="" style={{ ...base, width: "80px", height: "80px" }} />
       </div>
     );
   }
   if (frame === "gold") {
     return (
-      <img
-        src={url}
-        alt=""
-        style={{ ...base, borderRadius: "8px", border: `2px solid ${accent}`, boxShadow: `0 0 0 3px ${accent}22` }}
-      />
+      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+        <img
+          src={url}
+          alt=""
+          style={{ ...base, borderRadius: "8px", border: `2px solid ${accent}`, boxShadow: `0 0 0 3px ${accent}22` }}
+        />
+      </div>
     );
   }
-  return <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: `2px solid ${accent}` }} />;
+  return (
+    <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+      <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: `2px solid ${accent}` }} />
+    </div>
+  );
 }
 
 function PhotoFrame({ url, frame, accent, id, size = 96 }) {

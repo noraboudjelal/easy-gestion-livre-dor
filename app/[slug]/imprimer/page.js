@@ -75,6 +75,9 @@ export default function PrintPage() {
       `}</style>
 
       <div className="no-print" style={styles.toolbar}>
+        <a href="/admin" style={styles.backLink}>
+          ← Retour à l'admin
+        </a>
         <p style={{ margin: 0, fontSize: "0.85rem", color: "#5B4636" }}>
           Aperçu du souvenir imprimable — clique pour l'enregistrer en PDF ou l'imprimer.
         </p>
@@ -127,6 +130,13 @@ const styles = {
     gap: "12px",
     marginBottom: "16px",
     flexWrap: "wrap",
+  },
+  backLink: {
+    fontFamily: "'Special Elite', monospace",
+    fontSize: "0.8rem",
+    color: "#5B4636",
+    textDecoration: "underline",
+    width: "100%",
   },
   printButton: {
     fontFamily: "'Special Elite', monospace",

@@ -104,35 +104,36 @@ function seededRotation(id) {
 function AlbumPhoto({ url, frame, accent, id }) {
   if (!url) return null;
   const rotation = frame === "polaroid" || frame === "floral" ? seededRotation(id || "x") * (frame === "floral" ? 0.4 : 0.8) : 0;
-  const base = { width: "100%", height: "92mm", objectFit: "cover", display: "block" };
+  const base = { width: "100%", objectFit: "cover", display: "block" };
 
   if (frame === "floral") {
     return (
       <div style={{ transform: `rotate(${rotation}deg)`, marginBottom: "14px", width: "100%" }}>
-        <img src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
+        <img className="msg-photo" src={url} alt="" style={{ ...base, borderRadius: "18px", border: `4px solid ${accent}55` }} />
       </div>
     );
   }
   if (frame === "square") {
-    return <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "14px" }} />;
+    return <img className="msg-photo" src={url} alt="" style={{ ...base, borderRadius: 0, border: "3px solid #111", marginBottom: "14px" }} />;
   }
   if (frame === "polaroid") {
     return (
       <div style={{ background: "#fff", padding: "10px 10px 22px 10px", boxShadow: "0 8px 18px rgba(0,0,0,0.16)", transform: `rotate(${rotation}deg)`, marginBottom: "16px", width: "100%" }}>
-        <img src={url} alt="" style={{ ...base, height: "82mm" }} />
+        <img className="msg-photo" src={url} alt="" style={base} />
       </div>
     );
   }
   if (frame === "gold") {
     return (
       <img
+        className="msg-photo"
         src={url}
         alt=""
         style={{ ...base, borderRadius: "10px", border: `3px solid ${accent}`, boxShadow: `0 0 0 5px ${accent}22`, marginBottom: "14px" }}
       />
     );
   }
-  return <img src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2", marginBottom: "14px" }} />;
+  return <img className="msg-photo" src={url} alt="" style={{ ...base, borderRadius: "12px", border: "1px solid #E6DCC2", marginBottom: "14px" }} />;
 }
 
 function PhotoFrame({ url, frame, accent, id, size = 96 }) {
@@ -322,11 +323,21 @@ export default function LivreSouvenirPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Caveat:wght@600;700&family=Inter:wght@400;500;600&display=swap');
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+        .cover-sheet { min-height: 100vh; min-height: 100svh; }
+        .cover-banner { height: 56vh; height: 56svh; }
+        .content-sheet { min-height: auto; }
+        .msg-photo { aspect-ratio: 4 / 5; }
+        .msg-row + .msg-row { border-top: 1px solid var(--sep-color); padding-top: 30px; }
+
         @page { size: A4; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          .book-page { box-shadow: none !important; margin: 0 auto !important; page-break-after: always; }
-          .book-page:last-child { page-break-after: auto; }
+          .cover-sheet { min-height: 297mm; box-shadow: none !important; margin-left: 0 !important; margin-right: 0 !important; width: 100% !important; }
+          .cover-banner { height: 140mm; }
+          .content-sheet { min-height: 297mm; box-shadow: none !important; page-break-after: always; }
+          .content-sheet:last-of-type { page-break-after: auto; }
+          .msg-photo { aspect-ratio: auto; height: 92mm; }
           .msg-row { break-inside: avoid; }
         }
       `}</style>
@@ -342,24 +353,25 @@ export default function LivreSouvenirPage() {
 
       {/* Couverture */}
       <section
-        className="book-page"
+        className="book-page cover-sheet"
         style={{
           ...bookStyles.coverPage,
           background: theme.sheetBg,
           color: theme.text,
-          padding: coverPhotoToShow ? 0 : "48px 56px 60px",
-          justifyContent: coverPhotoToShow ? "flex-start" : "center",
+          marginLeft: "-12px",
+          marginRight: "-12px",
+          width: "calc(100% + 24px)",
         }}
       >
         {coverPhotoToShow && (
-          <div style={bookStyles.coverBanner}>
+          <div className="cover-banner" style={bookStyles.coverBanner}>
             <img src={coverPhotoToShow} alt="" style={bookStyles.coverBannerImg} />
           </div>
         )}
         <div
           style={{
             ...bookStyles.coverContent,
-            padding: coverPhotoToShow ? "40px 56px 60px" : 0,
+            padding: coverPhotoToShow ? "32px 32px 40px" : "48px 32px",
           }}
         >
           {!coverPhotoToShow && (
@@ -383,27 +395,16 @@ export default function LivreSouvenirPage() {
         </div>
       </section>
 
-      {/* Pages de messages */}
+      {/* Souvenirs */}
       {pages.map((group, gi) => (
         <section
-          className="book-page"
+          className="book-page content-sheet"
           style={{ ...bookStyles.contentPage, background: theme.sheetBg, color: theme.text }}
           key={gi}
         >
-          <p style={{ ...bookStyles.pageHeader, color: theme.muted, borderBottomColor: theme.muted + "33" }}>
-            {event?.event_title}
-          </p>
-          <div style={bookStyles.messagesColumn}>
+          <div style={{ ...bookStyles.messagesColumn, "--sep-color": theme.muted + "30" }}>
             {group.map((m) => (
-              <div
-                className="msg-row"
-                style={{
-                  ...bookStyles.msgRow,
-                  flexDirection: "column",
-                  textAlign: m.photo_url ? "center" : "center",
-                }}
-                key={m.id}
-              >
+              <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
                 <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} />
                 <div style={bookStyles.msgContent}>
                   <p
@@ -424,13 +425,12 @@ export default function LivreSouvenirPage() {
               </div>
             ))}
           </div>
-          <p style={{ ...bookStyles.pageNumber, color: theme.muted }}>{gi + 1}</p>
         </section>
       ))}
 
       {/* Remerciement */}
       <section
-        className="book-page"
+        className="book-page content-sheet"
         style={{ ...bookStyles.thanksPage, background: theme.sheetBg, color: theme.text }}
       >
         <div style={{ color: theme.accent, fontSize: "1.2rem", marginBottom: "18px" }}>{theme.emoji}</div>
@@ -514,14 +514,13 @@ const setupStyles = {
 };
 
 const bookStyles = {
-  wrapper: { minHeight: "100vh", padding: "24px 12px 60px", display: "flex", flexDirection: "column", alignItems: "center", gap: "24px" },
-  toolbar: { width: "100%", maxWidth: PAGE_WIDTH, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" },
+  wrapper: { minHeight: "100vh", padding: "0 12px 60px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" },
+  toolbar: { width: "100%", maxWidth: PAGE_WIDTH, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", marginTop: "16px" },
   backButton: { fontFamily: "'Inter', sans-serif", fontSize: "0.85rem", background: "none", border: "none", color: "#5B4636", cursor: "pointer", textDecoration: "underline" },
   printButton: { fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "0.85rem", padding: "10px 18px", color: "#FCFAF2", border: "none", borderRadius: "6px", cursor: "pointer" },
   coverPage: {
     width: "100%",
     maxWidth: PAGE_WIDTH,
-    minHeight: PAGE_MIN_HEIGHT,
     boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
     display: "flex",
     flexDirection: "column",
@@ -529,7 +528,7 @@ const bookStyles = {
     textAlign: "center",
     overflow: "hidden",
   },
-  coverBanner: { width: "100%", height: "140mm", flexShrink: 0, overflow: "hidden" },
+  coverBanner: { width: "100%", flexShrink: 0, overflow: "hidden" },
   coverBannerImg: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
   coverContent: {
     flex: 1,
@@ -549,25 +548,22 @@ const bookStyles = {
   contentPage: {
     width: "100%",
     maxWidth: PAGE_WIDTH,
-    minHeight: PAGE_MIN_HEIGHT,
-    boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
-    padding: "52px 52px",
+    boxShadow: "0 8px 24px rgba(30,20,10,0.10)",
+    padding: "36px 28px",
     display: "flex",
     flexDirection: "column",
+    marginBottom: "18px",
   },
-  pageHeader: { fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", borderBottom: "1px solid", paddingBottom: "14px", marginBottom: "40px" },
-  messagesColumn: { flex: 1, display: "flex", flexDirection: "column", gap: "36px", justifyContent: "center" },
+  messagesColumn: { display: "flex", flexDirection: "column", gap: "28px" },
   msgRow: { display: "flex", flexDirection: "column", alignItems: "center" },
   msgContent: { maxWidth: "420px", textAlign: "center" },
-  msgText: { fontSize: "1.15rem", lineHeight: 1.6, margin: "0 0 10px 0" },
+  msgText: { fontSize: "1.1rem", lineHeight: 1.6, margin: "0 0 10px 0" },
   msgSignature: { fontSize: "0.8rem", fontWeight: 600, margin: 0 },
-  pageNumber: { textAlign: "center", fontSize: "0.7rem", marginTop: "24px" },
   thanksPage: {
     width: "100%",
     maxWidth: PAGE_WIDTH,
-    minHeight: PAGE_MIN_HEIGHT,
-    boxShadow: "0 14px 36px rgba(30,20,10,0.16)",
-    padding: "70px 60px",
+    boxShadow: "0 8px 24px rgba(30,20,10,0.10)",
+    padding: "56px 32px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",

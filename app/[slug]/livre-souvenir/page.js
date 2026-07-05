@@ -281,37 +281,47 @@ function seededRotation(id) {
   return ((hash % 60) - 30) / 10; // -3 à +3 degrés
 }
 
+function seededOffset(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 17 + id.charCodeAt(i) * 3) % 1000;
+  const x = ((hash % 80) - 40) / 10; // -4 à +4 px
+  const y = (((hash * 7) % 80) - 40) / 10; // -4 à +4 px
+  return { x, y };
+}
+
 function AlbumPhoto({ url, frame, accent, id }) {
   if (!url) return null;
-  // Légère rotation naturelle, différente pour chaque photo, discrète (entre -3 et +3 degrés)
-  const rotation = seededRotation(id || "x") * 0.55;
+  // Rotation ET décalage naturels, différents pour chaque photo (visible même sur les cadres ronds)
+  const rotation = seededRotation(id || "x");
+  const offset = seededOffset(id || "x");
+  const transform = `rotate(${rotation}deg) translate(${offset.x}px, ${offset.y}px)`;
   const base = { width: "92px", height: "92px", objectFit: "cover", display: "block", flexShrink: 0 };
-  const tiltShadow = "0 6px 14px rgba(30,20,10,0.20)";
+  const tiltShadow = "0 7px 16px rgba(30,20,10,0.24)";
 
   if (frame === "floral") {
     return (
-      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+      <div style={{ transform, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
         <img src={url} alt="" style={{ ...base, borderRadius: "50%", border: `3px solid ${accent}55` }} />
       </div>
     );
   }
   if (frame === "square") {
     return (
-      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+      <div style={{ transform, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
         <img src={url} alt="" style={{ ...base, borderRadius: 0, border: "2px solid #111" }} />
       </div>
     );
   }
   if (frame === "polaroid") {
     return (
-      <div style={{ background: "#fff", padding: "6px 6px 16px 6px", boxShadow: tiltShadow, transform: `rotate(${rotation}deg)`, flexShrink: 0 }}>
+      <div style={{ background: "#fff", padding: "6px 6px 16px 6px", boxShadow: tiltShadow, transform, flexShrink: 0 }}>
         <img src={url} alt="" style={{ ...base, width: "80px", height: "80px" }} />
       </div>
     );
   }
   if (frame === "gold") {
     return (
-      <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+      <div style={{ transform, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
         <img
           src={url}
           alt=""
@@ -321,7 +331,7 @@ function AlbumPhoto({ url, frame, accent, id }) {
     );
   }
   return (
-    <div style={{ transform: `rotate(${rotation}deg)`, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
+    <div style={{ transform, flexShrink: 0, filter: `drop-shadow(${tiltShadow})` }}>
       <img src={url} alt="" style={{ ...base, borderRadius: "10px", border: `2px solid ${accent}` }} />
     </div>
   );

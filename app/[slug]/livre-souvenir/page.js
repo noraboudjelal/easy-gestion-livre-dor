@@ -533,6 +533,7 @@ export default function LivreSouvenirPage() {
           .print-page { min-height: 297mm; box-shadow: none !important; margin: 0 auto !important; page-break-after: always; }
           .print-page:last-of-type { page-break-after: auto; }
           .msg-row { break-inside: avoid; }
+          .cover-sheet { background-image: none !important; }
         }
       `}</style>
 
@@ -547,7 +548,7 @@ export default function LivreSouvenirPage() {
 
       {/* Couverture */}
       <section
-        className="book-page print-page"
+        className="book-page print-page cover-sheet"
         style={{
           ...bookStyles.coverPage,
           backgroundColor: theme.coverBg.color,

@@ -26,6 +26,7 @@ const THEMES = {
     sheetBg: "#FFFDF8",
     pageBg: "#EAE3D3",
     accent: "#B5402D",
+    frameColor: "#C9A24B",
     text: "#2A241D",
     muted: "#8A7F66",
     titleFont: "'Playfair Display', serif",
@@ -39,6 +40,7 @@ const THEMES = {
     sheetBg: "#FFF9F7",
     pageBg: "#F3E6E0",
     accent: "#C9718A",
+    frameColor: "#E3B8C4",
     text: "#5A3A3F",
     muted: "#B08A93",
     titleFont: "'Caveat', cursive",
@@ -52,6 +54,7 @@ const THEMES = {
     sheetBg: "#FFFFFF",
     pageBg: "#EDEDED",
     accent: "#111111",
+    frameColor: "#2B2B2B",
     text: "#111111",
     muted: "#777777",
     titleFont: "'Inter', sans-serif",
@@ -65,6 +68,7 @@ const THEMES = {
     sheetBg: "#FFFCF2",
     pageBg: "#FFF1D6",
     accent: "#3E8FB0",
+    frameColor: "#A7D8CF",
     text: "#3A3A3A",
     muted: "#8C8C8C",
     titleFont: "'Caveat', cursive",
@@ -78,6 +82,7 @@ const THEMES = {
     sheetBg: "#14110F",
     pageBg: "#0B0A09",
     accent: "#C9A24B",
+    frameColor: "#C9A24B",
     text: "#F3EFE6",
     muted: "#B8A98A",
     titleFont: "'Playfair Display', serif",
@@ -159,6 +164,26 @@ function CoverOrnamentBottom({ style, accent }) {
         <path d="M30 16 C 35 14, 40 14, 45 17" />
       </g>
     </svg>
+  );
+}
+
+function CoverCornerMotifs({ accent }) {
+  const corner = (rotate) => (
+    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" style={{ transform: `rotate(${rotate}deg)` }}>
+      <g stroke={accent} strokeWidth="1.1" fill="none" opacity="0.75">
+        <path d="M2 2 C 2 12, 8 18, 20 18" />
+        <path d="M2 2 C 12 2, 18 8, 18 20" />
+        <circle cx="4" cy="4" r="1.6" fill={accent} stroke="none" />
+      </g>
+    </svg>
+  );
+  return (
+    <>
+      <div style={{ position: "absolute", top: "14px", left: "14px" }}>{corner(0)}</div>
+      <div style={{ position: "absolute", top: "14px", right: "14px" }}>{corner(90)}</div>
+      <div style={{ position: "absolute", bottom: "14px", right: "14px" }}>{corner(180)}</div>
+      <div style={{ position: "absolute", bottom: "14px", left: "14px" }}>{corner(270)}</div>
+    </>
   );
 }
 
@@ -432,7 +457,7 @@ export default function LivreSouvenirPage() {
                     outline: coverStyle === cs.value ? `3px solid ${previewTheme.accent}` : "1px solid #D8CCAB",
                   }}
                 >
-                  <CoverOrnamentTop style={cs.value} accent={previewTheme.accent} />
+                  <CoverOrnamentTop style={cs.value} accent={previewTheme.frameColor} />
                   <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#5B4636" }}>{cs.label}</span>
                 </button>
               );
@@ -483,15 +508,16 @@ export default function LivreSouvenirPage() {
       {/* Couverture */}
       <section
         className="book-page print-page"
-        style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text }}
+        style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text, position: "relative" }}
       >
-        <CoverFrame style={coverStyle} accent={theme.accent} sheetBg={theme.sheetBg}>
+        <CoverCornerMotifs accent={theme.frameColor} />
+        <CoverFrame style={coverStyle} accent={theme.frameColor} sheetBg={theme.sheetBg}>
           {coverPhotoToShow && (
             <div style={{ marginBottom: "24px" }}>
-              <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.accent} large />
+              <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.frameColor} large />
             </div>
           )}
-          <CoverOrnamentTop style={coverStyle} accent={theme.accent} />
+          <CoverOrnamentTop style={coverStyle} accent={theme.frameColor} />
           <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
           <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
             {event?.event_title}
@@ -506,8 +532,7 @@ export default function LivreSouvenirPage() {
               {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
             </p>
           )}
-          <CoverOrnamentBottom style={coverStyle} accent={theme.accent} />
-          <p style={{ ...bookStyles.coverBrand, color: theme.muted }}>Easy Gestion Toulouse</p>
+          <CoverOrnamentBottom style={coverStyle} accent={theme.frameColor} />
         </CoverFrame>
       </section>
 
@@ -521,7 +546,7 @@ export default function LivreSouvenirPage() {
           <div style={{ ...bookStyles.messagesColumn, "--sep-color": theme.muted + "30" }}>
             {group.map((m) => (
               <div className="msg-row" style={bookStyles.msgRow} key={m.id}>
-                <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.accent} id={m.id} />
+                <AlbumPhoto url={m.photo_url} frame={theme.frame} accent={theme.frameColor} id={m.id} />
                 <div style={bookStyles.msgContent}>
                   <p
                     style={{

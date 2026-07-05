@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -44,26 +45,110 @@ function formatPrice(raw) {
   return out + " €";
 }
 
-function ProductImage({ src, alt }) {
-  const [loaded, setLoaded] = useState(false);
+function PhotoCarousel({ photos, alt, onOpen }) {
+  const scrollerRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [loadedMap, setLoadedMap] = useState({});
+
+  function handleScroll() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    setActiveIndex(index);
+  }
+
+  function goTo(index) {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
+  }
+
   return (
     <div style={styles.photoWrap}>
-      {!loaded && <div style={styles.photoSkeleton} />}
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        onLoad={() => setLoaded(true)}
-        style={{ ...styles.photo, opacity: loaded ? 1 : 0 }}
-      />
+      <div ref={scrollerRef} onScroll={handleScroll} style={styles.carouselScroller}>
+        {photos.map((src, i) => (
+          <div
+            key={i}
+            style={styles.carouselSlide}
+            onClick={() => onOpen(i)}
+          >
+            {!loadedMap[i] && <div style={styles.photoSkeleton} />}
+            <img
+              src={src}
+              alt={alt}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setLoadedMap((prev) => ({ ...prev, [i]: true }))}
+              style={{ ...styles.photo, opacity: loadedMap[i] ? 1 : 0 }}
+            />
+          </div>
+        ))}
+      </div>
+      {photos.length > 1 && (
+        <div style={styles.dotsRow}>
+          {photos.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              style={{ ...styles.dot, opacity: activeIndex === i ? 1 : 0.4 }}
+              aria-label={`Photo ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+function Lightbox({ photos, startIndex, onClose }) {
+  const [index, setIndex] = useState(startIndex);
+
+  function next(e) {
+    e.stopPropagation();
+    setIndex((i) => (i + 1) % photos.length);
+  }
+  function prev(e) {
+    e.stopPropagation();
+    setIndex((i) => (i - 1 + photos.length) % photos.length);
+  }
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div style={styles.lightboxOverlay} onClick={onClose}>
+      <button style={styles.lightboxClose} onClick={onClose} aria-label="Fermer">
+        ✕
+      </button>
+      <img src={photos[index]} alt="" style={styles.lightboxImage} onClick={(e) => e.stopPropagation()} />
+      {photos.length > 1 && (
+        <>
+          <button style={{ ...styles.lightboxNav, left: "12px" }} onClick={prev} aria-label="Photo précédente">
+            ‹
+          </button>
+          <button style={{ ...styles.lightboxNav, right: "12px" }} onClick={next} aria-label="Photo suivante">
+            ›
+          </button>
+          <div style={styles.lightboxCounter}>
+            {index + 1} / {photos.length}
+          </div>
+        </>
+      )}
+    </div>,
+    document.body
   );
 }
 
 function Card({ product, accent }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+  const photos =
+    product.photo_urls && product.photo_urls.length > 0
+      ? product.photo_urls
+      : product.photo_url
+      ? [product.photo_url]
+      : [];
 
   useEffect(() => {
     const el = ref.current;
@@ -92,7 +177,9 @@ function Card({ product, accent }) {
         transform: visible ? "translateY(0)" : "translateY(14px)",
       }}
     >
-      {product.photo_url && <ProductImage src={product.photo_url} alt={product.name} />}
+      {photos.length > 0 && (
+        <PhotoCarousel photos={photos} alt={product.name} onOpen={(i) => setLightboxIndex(i)} />
+      )}
       <div style={styles.cardBody}>
         <div style={styles.cardTop}>
           <h3 style={styles.name}>{product.name}</h3>
@@ -104,6 +191,9 @@ function Card({ product, accent }) {
         </div>
         {product.description && <p style={styles.description}>{product.description}</p>}
       </div>
+      {lightboxIndex !== null && (
+        <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
     </article>
   );
 }
@@ -284,6 +374,86 @@ const styles = {
     animation: "shimmer 1.4s infinite linear",
   },
   photo: { width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "opacity 0.4s ease" },
+  carouselScroller: {
+    display: "flex",
+    overflowX: "auto",
+    scrollSnapType: "x mandatory",
+    width: "100%",
+    height: "100%",
+    scrollbarWidth: "none",
+  },
+  carouselSlide: {
+    flex: "0 0 100%",
+    scrollSnapAlign: "start",
+    position: "relative",
+    cursor: "pointer",
+  },
+  dotsRow: {
+    position: "absolute",
+    bottom: "8px",
+    left: 0,
+    right: 0,
+    display: "flex",
+    justifyContent: "center",
+    gap: "6px",
+  },
+  dot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: "#fff",
+    border: "none",
+    boxShadow: "0 0 0 1px rgba(0,0,0,0.15)",
+    padding: 0,
+  },
+  lightboxOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(20,15,10,0.92)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100,
+    padding: "16px",
+  },
+  lightboxImage: { maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: "6px" },
+  lightboxClose: {
+    position: "absolute",
+    top: "16px",
+    right: "16px",
+    background: "rgba(255,255,255,0.15)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "50%",
+    width: "36px",
+    height: "36px",
+    fontSize: "1rem",
+    cursor: "pointer",
+  },
+  lightboxNav: {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "rgba(255,255,255,0.15)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "50%",
+    width: "40px",
+    height: "40px",
+    fontSize: "1.4rem",
+    cursor: "pointer",
+  },
+  lightboxCounter: {
+    position: "absolute",
+    bottom: "18px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    color: "#fff",
+    fontSize: "0.75rem",
+    background: "rgba(255,255,255,0.15)",
+    padding: "4px 10px",
+    borderRadius: "999px",
+  },
   cardBody: { padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: "6px" },
   cardTop: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" },
   name: { fontSize: "1.1rem", fontWeight: 700, margin: 0, color: "#1E2A3A", flex: 1, lineHeight: 1.25 },

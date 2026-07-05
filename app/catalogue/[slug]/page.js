@@ -271,7 +271,7 @@ const styles = {
   },
   photoWrap: {
     width: "100%",
-    aspectRatio: "16 / 9",
+    aspectRatio: "2 / 1",
     background: "#EFE9DA",
     overflow: "hidden",
     position: "relative",

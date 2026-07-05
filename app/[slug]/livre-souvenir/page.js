@@ -397,10 +397,7 @@ export default function LivreSouvenirPage() {
                   >
                     {m.message}
                   </p>
-                  <p style={{ ...bookStyles.msgSignature, color: theme.accent }}>
-                    {m.name}{" "}
-                    <span style={{ fontWeight: 400, color: theme.muted }}>· {formatDateShort(m.created_at)}</span>
-                  </p>
+                  <p style={{ ...bookStyles.msgSignature, color: theme.accent }}>{m.name}</p>
                 </div>
               </div>
             ))}

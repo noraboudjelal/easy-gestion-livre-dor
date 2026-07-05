@@ -33,6 +33,13 @@ const THEMES = {
     textItalic: true,
     frame: "elegant",
     tagline: "Des souvenirs qui resteront à jamais.",
+    coverBackground:
+      "radial-gradient(circle at 18% 12%, rgba(201,162,75,0.20), transparent 42%)," +
+      "radial-gradient(circle at 88% 82%, rgba(181,64,45,0.10), transparent 46%)," +
+      "radial-gradient(circle at 50% 100%, rgba(181,64,45,0.06), transparent 60%)," +
+      "repeating-linear-gradient(45deg, rgba(90,60,20,0.03) 0px, rgba(90,60,20,0.03) 1px, transparent 1px, transparent 5px)," +
+      "repeating-linear-gradient(-45deg, rgba(90,60,20,0.03) 0px, rgba(90,60,20,0.03) 1px, transparent 1px, transparent 5px)," +
+      "#FFFDF8",
   },
   floral: {
     label: "Floral",
@@ -47,6 +54,13 @@ const THEMES = {
     textItalic: false,
     frame: "floral",
     tagline: "Les plus belles fleurs de ce jour, cueillies en mots.",
+    coverBackground:
+      "radial-gradient(ellipse at 12% 8%, rgba(233,168,187,0.45), transparent 48%)," +
+      "radial-gradient(ellipse at 88% 15%, rgba(201,113,138,0.32), transparent 45%)," +
+      "radial-gradient(ellipse at 22% 92%, rgba(196,161,122,0.20), transparent 50%)," +
+      "radial-gradient(ellipse at 92% 88%, rgba(233,168,187,0.38), transparent 45%)," +
+      "radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.4), transparent 60%)," +
+      "#FFF9F7",
   },
   moderne: {
     label: "Moderne",
@@ -61,6 +75,11 @@ const THEMES = {
     textItalic: false,
     frame: "square",
     tagline: "Un instant. Des mots. Pour toujours.",
+    coverBackground:
+      "repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0px, rgba(0,0,0,0.025) 1px, transparent 1px, transparent 3px)," +
+      "repeating-linear-gradient(90deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 3px)," +
+      "radial-gradient(circle at 50% 0%, rgba(0,0,0,0.05), transparent 60%)," +
+      "#FFFFFF",
   },
   enfant: {
     label: "Enfant",
@@ -75,6 +94,12 @@ const THEMES = {
     textItalic: false,
     frame: "polaroid",
     tagline: "Plein de rires à garder pour toujours.",
+    coverBackground:
+      "radial-gradient(circle at 18% 18%, rgba(159,216,208,0.42), transparent 46%)," +
+      "radial-gradient(circle at 82% 25%, rgba(255,214,153,0.42), transparent 46%)," +
+      "radial-gradient(circle at 25% 88%, rgba(255,182,193,0.30), transparent 48%)," +
+      "radial-gradient(circle at 85% 90%, rgba(62,143,176,0.18), transparent 46%)," +
+      "#FFFCF2",
   },
   luxe: {
     label: "Luxe",
@@ -89,6 +114,12 @@ const THEMES = {
     textItalic: true,
     frame: "gold",
     tagline: "Les plus beaux souvenirs, réunis dans un seul livre.",
+    coverBackground:
+      "linear-gradient(135deg, rgba(201,162,75,0.22) 0%, transparent 28%, rgba(201,162,75,0.12) 52%, transparent 78%, rgba(201,162,75,0.16) 100%)," +
+      "radial-gradient(circle at 85% 12%, rgba(201,162,75,0.30), transparent 48%)," +
+      "radial-gradient(circle at 12% 88%, rgba(201,162,75,0.20), transparent 46%)," +
+      "repeating-linear-gradient(45deg, rgba(201,162,75,0.04) 0px, rgba(201,162,75,0.04) 1px, transparent 1px, transparent 6px)," +
+      "#14110F",
   },
 };
 
@@ -187,43 +218,20 @@ function CoverCornerMotifs({ accent }) {
   );
 }
 
-function CoverFrame({ style, accent, sheetBg, children }) {
-  if (style === "cadre") {
-    return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          boxShadow: `inset 0 0 0 3px ${sheetBg}, inset 0 0 0 4px ${accent}66, inset 0 0 0 8px ${sheetBg}, inset 0 0 0 9px ${accent}33`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
-  if (style === "floral") {
-    return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          boxShadow: `inset 0 0 0 2px ${accent}55`,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {children}
-      </div>
-    );
-  }
+function CoverFrame({ accent, sheetBg, children }) {
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        boxShadow: `inset 0 0 0 3px ${sheetBg}CC, inset 0 0 0 4px ${accent}77, inset 0 0 0 9px ${sheetBg}CC, inset 0 0 0 10px ${accent}33`,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+    >
       {children}
     </div>
   );
@@ -444,26 +452,6 @@ export default function LivreSouvenirPage() {
             ))}
           </div>
 
-          <p style={{ ...setupStyles.sub, marginTop: "18px", marginBottom: "10px" }}>Style de couverture</p>
-          <div style={setupStyles.coverStyleGrid}>
-            {COVER_STYLES.map((cs) => {
-              const previewTheme = THEMES[themeKey];
-              return (
-                <button
-                  key={cs.value}
-                  onClick={() => setCoverStyle(cs.value)}
-                  style={{
-                    ...setupStyles.coverStyleCard,
-                    outline: coverStyle === cs.value ? `3px solid ${previewTheme.accent}` : "1px solid #D8CCAB",
-                  }}
-                >
-                  <CoverOrnamentTop style={cs.value} accent={previewTheme.frameColor} />
-                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#5B4636" }}>{cs.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
           <label style={setupStyles.uploadLabel}>
             {coverPhotoToShow ? (
               <img src={coverPhotoToShow} alt="" style={setupStyles.uploadPreview} />
@@ -508,16 +496,14 @@ export default function LivreSouvenirPage() {
       {/* Couverture */}
       <section
         className="book-page print-page"
-        style={{ ...bookStyles.coverPage, background: theme.sheetBg, color: theme.text, position: "relative" }}
+        style={{ ...bookStyles.coverPage, background: theme.coverBackground, color: theme.text, position: "relative" }}
       >
-        <CoverCornerMotifs accent={theme.frameColor} />
-        <CoverFrame style={coverStyle} accent={theme.frameColor} sheetBg={theme.sheetBg}>
+        <CoverFrame accent={theme.frameColor} sheetBg={theme.sheetBg}>
           {coverPhotoToShow && (
             <div style={{ marginBottom: "24px" }}>
               <PhotoFrameCover url={coverPhotoToShow} frame={theme.frame} accent={theme.frameColor} large />
             </div>
           )}
-          <CoverOrnamentTop style={coverStyle} accent={theme.frameColor} />
           <p style={{ ...bookStyles.coverEyebrow, color: theme.muted }}>LIVRE SOUVENIR</p>
           <h1 style={{ ...bookStyles.coverTitle, fontFamily: theme.titleFont, color: theme.text }}>
             {event?.event_title}
@@ -532,7 +518,6 @@ export default function LivreSouvenirPage() {
               {lastDateLabel && lastDateLabel !== firstDateLabel ? ` — ${lastDateLabel}` : ""}
             </p>
           )}
-          <CoverOrnamentBottom style={coverStyle} accent={theme.frameColor} />
         </CoverFrame>
       </section>
 

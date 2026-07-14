@@ -50,12 +50,16 @@ export default function AdminPage() {
   const [eventType, setEventType] = useState("Mariage");
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", "", "", ""]);
+  const [cagnotteUrl, setCagnotteUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [editingPollFor, setEditingPollFor] = useState(null);
   const [editPollQuestion, setEditPollQuestion] = useState("");
   const [editPollOptions, setEditPollOptions] = useState(["", "", "", ""]);
   const [savingPoll, setSavingPoll] = useState(false);
+  const [editingCagnotteFor, setEditingCagnotteFor] = useState(null);
+  const [editCagnotteUrl, setEditCagnotteUrl] = useState("");
+  const [savingCagnotte, setSavingCagnotte] = useState(false);
 
   // --- Catalogues ---
   const [catalogs, setCatalogs] = useState([]);
@@ -152,6 +156,7 @@ export default function AdminPage() {
       poll_question: pollQuestion.trim() || null,
       poll_options: cleanOptions,
       poll_votes: cleanOptions.map(() => 0),
+      cagnotte_url: cagnotteUrl.trim() || null,
     });
     setCreating(false);
     if (error) {
@@ -163,6 +168,7 @@ export default function AdminPage() {
     setEventType("Mariage");
     setPollQuestion("");
     setPollOptions(["", "", "", ""]);
+    setCagnotteUrl("");
     setShowForm(false);
     loadEvents();
   }
@@ -193,6 +199,28 @@ export default function AdminPage() {
       return;
     }
     setEditingPollFor(null);
+    loadEvents();
+  }
+
+  function openCagnotteEditor(ev) {
+    setEditingCagnotteFor(ev);
+    setEditCagnotteUrl(ev.cagnotte_url || "");
+  }
+
+  async function handleSaveCagnotte(e) {
+    e.preventDefault();
+    if (!editingCagnotteFor || !supabase) return;
+    setSavingCagnotte(true);
+    const { error } = await supabase
+      .from("events")
+      .update({ cagnotte_url: editCagnotteUrl.trim() || null })
+      .eq("id", editingCagnotteFor.id);
+    setSavingCagnotte(false);
+    if (error) {
+      setLoadError("Modification de la cagnotte impossible : " + error.message);
+      return;
+    }
+    setEditingCagnotteFor(null);
     loadEvents();
   }
 
@@ -451,6 +479,15 @@ export default function AdminPage() {
                       ))}
                     </label>
                   )}
+                  <label style={styles.label}>
+                    Lien de cagnotte (optionnel)
+                    <input
+                      style={styles.input}
+                      value={cagnotteUrl}
+                      onChange={(e) => setCagnotteUrl(e.target.value)}
+                      placeholder="ex. https://onparticipe.fr/cagnottes/..."
+                    />
+                  </label>
                   <div style={styles.modalActions}>
                     <button type="button" style={styles.cancelButton} onClick={() => setShowForm(false)}>
                       Annuler
@@ -502,6 +539,35 @@ export default function AdminPage() {
                     </button>
                     <button type="submit" style={styles.newButton} disabled={savingPoll}>
                       {savingPoll ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editingCagnotteFor && (
+              <div style={styles.modalOverlay} onClick={() => setEditingCagnotteFor(null)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSaveCagnotte}>
+                  <h2 style={styles.modalTitle}>Cagnotte — {editingCagnotteFor.client}</h2>
+                  <label style={styles.label}>
+                    Lien de cagnotte
+                    <input
+                      style={styles.input}
+                      value={editCagnotteUrl}
+                      onChange={(e) => setEditCagnotteUrl(e.target.value)}
+                      placeholder="ex. https://onparticipe.fr/cagnottes/..."
+                      autoFocus
+                    />
+                  </label>
+                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
+                    Laisse vide pour retirer la cagnotte du livre d'or.
+                  </p>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingCagnotteFor(null)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={savingCagnotte}>
+                      {savingCagnotte ? "Enregistrement…" : "Enregistrer"}
                     </button>
                   </div>
                 </form>
@@ -575,6 +641,9 @@ export default function AdminPage() {
                             <button style={styles.iconButton} onClick={() => openPollEditor(ev)}>
                               sondage
                             </button>
+                            <button style={styles.iconButton} onClick={() => openCagnotteEditor(ev)}>
+                              cagnotte
+                            </button>
                             <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                               supprimer
                             </button>
@@ -621,7 +690,12 @@ export default function AdminPage() {
                         <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openPollEditor(ev)}>
                           sondage
                         </button>
-                        <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openCagnotteEditor(ev)}>
+                          cagnotte
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button style={{ ...styles.iconButtonDanger, flex: 1 }} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                           supprimer
                         </button>
                       </div>

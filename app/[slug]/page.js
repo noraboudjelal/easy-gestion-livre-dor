@@ -233,7 +233,6 @@ export default function GuestbookPage() {
   }
 
   async function startRecording() {
-  async function startRecording() {
   setError("");
 
   if (
@@ -380,7 +379,7 @@ export default function GuestbookPage() {
       }
     }
 
-    let audioUrl = null;
+    
 let audioUrl = null;
 
 if (audioBlob && supabase) {

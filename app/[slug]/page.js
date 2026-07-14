@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -115,6 +115,16 @@ export default function GuestbookPage() {
   const [text, setText] = useState("");
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [video, setVideo] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordIntervalRef = useRef(null);
+  const streamRef = useRef(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [justSent, setJustSent] = useState(false);
@@ -192,6 +202,71 @@ export default function GuestbookPage() {
     setPhotoPreview(null);
   }
 
+  function handleVideoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setVideo(null);
+      setVideoPreview(null);
+      return;
+    }
+    setVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+  }
+
+  function removeVideo() {
+    setVideo(null);
+    setVideoPreview(null);
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        setAudioBlob(blob);
+        setAudioPreviewUrl(URL.createObjectURL(blob));
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      setRecording(true);
+      setRecordSeconds(0);
+      recordIntervalRef.current = setInterval(() => {
+        setRecordSeconds((s) => s + 1);
+      }, 1000);
+    } catch {
+      setError("Impossible d'accéder au micro. Vérifie les autorisations de ton navigateur.");
+    }
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+    clearInterval(recordIntervalRef.current);
+  }
+
+  function removeAudio() {
+    setAudioBlob(null);
+    setAudioPreviewUrl(null);
+    setRecordSeconds(0);
+  }
+
+  function formatTimer(s) {
+    const m = Math.floor(s / 60);
+    const sec = String(s % 60).padStart(2, "0");
+    return `${m}:${sec}`;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!text.trim() || !event) {
@@ -214,11 +289,38 @@ export default function GuestbookPage() {
       }
     }
 
+    let videoUrl = null;
+    if (video && supabase) {
+      const ext = video.name.split(".").pop() || "mp4";
+      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("guestbook-media")
+        .upload(path, video);
+      if (!uploadError) {
+        const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
+        videoUrl = pub?.publicUrl || null;
+      }
+    }
+
+    let audioUrl = null;
+    if (audioBlob && supabase) {
+      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webm`;
+      const { error: uploadError } = await supabase.storage
+        .from("guestbook-media")
+        .upload(path, audioBlob);
+      if (!uploadError) {
+        const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
+        audioUrl = pub?.publicUrl || null;
+      }
+    }
+
     const optimisticEntry = {
       id: "temp-" + Date.now(),
       name: name.trim() || "Anonyme",
       message: text.trim().slice(0, 400),
       photo_url: photoUrl || photoPreview,
+      video_url: videoUrl || videoPreview,
+      audio_url: audioUrl || audioPreviewUrl,
       ink: randomInk(theme.avatarPalette),
       rotation: randomRotation(),
       created_at: new Date().toISOString(),
@@ -227,6 +329,11 @@ export default function GuestbookPage() {
     setText("");
     setPhoto(null);
     setPhotoPreview(null);
+    setVideo(null);
+    setVideoPreview(null);
+    setAudioBlob(null);
+    setAudioPreviewUrl(null);
+    setRecordSeconds(0);
     setJustSent(true);
     setTimeout(() => setJustSent(false), 2500);
 
@@ -235,6 +342,8 @@ export default function GuestbookPage() {
       name: optimisticEntry.name,
       message: optimisticEntry.message,
       photo_url: photoUrl,
+      video_url: videoUrl,
+      audio_url: audioUrl,
       ink: optimisticEntry.ink,
       rotation: optimisticEntry.rotation,
     });
@@ -265,6 +374,7 @@ export default function GuestbookPage() {
         .ld-entry { transition: transform 0.15s ease, background 0.15s ease; animation: ldFadeIn 0.5s ease both; }
         .ld-entry:hover { transform: translateY(-2px); background: ${theme.surface2}; }
         @keyframes ldFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes ldBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         textarea:focus, input:focus, button:focus-visible { outline: 2px solid ${theme.accent}; outline-offset: 2px; }
         ::placeholder { color: ${theme.muted}; }
       `}</style>
@@ -313,6 +423,53 @@ export default function GuestbookPage() {
                 style={{ display: "none" }}
               />
             </label>
+          )}
+
+          {videoPreview ? (
+            <div style={styles.photoPreviewWrap}>
+              <video src={videoPreview} controls style={styles.photoPreview} />
+              <button type="button" onClick={removeVideo} style={styles.removePhotoButton}>
+                ✕ retirer la vidéo
+              </button>
+            </div>
+          ) : (
+            <label style={styles.photoLabel}>
+              🎥 Ajouter une vidéo (optionnel)
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideoChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          )}
+
+          {audioPreviewUrl ? (
+            <div style={styles.photoPreviewWrap}>
+              <audio src={audioPreviewUrl} controls style={{ width: "100%" }} />
+              <button type="button" onClick={removeAudio} style={styles.removePhotoButton}>
+                ✕ retirer le message vocal
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={recording ? stopRecording : startRecording}
+              style={{
+                ...styles.photoLabel,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                borderStyle: recording ? "solid" : "dashed",
+              }}
+            >
+              {recording ? (
+                <>🔴 Arrêter l'enregistrement · {formatTimer(recordSeconds)}</>
+              ) : (
+                <>🎙️ Enregistrer un message vocal (optionnel)</>
+              )}
+            </button>
           )}
 
           <div style={styles.formRow}>
@@ -374,8 +531,10 @@ export default function GuestbookPage() {
           </a>
         )}
 
-        <div style={styles.divider}>
-          <span style={styles.dividerText}>
+        <div style={styles.dividerRow}>
+          <span style={styles.liveDot} />
+          <span style={styles.dividerLabel}>Le Fil</span>
+          <span style={styles.dividerCount}>
             {loading ? "Chargement…" : messages.length === 0 ? "Aucun message pour l'instant" : `${messages.length} message${messages.length > 1 ? "s" : ""}`}
           </span>
         </div>
@@ -401,7 +560,13 @@ export default function GuestbookPage() {
                 {m.photo_url && (
                   <img src={m.photo_url} alt="" style={styles.entryPhoto} />
                 )}
+                {m.video_url && (
+                  <video src={m.video_url} controls style={styles.entryPhoto} />
+                )}
                 <p style={styles.entryText}>{m.message}</p>
+                {m.audio_url && (
+                  <audio src={m.audio_url} controls style={styles.entryAudio} />
+                )}
               </article>
             ))}
         </div>
@@ -489,6 +654,10 @@ function getStyles(t) {
     cagnotteSub: { display: "block", fontSize: "0.75rem", color: t.muted, marginTop: "2px" },
     divider: { textAlign: "center", margin: "10px 0 20px 0", borderTop: "1px solid rgba(255,255,255,0.08)", position: "relative" },
     dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
+    dividerRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", margin: "10px 0 18px 0" },
+    liveDot: { width: "7px", height: "7px", borderRadius: "50%", background: "#6FAE7F", flex: "none", animation: "ldBlink 1.6s infinite" },
+    dividerLabel: { fontSize: "0.78rem", fontWeight: 700, color: t.ivory, fontFamily: "'Instrument Serif', serif", fontStyle: "italic" },
+    dividerCount: { fontSize: "0.72rem", color: t.muted },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },
     empty: { textAlign: "center", color: t.muted, fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.2rem", padding: "20px 0" },
     entry: { background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "14px 16px" },
@@ -497,6 +666,7 @@ function getStyles(t) {
     entryName: { fontSize: "0.85rem", fontWeight: 600, color: t.ivory, flex: 1 },
     entryDate: { fontSize: "0.68rem", color: t.muted },
     entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "10px", marginBottom: "10px" },
+    entryAudio: { width: "100%", marginTop: "8px", height: "36px" },
     entryText: { fontSize: "0.88rem", lineHeight: 1.5, color: t.ivory, margin: 0, opacity: 0.9 },
   };
 }

@@ -4,13 +4,91 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-const INKS = ["#1E2A3A", "#8B3A2B", "#355E3B", "#5B4636"];
+const THEMES = {
+  "Mariage": {
+    ink: "#12172A",
+    surface: "#1B2238",
+    surface2: "#242C46",
+    accent: "#C9A24B",
+    accentSoft: "rgba(201,162,75,0.3)",
+    accentText: "#20180A",
+    ivory: "#EEF1F8",
+    muted: "#9AA3BE",
+    avatarPalette: ["#3E4E7A", "#C9A24B", "#5C6FA0", "#8797C4"],
+  },
+  "Anniversaire": {
+    ink: "#241220",
+    surface: "#34182C",
+    surface2: "#402039",
+    accent: "#E8B44D",
+    accentSoft: "rgba(232,180,77,0.3)",
+    accentText: "#2B1C08",
+    ivory: "#F7EFE0",
+    muted: "#C2A8BA",
+    avatarPalette: ["#E8B44D", "#E2705A", "#8FAE8B", "#A68BC9"],
+  },
+  "Baby Shower": {
+    ink: "#161B26",
+    surface: "#202838",
+    surface2: "#2A3448",
+    accent: "#E8A3C0",
+    accentSoft: "rgba(232,163,192,0.3)",
+    accentText: "#2A1420",
+    ivory: "#F0F3F8",
+    muted: "#9CA8BE",
+    avatarPalette: ["#7FA8D9", "#E8A3C0", "#9CC2DE", "#F0B8CE"],
+  },
+  "Baptême": {
+    ink: "#1A1C22",
+    surface: "#24272F",
+    surface2: "#2D313B",
+    accent: "#B9C7DD",
+    accentSoft: "rgba(185,199,221,0.3)",
+    accentText: "#1A1C22",
+    ivory: "#F5F3EC",
+    muted: "#A7ABB5",
+    avatarPalette: ["#B9C7DD", "#D9B98A", "#9FB4CC", "#E3D2A8"],
+  },
+  "Départ en retraite": {
+    ink: "#102019",
+    surface: "#182B22",
+    surface2: "#20362B",
+    accent: "#C9A24B",
+    accentSoft: "rgba(201,162,75,0.3)",
+    accentText: "#20180A",
+    ivory: "#EEF3EE",
+    muted: "#9DB0A2",
+    avatarPalette: ["#4E7A5E", "#C9A24B", "#6FA083", "#8FBF9F"],
+  },
+  "Pot de départ": {
+    ink: "#12232A",
+    surface: "#1B323A",
+    surface2: "#243F48",
+    accent: "#C9A24B",
+    accentSoft: "rgba(201,162,75,0.3)",
+    accentText: "#20180A",
+    ivory: "#EEF3F3",
+    muted: "#9DB3B8",
+    avatarPalette: ["#3E6B75", "#C9A24B", "#5C8993", "#7FADB5"],
+  },
+  "Autre": {
+    ink: "#14131C",
+    surface: "#1F1E2B",
+    surface2: "#2A2836",
+    accent: "#C9A24B",
+    accentSoft: "rgba(201,162,75,0.3)",
+    accentText: "#20180A",
+    ivory: "#F4EFE4",
+    muted: "#A9A4B8",
+    avatarPalette: ["#1E2A3A", "#8B3A2B", "#355E3B", "#5B4636"],
+  },
+};
 
 function randomRotation() {
   return +(Math.random() * 6 - 3).toFixed(2);
 }
-function randomInk() {
-  return INKS[Math.floor(Math.random() * INKS.length)];
+function randomInk(palette) {
+  return palette[Math.floor(Math.random() * palette.length)];
 }
 function formatDate(ts) {
   try {
@@ -40,6 +118,11 @@ export default function GuestbookPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [justSent, setJustSent] = useState(false);
+  const [pollVoted, setPollVoted] = useState(false);
+  const [voting, setVoting] = useState(false);
+
+  const theme = THEMES[event?.event_type] || THEMES.Autre;
+  const styles = getStyles(theme);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -71,6 +154,27 @@ export default function GuestbookPage() {
     const interval = setInterval(loadAll, 4000);
     return () => clearInterval(interval);
   }, [loadAll]);
+
+  useEffect(() => {
+    if (event?.id && typeof window !== "undefined") {
+      setPollVoted(window.localStorage.getItem(`poll-voted-${event.id}`) === "1");
+    }
+  }, [event?.id]);
+
+  async function handleVote(index) {
+    if (!event || pollVoted || voting || !supabase) return;
+    setVoting(true);
+    const { error: voteError } = await supabase.rpc("increment_poll_vote", {
+      p_event_id: event.id,
+      p_option_index: index,
+    });
+    if (!voteError) {
+      window.localStorage.setItem(`poll-voted-${event.id}`, "1");
+      setPollVoted(true);
+      loadAll();
+    }
+    setVoting(false);
+  }
 
   function handlePhotoChange(e) {
     const file = e.target.files?.[0];
@@ -115,7 +219,7 @@ export default function GuestbookPage() {
       name: name.trim() || "Anonyme",
       message: text.trim().slice(0, 400),
       photo_url: photoUrl || photoPreview,
-      ink: randomInk(),
+      ink: randomInk(theme.avatarPalette),
       rotation: randomRotation(),
       created_at: new Date().toISOString(),
     };
@@ -145,8 +249,8 @@ export default function GuestbookPage() {
 
   if (notFound) {
     return (
-      <div style={{ ...styles.page, alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "#F6F0E2", fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ ...styles.page, alignItems: "center", justifyContent: "center", display: "flex" }}>
+        <p style={{ color: "#F4EFE4", fontFamily: "Inter, system-ui, sans-serif" }}>
           Ce livre d'or n'existe pas ou plus.
         </p>
       </div>
@@ -156,19 +260,14 @@ export default function GuestbookPage() {
   return (
     <div style={styles.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Special+Elite&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
-        .ld-hole { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fdfaf0, #d8cead 70%, #b9ad84); box-shadow: inset 0 1px 2px rgba(0,0,0,0.35); }
-        .ld-entry { transition: transform 0.15s ease; }
-        .ld-entry:hover { transform: translateY(-2px) rotate(0deg) !important; }
-        textarea:focus, input:focus, button:focus-visible { outline: 3px solid #A6792B; outline-offset: 2px; }
+        .ld-entry { transition: transform 0.15s ease, background 0.15s ease; animation: ldFadeIn 0.5s ease both; }
+        .ld-entry:hover { transform: translateY(-2px); background: ${theme.surface2}; }
+        @keyframes ldFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        textarea:focus, input:focus, button:focus-visible { outline: 2px solid ${theme.accent}; outline-offset: 2px; }
+        ::placeholder { color: ${theme.muted}; }
       `}</style>
-
-      <div style={styles.binding}>
-        {Array.from({ length: 14 }).map((_, i) => (
-          <div className="ld-hole" key={i} />
-        ))}
-      </div>
 
       <div style={styles.content}>
         <header style={styles.header}>
@@ -226,6 +325,40 @@ export default function GuestbookPage() {
           {justSent && <p style={styles.successText}>Merci, ton message a été ajouté ✓</p>}
         </form>
 
+        {event?.poll_question && (event.poll_options || []).length > 0 && (
+          <div style={styles.pollCard}>
+            <p style={styles.pollQuestion}>🎉 {event.poll_question}</p>
+            <div style={styles.pollOptions}>
+              {event.poll_options.map((opt, i) => {
+                const votes = event.poll_votes?.[i] || 0;
+                const total = (event.poll_votes || []).reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleVote(i)}
+                    disabled={pollVoted || voting}
+                    style={styles.pollOption}
+                  >
+                    <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
+                    <span style={styles.pollOptionRow}>
+                      <span>{opt}</span>
+                      <strong style={{ color: "#C9A24B" }}>{pct}%</strong>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p style={styles.pollNote}>
+              {(event.poll_votes || []).reduce((a, b) => a + b, 0) === 0
+                ? "Soyez le premier·ère à voter !"
+                : `${(event.poll_votes || []).reduce((a, b) => a + b, 0)} invité${(event.poll_votes || []).reduce((a, b) => a + b, 0) > 1 ? "s ont" : " a"} voté`}
+              {pollVoted ? " · merci pour ton vote ✓" : ""}
+            </p>
+          </div>
+        )}
+
         <div style={styles.divider}>
           <span style={styles.dividerText}>
             {loading ? "Chargement…" : messages.length === 0 ? "Aucun message pour l'instant" : `${messages.length} message${messages.length > 1 ? "s" : ""}`}
@@ -242,19 +375,18 @@ export default function GuestbookPage() {
 
           {!loading &&
             [...messages].reverse().map((m) => (
-              <article
-                className="ld-entry"
-                key={m.id}
-                style={{ ...styles.entry, transform: `rotate(${m.rotation}deg)`, color: m.ink }}
-              >
+              <article className="ld-entry" key={m.id} style={styles.entry}>
+                <div style={styles.entryHead}>
+                  <span style={{ ...styles.entryAvatar, background: m.ink }}>
+                    {(m.name || "?")[0].toUpperCase()}
+                  </span>
+                  <span style={styles.entryName}>{m.name}</span>
+                  <span style={styles.entryDate}>{formatDate(m.created_at)}</span>
+                </div>
                 {m.photo_url && (
                   <img src={m.photo_url} alt="" style={styles.entryPhoto} />
                 )}
                 <p style={styles.entryText}>{m.message}</p>
-                <p style={{ ...styles.entrySignature, color: m.ink }}>
-                  — {m.name}
-                  <span style={styles.entryDate}>{formatDate(m.created_at)}</span>
-                </p>
               </article>
             ))}
         </div>
@@ -263,33 +395,78 @@ export default function GuestbookPage() {
   );
 }
 
-const styles = {
-  page: { minHeight: "100vh", background: "#3a3027", display: "flex", justifyContent: "center", padding: "24px 12px", fontFamily: "'Special Elite', 'Courier New', monospace" },
-  binding: { display: "flex", flexDirection: "column", justifyContent: "space-evenly", alignItems: "center", width: "28px", marginRight: "-4px", background: "#2c241d", borderRadius: "10px 0 0 10px", padding: "20px 0" },
-  content: { width: "100%", maxWidth: "560px", background: "#F6F0E2", backgroundImage: "repeating-linear-gradient(#F6F0E2 0px, #F6F0E2 27px, #E6DCC2 28px)", borderRadius: "0 10px 10px 0", padding: "28px 24px 24px 36px", boxShadow: "0 18px 40px rgba(0,0,0,0.35)" },
-  header: { borderBottom: "2px solid #B5402D", paddingBottom: "16px", marginBottom: "20px" },
-  eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: "#A6792B", margin: "0 0 6px 0" },
-  title: { fontFamily: "'Caveat', cursive", fontSize: "2.6rem", fontWeight: 700, color: "#1E2A3A", margin: 0, lineHeight: 1.1 },
-  sub: { fontSize: "0.85rem", color: "#5B4636", marginTop: "10px", lineHeight: 1.4 },
-  form: { display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" },
-  input: { fontFamily: "'Special Elite', monospace", fontSize: "0.9rem", padding: "10px 12px", border: "1px solid #C9BD9C", borderRadius: "4px", background: "#FCFAF2", color: "#2A241D" },
-  textarea: { fontFamily: "'Caveat', cursive", fontSize: "1.3rem", padding: "10px 12px", border: "1px solid #C9BD9C", borderRadius: "4px", background: "#FCFAF2", color: "#2A241D", resize: "vertical" },
-  photoLabel: { fontFamily: "'Special Elite', monospace", fontSize: "0.8rem", color: "#5B4636", border: "1px dashed #C9BD9C", borderRadius: "4px", padding: "10px 12px", textAlign: "center", cursor: "pointer", background: "#FCFAF2" },
-  photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
-  photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "4px", border: "1px solid #C9BD9C" },
-  removePhotoButton: { alignSelf: "flex-start", fontFamily: "'Special Elite', monospace", fontSize: "0.7rem", color: "#B5402D", background: "none", border: "none", padding: 0, cursor: "pointer" },
-  formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-  counter: { fontSize: "0.7rem", color: "#8A7F66" },
-  button: { fontFamily: "'Special Elite', monospace", fontSize: "0.85rem", padding: "10px 18px", background: "#B5402D", color: "#FCFAF2", border: "none", borderRadius: "4px" },
-  errorText: { color: "#8B3A2B", fontSize: "0.8rem", margin: 0 },
-  successText: { color: "#355E3B", fontSize: "0.8rem", margin: 0 },
-  divider: { textAlign: "center", margin: "8px 0 18px 0" },
-  dividerText: { fontSize: "0.7rem", letterSpacing: "0.12em", color: "#A6792B", background: "#F6F0E2", padding: "0 10px" },
-  entries: { display: "flex", flexDirection: "column", gap: "18px" },
-  empty: { textAlign: "center", color: "#5B4636", fontFamily: "'Caveat', cursive", fontSize: "1.2rem", padding: "20px 0" },
-  entry: { background: "#FCFAF2", border: "1px solid #E6DCC2", borderLeft: "3px solid currentColor", borderRadius: "2px", padding: "14px 16px", boxShadow: "0 3px 8px rgba(0,0,0,0.08)" },
-  entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "4px", marginBottom: "10px" },
-  entryText: { fontFamily: "'Caveat', cursive", fontSize: "1.4rem", lineHeight: 1.3, margin: "0 0 8px 0" },
-  entrySignature: { fontFamily: "'Caveat', cursive", fontSize: "1.1rem", fontWeight: 700, margin: 0, display: "flex", justifyContent: "space-between", alignItems: "baseline" },
-  entryDate: { fontFamily: "'Special Elite', monospace", fontSize: "0.65rem", fontWeight: 400, opacity: 0.55 },
-};
+function getStyles(t) {
+  return {
+    page: { minHeight: "100vh", background: t.ink, backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
+    content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
+    header: { borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "18px", marginBottom: "22px", textAlign: "center" },
+    eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0" },
+    title: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, fontSize: "2.4rem", color: t.ivory, margin: 0, lineHeight: 1.1 },
+    sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
+    form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
+    input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", background: t.surface2, color: t.ivory },
+    textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", background: t.surface2, color: t.ivory, resize: "vertical" },
+    photoLabel: { fontFamily: "Inter, sans-serif", fontSize: "0.82rem", color: t.muted, border: `1.5px dashed ${t.accentSoft}`, borderRadius: "12px", padding: "12px 14px", textAlign: "center", cursor: "pointer", background: "transparent" },
+    photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
+    photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" },
+    removePhotoButton: { alignSelf: "flex-start", fontFamily: "Inter, sans-serif", fontSize: "0.72rem", color: "#D98C7F", background: "none", border: "none", padding: 0, cursor: "pointer" },
+    formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+    counter: { fontSize: "0.7rem", color: t.muted },
+    button: { fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "11px 20px", background: t.accent, color: t.accentText, border: "none", borderRadius: "12px" },
+    errorText: { color: "#D98C7F", fontSize: "0.8rem", margin: 0 },
+    successText: { color: "#6FAE7F", fontSize: "0.8rem", margin: 0 },
+    pollCard: {
+      background: t.surface2,
+      border: `1px dashed ${t.accentSoft}`,
+      borderRadius: "14px",
+      padding: "18px",
+      marginBottom: "22px",
+    },
+    pollQuestion: {
+      fontFamily: "'Instrument Serif', serif",
+      fontStyle: "italic",
+      fontSize: "1.3rem",
+      color: t.ivory,
+      margin: "0 0 14px 0",
+    },
+    pollOptions: { display: "flex", flexDirection: "column", gap: "9px" },
+    pollOption: {
+      position: "relative",
+      overflow: "hidden",
+      textAlign: "left",
+      fontFamily: "Inter, sans-serif",
+      fontSize: "0.85rem",
+      fontWeight: 500,
+      color: t.ivory,
+      background: t.surface,
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: "12px",
+      padding: "12px 14px",
+    },
+    pollOptionFill: {
+      position: "absolute",
+      top: 0, left: 0, bottom: 0,
+      background: t.accentSoft,
+      transition: "width 0.5s ease",
+      zIndex: 0,
+    },
+    pollOptionRow: {
+      position: "relative",
+      zIndex: 1,
+      display: "flex",
+      justifyContent: "space-between",
+    },
+    pollNote: { fontSize: "0.75rem", color: t.muted, textAlign: "center", margin: "10px 0 0 0" },
+    divider: { textAlign: "center", margin: "10px 0 20px 0", borderTop: "1px solid rgba(255,255,255,0.08)", position: "relative" },
+    dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
+    entries: { display: "flex", flexDirection: "column", gap: "12px" },
+    empty: { textAlign: "center", color: t.muted, fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.2rem", padding: "20px 0" },
+    entry: { background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "14px 16px" },
+    entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
+    entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
+    entryName: { fontSize: "0.85rem", fontWeight: 600, color: t.ivory, flex: 1 },
+    entryDate: { fontSize: "0.68rem", color: t.muted },
+    entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "10px", marginBottom: "10px" },
+    entryText: { fontSize: "0.88rem", lineHeight: 1.5, color: t.ivory, margin: 0, opacity: 0.9 },
+  };
+}

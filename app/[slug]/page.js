@@ -282,8 +282,9 @@ export default function GuestbookPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!text.trim() || !event) {
-      setError("Écris un petit mot avant d'envoyer.");
+    if (!event) return;
+    if (!text.trim() && !audioBlob) {
+      setError("Écris un petit mot ou enregistre un message vocal avant d'envoyer.");
       return;
     }
     setError("");

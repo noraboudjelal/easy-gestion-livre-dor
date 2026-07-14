@@ -35,8 +35,14 @@ export default function AdminPage() {
   const [client, setClient] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventType, setEventType] = useState("Mariage");
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", "", "", ""]);
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [editingPollFor, setEditingPollFor] = useState(null);
+  const [editPollQuestion, setEditPollQuestion] = useState("");
+  const [editPollOptions, setEditPollOptions] = useState(["", "", "", ""]);
+  const [savingPoll, setSavingPoll] = useState(false);
 
   // --- Catalogues ---
   const [catalogs, setCatalogs] = useState([]);
@@ -124,11 +130,15 @@ export default function AdminPage() {
     if (!client.trim() || !eventTitle.trim() || !supabase) return;
     setCreating(true);
     const slug = `${slugify(client)}-${shortCode()}`;
+    const cleanOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
     const { error } = await supabase.from("events").insert({
       client: client.trim(),
       event_title: eventTitle.trim(),
       event_type: eventType,
       slug,
+      poll_question: pollQuestion.trim() || null,
+      poll_options: cleanOptions,
+      poll_votes: cleanOptions.map(() => 0),
     });
     setCreating(false);
     if (error) {
@@ -138,7 +148,38 @@ export default function AdminPage() {
     setClient("");
     setEventTitle("");
     setEventType("Mariage");
+    setPollQuestion("");
+    setPollOptions(["", "", "", ""]);
     setShowForm(false);
+    loadEvents();
+  }
+
+  function openPollEditor(ev) {
+    setEditingPollFor(ev);
+    setEditPollQuestion(ev.poll_question || "");
+    const opts = ev.poll_options && ev.poll_options.length ? ev.poll_options : [];
+    setEditPollOptions([opts[0] || "", opts[1] || "", opts[2] || "", opts[3] || ""]);
+  }
+
+  async function handleSavePoll(e) {
+    e.preventDefault();
+    if (!editingPollFor || !supabase) return;
+    setSavingPoll(true);
+    const cleanOptions = editPollOptions.map((o) => o.trim()).filter(Boolean);
+    const { error } = await supabase
+      .from("events")
+      .update({
+        poll_question: editPollQuestion.trim() || null,
+        poll_options: cleanOptions,
+        poll_votes: cleanOptions.map(() => 0), // on repart de zéro si la question change
+      })
+      .eq("id", editingPollFor.id);
+    setSavingPoll(false);
+    if (error) {
+      setLoadError("Modification du sondage impossible : " + error.message);
+      return;
+    }
+    setEditingPollFor(null);
     loadEvents();
   }
 
@@ -341,16 +382,90 @@ export default function AdminPage() {
                       <option>Mariage</option>
                       <option>Anniversaire</option>
                       <option>Baptême</option>
+                      <option>Baby Shower</option>
                       <option>Pot de départ</option>
+                      <option>Départ en retraite</option>
                       <option>Autre</option>
                     </select>
                   </label>
+                  <label style={styles.label}>
+                    Question du sondage (optionnel)
+                    <input
+                      style={styles.input}
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      placeholder="ex. Qui va pleurer en premier ?"
+                    />
+                  </label>
+                  {pollQuestion.trim() && (
+                    <label style={styles.label}>
+                      Réponses possibles
+                      {pollOptions.map((opt, i) => (
+                        <input
+                          key={i}
+                          style={{ ...styles.input, marginTop: i === 0 ? 0 : "6px" }}
+                          value={opt}
+                          onChange={(e) => {
+                            const next = [...pollOptions];
+                            next[i] = e.target.value;
+                            setPollOptions(next);
+                          }}
+                          placeholder={`Réponse ${i + 1}`}
+                        />
+                      ))}
+                    </label>
+                  )}
                   <div style={styles.modalActions}>
                     <button type="button" style={styles.cancelButton} onClick={() => setShowForm(false)}>
                       Annuler
                     </button>
                     <button type="submit" style={styles.newButton} disabled={creating}>
                       {creating ? "Création…" : "Créer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editingPollFor && (
+              <div style={styles.modalOverlay} onClick={() => setEditingPollFor(null)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSavePoll}>
+                  <h2 style={styles.modalTitle}>Sondage — {editingPollFor.client}</h2>
+                  <label style={styles.label}>
+                    Question
+                    <input
+                      style={styles.input}
+                      value={editPollQuestion}
+                      onChange={(e) => setEditPollQuestion(e.target.value)}
+                      placeholder="ex. Qui va pleurer en premier ?"
+                      autoFocus
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Réponses possibles
+                    {editPollOptions.map((opt, i) => (
+                      <input
+                        key={i}
+                        style={{ ...styles.input, marginTop: i === 0 ? 0 : "6px" }}
+                        value={opt}
+                        onChange={(e) => {
+                          const next = [...editPollOptions];
+                          next[i] = e.target.value;
+                          setEditPollOptions(next);
+                        }}
+                        placeholder={`Réponse ${i + 1}`}
+                      />
+                    ))}
+                  </label>
+                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
+                    Changer la question remet les votes à zéro.
+                  </p>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingPollFor(null)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={savingPoll}>
+                      {savingPoll ? "Enregistrement…" : "Enregistrer"}
                     </button>
                   </div>
                 </form>
@@ -421,6 +536,9 @@ export default function AdminPage() {
                             <a href={`/${ev.slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={styles.iconButton}>
                               livre souvenir
                             </a>
+                            <button style={styles.iconButton} onClick={() => openPollEditor(ev)}>
+                              sondage
+                            </button>
                             <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                               supprimer
                             </button>
@@ -462,6 +580,11 @@ export default function AdminPage() {
                         <a href={`/${ev.slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
                           livre souvenir
                         </a>
+                      </div>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openPollEditor(ev)}>
+                          sondage
+                        </button>
                         <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                           supprimer
                         </button>

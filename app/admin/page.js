@@ -20,6 +20,19 @@ function clientAccessCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
+const TYPE_BADGE = {
+  "Mariage": { background: "#E8EDF8", color: "#3E4E7A" },
+  "Anniversaire": { background: "#FBE9E4", color: "#B5402D" },
+  "Baptême": { background: "#EAF1F7", color: "#4A6A85" },
+  "Baby Shower": { background: "#FBE7EF", color: "#B5567F" },
+  "Pot de départ": { background: "#E3F1F0", color: "#2E6E68" },
+  "Départ en retraite": { background: "#E9F3EA", color: "#3F7A52" },
+  "Autre": { background: "#EFE4C8", color: "#7A5A1E" },
+};
+function badgeColors(type) {
+  return TYPE_BADGE[type] || TYPE_BADGE["Autre"];
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [pwd, setPwd] = useState("");
@@ -280,6 +293,7 @@ export default function AdminPage() {
     return (
       <div style={styles.loginPage}>
         <form style={styles.loginBox} onSubmit={handleLogin}>
+          <span style={styles.loginLogoMark}>EG</span>
           <h1 style={styles.loginTitle}>Espace admin</h1>
           <input
             type="password"
@@ -301,11 +315,11 @@ export default function AdminPage() {
   return (
     <div style={styles.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; }
         button { cursor: pointer; font-family: inherit; }
         input, select { font-family: inherit; }
-        .row:hover { background: #FBF8F1; }
+        .row:hover { background: #FAF7F2; }
         @media (max-width: 720px) {
           .desktop-table { display: none !important; }
           .mobile-cards { display: flex !important; }
@@ -317,9 +331,12 @@ export default function AdminPage() {
 
       <div style={styles.shell}>
         <header style={styles.header}>
-          <div>
-            <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
-            <h1 style={styles.brandTitle}>{view === "livres" ? "Mes livres d'or" : "Mes catalogues"}</h1>
+          <div style={styles.brandRow}>
+            <span style={styles.logoMark}>EG</span>
+            <div>
+              <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
+              <h1 style={styles.brandTitle}>{view === "livres" ? "Mes livres d'or" : "Mes catalogues"}</h1>
+            </div>
           </div>
           {view === "livres" ? (
             <button style={styles.newButton} onClick={() => setShowForm(true)}>
@@ -331,6 +348,25 @@ export default function AdminPage() {
             </button>
           )}
         </header>
+
+        <div style={styles.statsRow}>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{events.length}</span>
+            <span style={styles.statLabel}>Livres d'or</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{events.reduce((sum, e) => sum + (e.messages?.[0]?.count ?? 0), 0)}</span>
+            <span style={styles.statLabel}>Messages reçus</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{events.filter((e) => e.poll_question).length}</span>
+            <span style={styles.statLabel}>Sondages actifs</span>
+          </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{catalogs.length}</span>
+            <span style={styles.statLabel}>Catalogues</span>
+          </div>
+        </div>
 
         <div style={styles.tabs}>
           <button
@@ -506,7 +542,7 @@ export default function AdminPage() {
                           <div style={styles.subText}>{ev.event_title}</div>
                         </td>
                         <td style={styles.td}>
-                          <span style={styles.badge}>{ev.event_type}</span>
+                          <span style={{ ...styles.badge, ...badgeColors(ev.event_type) }}>{ev.event_type}</span>
                         </td>
                         <td style={styles.td}>
                           <div style={styles.linkRow}>
@@ -565,7 +601,7 @@ export default function AdminPage() {
                           style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
                         />
                       </div>
-                      <span style={styles.badge}>{ev.event_type}</span>
+                      <span style={{ ...styles.badge, ...badgeColors(ev.event_type) }}>{ev.event_type}</span>
                       <div style={styles.linkRow}>
                         <span style={styles.linkText}>{linkFor(ev.slug)}</span>
                         <button style={styles.iconButton} onClick={() => handleCopy(ev.id, ev.slug)}>
@@ -828,70 +864,118 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#EFE9DA",
-    fontFamily: "system-ui, sans-serif",
+    background: "#F7F4EF",
+    fontFamily: "'Inter', sans-serif",
   },
   loginBox: {
-    background: "#FCFAF2",
-    padding: "28px",
-    borderRadius: "10px",
+    background: "#FFFFFF",
+    padding: "32px 28px",
+    borderRadius: "20px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
-    width: "260px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
+    alignItems: "center",
+    gap: "14px",
+    width: "280px",
+    border: "1px solid #EAE3D6",
+    boxShadow: "0 1px 2px rgba(20,15,10,0.04), 0 20px 40px -20px rgba(20,15,10,0.15)",
   },
-  loginTitle: { margin: 0, fontSize: "1.2rem", color: "#1E2A3A" },
+  loginLogoMark: {
+    width: "44px",
+    height: "44px",
+    borderRadius: "13px",
+    background: "#B5402D",
+    color: "#FFF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 800,
+    fontSize: "0.9rem",
+    letterSpacing: "0.02em",
+  },
+  loginTitle: { margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#221D18" },
   page: {
     minHeight: "100vh",
-    background: "#EFE9DA",
+    background: "#F7F4EF",
     fontFamily: "'Inter', sans-serif",
-    color: "#2A241D",
-    padding: "24px 16px",
+    color: "#221D18",
+    padding: "28px 16px",
     display: "flex",
     justifyContent: "center",
   },
-  shell: { width: "100%", maxWidth: "780px" },
+  shell: { width: "100%", maxWidth: "860px" },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
     gap: "12px",
-    marginBottom: "16px",
+    marginBottom: "20px",
   },
-  tabs: { display: "flex", gap: "8px", marginBottom: "20px" },
+  brandRow: { display: "flex", alignItems: "center", gap: "12px" },
+  logoMark: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "12px",
+    background: "#B5402D",
+    color: "#FFF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 800,
+    fontSize: "0.8rem",
+    flex: "none",
+  },
+  statsRow: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+    gap: "10px",
+    marginBottom: "20px",
+  },
+  statCard: {
+    background: "#FFFFFF",
+    border: "1px solid #EAE3D6",
+    borderRadius: "14px",
+    padding: "14px 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  },
+  statNumber: { fontSize: "1.5rem", fontWeight: 800, color: "#221D18", lineHeight: 1.1 },
+  statLabel: { fontSize: "0.72rem", color: "#8A7F66", fontWeight: 600 },
+  tabs: { display: "flex", gap: "4px", marginBottom: "22px", background: "#EFEAE0", borderRadius: "12px", padding: "4px", width: "fit-content" },
   tab: {
     background: "none",
-    border: "1px solid #D8CCAB",
-    borderRadius: "20px",
-    padding: "7px 16px",
-    fontSize: "0.8rem",
+    border: "none",
+    borderRadius: "9px",
+    padding: "8px 18px",
+    fontSize: "0.82rem",
     fontWeight: 600,
-    color: "#5B4636",
+    color: "#8A7F66",
   },
-  tabActive: { background: "#B5402D", color: "#FCFAF2", borderColor: "#B5402D" },
-  brandKicker: { fontSize: "0.65rem", letterSpacing: "0.14em", color: "#A6792B", margin: 0, fontWeight: 600 },
+  tabActive: { background: "#FFFFFF", color: "#221D18", boxShadow: "0 1px 3px rgba(20,15,10,0.1)" },
+  brandKicker: { fontSize: "0.65rem", letterSpacing: "0.14em", color: "#A6792B", margin: 0, fontWeight: 700 },
   brandTitle: {
-    fontFamily: "'Caveat', cursive",
-    fontSize: "2rem",
-    fontWeight: 700,
-    margin: 0,
-    color: "#1E2A3A",
+    fontFamily: "'Inter', sans-serif",
+    fontSize: "1.5rem",
+    fontWeight: 800,
+    margin: "2px 0 0 0",
+    color: "#221D18",
+    letterSpacing: "-0.01em",
   },
   newButton: {
     background: "#B5402D",
-    color: "#FCFAF2",
+    color: "#FFF",
     border: "none",
-    borderRadius: "6px",
-    padding: "10px 16px",
+    borderRadius: "11px",
+    padding: "11px 18px",
     fontSize: "0.85rem",
-    fontWeight: 600,
+    fontWeight: 700,
+    boxShadow: "0 1px 2px rgba(181,64,45,0.2), 0 8px 16px -8px rgba(181,64,45,0.35)",
   },
   modalOverlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(30,26,20,0.45)",
+    background: "rgba(30,26,20,0.5)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -899,38 +983,39 @@ const styles = {
     zIndex: 10,
   },
   modal: {
-    background: "#FCFAF2",
-    borderRadius: "10px",
-    padding: "22px",
+    background: "#FFFFFF",
+    borderRadius: "18px",
+    padding: "26px",
     width: "100%",
     maxWidth: "380px",
     display: "flex",
     flexDirection: "column",
     gap: "14px",
+    boxShadow: "0 30px 60px -20px rgba(0,0,0,0.3)",
   },
-  modalTitle: { fontFamily: "'Caveat', cursive", fontSize: "1.6rem", margin: 0, color: "#1E2A3A" },
-  label: { display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636" },
+  modalTitle: { fontFamily: "'Inter', sans-serif", fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "#221D18" },
+  label: { display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636" },
   formRow2: { display: "flex", gap: "12px" },
-  colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff" },
+  colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #EAE3D6", borderRadius: "8px", background: "#fff" },
   swatchRow: { display: "flex", gap: "8px" },
   swatch: { width: "28px", height: "28px", borderRadius: "50%", border: "none", cursor: "pointer" },
-  input: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D" },
+  input: { fontSize: "0.9rem", padding: "10px 12px", border: "1px solid #EAE3D6", borderRadius: "10px", background: "#FCFAF6", color: "#221D18" },
   modalActions: { display: "flex", justifyContent: "flex-end", gap: "8px" },
-  cancelButton: { background: "none", border: "1px solid #D8CCAB", borderRadius: "6px", padding: "10px 16px", fontSize: "0.85rem", color: "#5B4636" },
-  emptyState: { textAlign: "center", padding: "40px 20px", background: "#FCFAF2", borderRadius: "10px", border: "1px dashed #D8CCAB" },
-  table: { width: "100%", borderCollapse: "collapse", background: "#FCFAF2", borderRadius: "10px", overflow: "hidden" },
-  th: { textAlign: "left", fontSize: "0.7rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "#A6792B", padding: "12px 14px", borderBottom: "2px solid #E6DCC2" },
-  td: { padding: "12px 14px", fontSize: "0.85rem", verticalAlign: "middle", borderBottom: "1px solid #EFE9DA" },
+  cancelButton: { background: "none", border: "1px solid #EAE3D6", borderRadius: "10px", padding: "10px 16px", fontSize: "0.85rem", color: "#5B4636", fontWeight: 600 },
+  emptyState: { textAlign: "center", padding: "48px 20px", background: "#FFFFFF", borderRadius: "16px", border: "1px dashed #D8CCAB" },
+  table: { width: "100%", borderCollapse: "collapse", background: "#FFFFFF", borderRadius: "16px", overflow: "hidden", border: "1px solid #EAE3D6" },
+  th: { textAlign: "left", fontSize: "0.68rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "#A6792B", fontWeight: 700, padding: "13px 14px", borderBottom: "1px solid #EAE3D6", background: "#FBF8F3" },
+  td: { padding: "13px 14px", fontSize: "0.85rem", verticalAlign: "middle", borderBottom: "1px solid #F1ECE1" },
   subText: { fontSize: "0.75rem", color: "#8A7F66", marginTop: "2px" },
-  badge: { fontSize: "0.7rem", background: "#EFE4C8", color: "#7A5A1E", padding: "3px 9px", borderRadius: "20px", fontWeight: 600 },
+  badge: { fontSize: "0.68rem", padding: "4px 10px", borderRadius: "20px", fontWeight: 700 },
   linkRow: { display: "flex", alignItems: "center", gap: "6px" },
-  linkText: { fontSize: "0.75rem", color: "#1E2A3A", fontFamily: "monospace", wordBreak: "break-all" },
+  linkText: { fontSize: "0.75rem", color: "#221D18", fontFamily: "monospace", wordBreak: "break-all" },
   codeText: { fontSize: "0.8rem", color: "#B5402D", fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.05em" },
   regenerateButton: { background: "none", border: "none", color: "#8A7F66", fontSize: "0.65rem", textDecoration: "underline", padding: "4px 0 0 0" },
-  iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "0.7rem" },
-  iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "5px 8px", fontSize: "0.7rem" },
+  iconButton: { background: "#F3EEE3", border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "0.7rem", fontWeight: 600, color: "#5B4636" },
+  iconButtonDanger: { background: "#FBEAE6", color: "#B5402D", border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "0.7rem", fontWeight: 600 },
   qrThumb: { display: "flex", alignItems: "center", gap: "4px" },
   mobileCards: { display: "none", flexDirection: "column", gap: "12px" },
-  card: { background: "#FCFAF2", borderRadius: "10px", padding: "14px", border: "1px solid #E6DCC2", display: "flex", flexDirection: "column", gap: "8px" },
+  card: { background: "#FFFFFF", borderRadius: "16px", padding: "16px", border: "1px solid #EAE3D6", display: "flex", flexDirection: "column", gap: "10px" },
   cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
 };

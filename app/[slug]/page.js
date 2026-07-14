@@ -128,8 +128,9 @@ export default function GuestbookPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [justSent, setJustSent] = useState(false);
-  const [pollVoted, setPollVoted] = useState(false);
-  const [voting, setVoting] = useState(false);
+  const [pollQuestions, setPollQuestions] = useState([]);
+  const [votedIds, setVotedIds] = useState({});
+  const [votingId, setVotingId] = useState(null);
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const styles = getStyles(theme);
@@ -156,6 +157,24 @@ export default function GuestbookPage() {
       .order("created_at", { ascending: true });
 
     setMessages(msgs || []);
+
+    const { data: polls } = await supabase
+      .from("poll_questions")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("position", { ascending: true });
+
+    setPollQuestions(polls || []);
+    if (typeof window !== "undefined") {
+      setVotedIds((prev) => {
+        const next = { ...prev };
+        (polls || []).forEach((q) => {
+          if (window.localStorage.getItem(`poll-voted-${q.id}`) === "1") next[q.id] = true;
+        });
+        return next;
+      });
+    }
+
     setLoading(false);
   }, [slug]);
 
@@ -165,25 +184,19 @@ export default function GuestbookPage() {
     return () => clearInterval(interval);
   }, [loadAll]);
 
-  useEffect(() => {
-    if (event?.id && typeof window !== "undefined") {
-      setPollVoted(window.localStorage.getItem(`poll-voted-${event.id}`) === "1");
-    }
-  }, [event?.id]);
-
-  async function handleVote(index) {
-    if (!event || pollVoted || voting || !supabase) return;
-    setVoting(true);
-    const { error: voteError } = await supabase.rpc("increment_poll_vote", {
-      p_event_id: event.id,
-      p_option_index: index,
+  async function handleVote(questionId, optionIndex) {
+    if (votedIds[questionId] || votingId || !supabase) return;
+    setVotingId(questionId);
+    const { error: voteError } = await supabase.rpc("increment_poll_question_vote", {
+      p_question_id: questionId,
+      p_option_index: optionIndex,
     });
     if (!voteError) {
-      window.localStorage.setItem(`poll-voted-${event.id}`, "1");
-      setPollVoted(true);
+      window.localStorage.setItem(`poll-voted-${questionId}`, "1");
+      setVotedIds((prev) => ({ ...prev, [questionId]: true }));
       loadAll();
     }
-    setVoting(false);
+    setVotingId(null);
   }
 
   function handlePhotoChange(e) {
@@ -482,39 +495,40 @@ export default function GuestbookPage() {
           {justSent && <p style={styles.successText}>Merci, ton message a été ajouté ✓</p>}
         </form>
 
-        {event?.poll_question && (event.poll_options || []).length > 0 && (
-          <div style={styles.pollCard}>
-            <p style={styles.pollQuestion}>🎉 {event.poll_question}</p>
-            <div style={styles.pollOptions}>
-              {event.poll_options.map((opt, i) => {
-                const votes = event.poll_votes?.[i] || 0;
-                const total = (event.poll_votes || []).reduce((a, b) => a + b, 0);
-                const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleVote(i)}
-                    disabled={pollVoted || voting}
-                    style={styles.pollOption}
-                  >
-                    <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
-                    <span style={styles.pollOptionRow}>
-                      <span>{opt}</span>
-                      <strong style={{ color: "#C9A24B" }}>{pct}%</strong>
-                    </span>
-                  </button>
-                );
-              })}
+        {pollQuestions.map((q) => {
+          const voted = !!votedIds[q.id];
+          const total = (q.votes || []).reduce((a, b) => a + b, 0);
+          return (
+            <div style={styles.pollCard} key={q.id}>
+              <p style={styles.pollQuestion}>🎉 {q.question}</p>
+              <div style={styles.pollOptions}>
+                {(q.options || []).map((opt, i) => {
+                  const votes = q.votes?.[i] || 0;
+                  const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleVote(q.id, i)}
+                      disabled={voted || votingId === q.id}
+                      style={styles.pollOption}
+                    >
+                      <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
+                      <span style={styles.pollOptionRow}>
+                        <span>{opt}</span>
+                        <strong style={{ color: theme.accent }}>{pct}%</strong>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={styles.pollNote}>
+                {total === 0 ? "Soyez le premier·ère à voter !" : `${total} invité${total > 1 ? "s ont" : " a"} voté`}
+                {voted ? " · merci pour ton vote ✓" : ""}
+              </p>
             </div>
-            <p style={styles.pollNote}>
-              {(event.poll_votes || []).reduce((a, b) => a + b, 0) === 0
-                ? "Soyez le premier·ère à voter !"
-                : `${(event.poll_votes || []).reduce((a, b) => a + b, 0)} invité${(event.poll_votes || []).reduce((a, b) => a + b, 0) > 1 ? "s ont" : " a"} voté`}
-              {pollVoted ? " · merci pour ton vote ✓" : ""}
-            </p>
-          </div>
-        )}
+          );
+        })}
 
         {event?.cagnotte_url && (
           <a

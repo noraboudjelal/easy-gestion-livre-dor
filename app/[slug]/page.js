@@ -381,16 +381,51 @@ export default function GuestbookPage() {
     }
 
     let audioUrl = null;
-    if (audioBlob && supabase) {
-      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webm`;
-      const { error: uploadError } = await supabase.storage
-        .from("guestbook-media")
-        .upload(path, audioBlob);
-      if (!uploadError) {
-        const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
-        audioUrl = pub?.publicUrl || null;
-      }
-    }
+let audioUrl = null;
+
+if (audioBlob && supabase) {
+  const mimeType =
+    audioBlob.type ||
+    audioMimeTypeRef.current ||
+    "audio/mp4";
+
+  let extension = "m4a";
+
+  if (mimeType.includes("webm")) {
+    extension = "webm";
+  } else if (mimeType.includes("mp4")) {
+    extension = "m4a";
+  } else if (mimeType.includes("ogg")) {
+    extension = "ogg";
+  }
+
+  const path = `${event.id}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("guestbook-media")
+    .upload(path, audioBlob, {
+      contentType: mimeType,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("Erreur upload audio :", uploadError);
+    setError(
+      "Le message vocal n'a pas pu être envoyé : " +
+        uploadError.message
+    );
+    setSending(false);
+    return;
+  }
+
+  const { data: pub } = supabase.storage
+    .from("guestbook-media")
+    .getPublicUrl(path);
+
+  audioUrl = pub?.publicUrl || null;
+}
 
     const optimisticEntry = {
       id: "temp-" + Date.now(),

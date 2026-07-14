@@ -359,6 +359,21 @@ export default function GuestbookPage() {
           </div>
         )}
 
+        {event?.cagnotte_url && (
+          <a
+            href={event.cagnotte_url}
+            target="_blank"
+            rel="noreferrer"
+            style={styles.cagnotteCard}
+          >
+            <span style={styles.cagnotteIcon}>💛</span>
+            <span>
+              <span style={styles.cagnotteTitle}>Participer à la cagnotte</span>
+              <span style={styles.cagnotteSub}>Un geste qui fera plaisir ↗</span>
+            </span>
+          </a>
+        )}
+
         <div style={styles.divider}>
           <span style={styles.dividerText}>
             {loading ? "Chargement…" : messages.length === 0 ? "Aucun message pour l'instant" : `${messages.length} message${messages.length > 1 ? "s" : ""}`}
@@ -457,6 +472,21 @@ function getStyles(t) {
       justifyContent: "space-between",
     },
     pollNote: { fontSize: "0.75rem", color: t.muted, textAlign: "center", margin: "10px 0 0 0" },
+    cagnotteCard: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      background: t.surface2,
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: "14px",
+      padding: "14px 16px",
+      marginBottom: "22px",
+      textDecoration: "none",
+      color: t.ivory,
+    },
+    cagnotteIcon: { fontSize: "1.3rem", flex: "none" },
+    cagnotteTitle: { display: "block", fontSize: "0.88rem", fontWeight: 600, color: t.ivory },
+    cagnotteSub: { display: "block", fontSize: "0.75rem", color: t.muted, marginTop: "2px" },
     divider: { textAlign: "center", margin: "10px 0 20px 0", borderTop: "1px solid rgba(255,255,255,0.08)", position: "relative" },
     dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },

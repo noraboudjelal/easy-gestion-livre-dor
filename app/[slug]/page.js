@@ -131,7 +131,6 @@ export default function GuestbookPage() {
   const [pollQuestions, setPollQuestions] = useState([]);
   const [votedIds, setVotedIds] = useState({});
   const [votingId, setVotingId] = useState(null);
-  const audioMimeTypeRef = useRef("");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const styles = getStyles(theme);
@@ -233,98 +232,36 @@ export default function GuestbookPage() {
   }
 
   async function startRecording() {
-  setError("");
-
-  if (
-    !navigator.mediaDevices?.getUserMedia ||
-    typeof MediaRecorder === "undefined"
-  ) {
-    setError("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
-    return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      audioChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        setAudioBlob(blob);
+        setAudioPreviewUrl(URL.createObjectURL(blob));
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      setRecording(true);
+      setRecordSeconds(0);
+      recordIntervalRef.current = setInterval(() => {
+        setRecordSeconds((s) => s + 1);
+      }, 1000);
+    } catch {
+      setError("Impossible d'accéder au micro. Vérifiez les autorisations de votre navigateur.");
+    }
   }
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-    streamRef.current = stream;
-    audioChunksRef.current = [];
-
-    const supportedTypes = [
-      "audio/mp4;codecs=mp4a.40.2",
-      "audio/mp4",
-      "audio/webm;codecs=opus",
-      "audio/webm",
-    ];
-
-    const mimeType =
-      supportedTypes.find((type) =>
-        MediaRecorder.isTypeSupported(type)
-      ) || "";
-
-    audioMimeTypeRef.current = mimeType;
-
-    const recorder = mimeType
-      ? new MediaRecorder(stream, { mimeType })
-      : new MediaRecorder(stream);
-
-    mediaRecorderRef.current = recorder;
-
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) {
-        audioChunksRef.current.push(e.data);
-      }
-    };
-
-    recorder.onerror = () => {
-      setError("Une erreur est survenue pendant l'enregistrement.");
-      setRecording(false);
-      clearInterval(recordIntervalRef.current);
-      stream.getTracks().forEach((track) => track.stop());
-    };
-
-    recorder.onstop = () => {
-      clearInterval(recordIntervalRef.current);
-
-      const finalMimeType =
-        recorder.mimeType ||
-        audioMimeTypeRef.current ||
-        audioChunksRef.current[0]?.type ||
-        "audio/mp4";
-
-      const blob = new Blob(audioChunksRef.current, {
-        type: finalMimeType,
-      });
-
-      stream.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-
-      if (!blob || blob.size === 0) {
-        setError("Le message vocal est vide. Recommence l'enregistrement.");
-        return;
-      }
-
-      if (audioPreviewUrl) {
-        URL.revokeObjectURL(audioPreviewUrl);
-      }
-
-      setAudioBlob(blob);
-      setAudioPreviewUrl(URL.createObjectURL(blob));
-    };
-
-    recorder.start(250);
-    setRecording(true);
-    setRecordSeconds(0);
-
-    recordIntervalRef.current = setInterval(() => {
-      setRecordSeconds((seconds) => seconds + 1);
-    }, 1000);
-  } catch (err) {
-    console.error("Erreur micro :", err);
-    setError(
-      "Impossible d'accéder au micro. Vérifie que l'accès au micro est autorisé."
-    );
-  }
-}
   function stopRecording() {
     mediaRecorderRef.current?.stop();
     setRecording(false);
@@ -347,7 +284,7 @@ export default function GuestbookPage() {
     e.preventDefault();
     if (!event) return;
     if (!text.trim() && !audioBlob) {
-      setError("Écris un petit mot ou enregistre un message vocal avant d'envoyer.");
+      setError("Écrivez un petit mot ou enregistrez un message vocal avant d'envoyer.");
       return;
     }
     setError("");
@@ -379,52 +316,17 @@ export default function GuestbookPage() {
       }
     }
 
-    
-let audioUrl = null;
-
-if (audioBlob && supabase) {
-  const mimeType =
-    audioBlob.type ||
-    audioMimeTypeRef.current ||
-    "audio/mp4";
-
-  let extension = "m4a";
-
-  if (mimeType.includes("webm")) {
-    extension = "webm";
-  } else if (mimeType.includes("mp4")) {
-    extension = "m4a";
-  } else if (mimeType.includes("ogg")) {
-    extension = "ogg";
-  }
-
-  const path = `${event.id}/${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("guestbook-media")
-    .upload(path, audioBlob, {
-      contentType: mimeType,
-      upsert: false,
-    });
-
-  if (uploadError) {
-    console.error("Erreur upload audio :", uploadError);
-    setError(
-      "Le message vocal n'a pas pu être envoyé : " +
-        uploadError.message
-    );
-    setSending(false);
-    return;
-  }
-
-  const { data: pub } = supabase.storage
-    .from("guestbook-media")
-    .getPublicUrl(path);
-
-  audioUrl = pub?.publicUrl || null;
-}
+    let audioUrl = null;
+    if (audioBlob && supabase) {
+      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webm`;
+      const { error: uploadError } = await supabase.storage
+        .from("guestbook-media")
+        .upload(path, audioBlob);
+      if (!uploadError) {
+        const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
+        audioUrl = pub?.publicUrl || null;
+      }
+    }
 
     const optimisticEntry = {
       id: "temp-" + Date.now(),
@@ -493,7 +395,7 @@ if (audioBlob && supabase) {
 
       <div style={styles.content}>
         <header style={styles.header}>
-          <p style={styles.eyebrow}>LE FIL</p>
+          <p style={styles.eyebrow}>LIVRE D'OR NUMÉRIQUE</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
           <p style={styles.sub}>
             Laissez un petit mot qui restera gravé dans nos souvenirs.
@@ -503,14 +405,14 @@ if (audioBlob && supabase) {
         <form onSubmit={handleSubmit} style={styles.form}>
           <input
             type="text"
-            placeholder="Ton prénom"
+            placeholder="Votre prénom"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={40}
             style={styles.input}
           />
           <textarea
-            placeholder="Ton message…"
+            placeholder="Votre message"
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={400}
@@ -587,11 +489,11 @@ if (audioBlob && supabase) {
           <div style={styles.formRow}>
             <span style={styles.counter}>{text.length}/400</span>
             <button type="submit" disabled={sending || !event} style={styles.button}>
-              {sending ? "Envoi…" : "Laisser mon mot"}
+              {sending ? "Envoi…" : "Publier"}
             </button>
           </div>
           {error && <p style={styles.errorText}>{error}</p>}
-          {justSent && <p style={styles.successText}>Merci, ton message a été ajouté ✓</p>}
+          {justSent && <p style={styles.successText}>Merci, votre message a été publié ✓</p>}
         </form>
 
         {pollQuestions.map((q) => {
@@ -623,7 +525,7 @@ if (audioBlob && supabase) {
               </div>
               <p style={styles.pollNote}>
                 {total === 0 ? "Soyez le premier·ère à voter !" : `${total} invité${total > 1 ? "s ont" : " a"} voté`}
-                {voted ? " · merci pour ton vote ✓" : ""}
+                {voted ? " · merci pour votre vote ✓" : ""}
               </p>
             </div>
           );

@@ -48,15 +48,14 @@ export default function AdminPage() {
   const [client, setClient] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventType, setEventType] = useState("Mariage");
-  const [pollQuestion, setPollQuestion] = useState("");
-  const [pollOptions, setPollOptions] = useState(["", "", "", ""]);
+  const [newPolls, setNewPolls] = useState([]);
   const [cagnotteUrl, setCagnotteUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [editingPollFor, setEditingPollFor] = useState(null);
-  const [editPollQuestion, setEditPollQuestion] = useState("");
-  const [editPollOptions, setEditPollOptions] = useState(["", "", "", ""]);
-  const [savingPoll, setSavingPoll] = useState(false);
+  const [editingPolls, setEditingPolls] = useState([]);
+  const [loadingPolls, setLoadingPolls] = useState(false);
+  const [savingPollId, setSavingPollId] = useState(null);
   const [editingCagnotteFor, setEditingCagnotteFor] = useState(null);
   const [editCagnotteUrl, setEditCagnotteUrl] = useState("");
   const [savingCagnotte, setSavingCagnotte] = useState(false);
@@ -104,7 +103,7 @@ export default function AdminPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("events")
-      .select("*, messages(count)")
+      .select("*, messages(count), poll_questions(count)")
       .order("created_at", { ascending: false });
     if (error) {
       setLoadError("Impossible de charger les livres d'or : " + error.message);
@@ -147,59 +146,152 @@ export default function AdminPage() {
     if (!client.trim() || !eventTitle.trim() || !supabase) return;
     setCreating(true);
     const slug = `${slugify(client)}-${shortCode()}`;
-    const cleanOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
-    const { error } = await supabase.from("events").insert({
-      client: client.trim(),
-      event_title: eventTitle.trim(),
-      event_type: eventType,
-      slug,
-      poll_question: pollQuestion.trim() || null,
-      poll_options: cleanOptions,
-      poll_votes: cleanOptions.map(() => 0),
-      cagnotte_url: cagnotteUrl.trim() || null,
-    });
-    setCreating(false);
+    const { data: created, error } = await supabase
+      .from("events")
+      .insert({
+        client: client.trim(),
+        event_title: eventTitle.trim(),
+        event_type: eventType,
+        slug,
+        cagnotte_url: cagnotteUrl.trim() || null,
+      })
+      .select()
+      .single();
     if (error) {
+      setCreating(false);
       setLoadError("Création impossible : " + error.message);
       return;
     }
+
+    const validPolls = newPolls
+      .map((p) => ({ question: p.question.trim(), options: p.options.map((o) => o.trim()).filter(Boolean) }))
+      .filter((p) => p.question && p.options.length >= 2);
+
+    if (validPolls.length > 0) {
+      await supabase.from("poll_questions").insert(
+        validPolls.map((p, i) => ({
+          event_id: created.id,
+          question: p.question,
+          options: p.options,
+          votes: p.options.map(() => 0),
+          position: i,
+        }))
+      );
+    }
+
+    setCreating(false);
     setClient("");
     setEventTitle("");
     setEventType("Mariage");
-    setPollQuestion("");
-    setPollOptions(["", "", "", ""]);
+    setNewPolls([]);
     setCagnotteUrl("");
     setShowForm(false);
     loadEvents();
   }
 
-  function openPollEditor(ev) {
-    setEditingPollFor(ev);
-    setEditPollQuestion(ev.poll_question || "");
-    const opts = ev.poll_options && ev.poll_options.length ? ev.poll_options : [];
-    setEditPollOptions([opts[0] || "", opts[1] || "", opts[2] || "", opts[3] || ""]);
+  function addNewPollBlock() {
+    setNewPolls((prev) => (prev.length >= 5 ? prev : [...prev, { question: "", options: ["", "", "", ""] }]));
+  }
+  function removeNewPollBlock(index) {
+    setNewPolls((prev) => prev.filter((_, i) => i !== index));
+  }
+  function updateNewPollQuestion(index, value) {
+    setNewPolls((prev) => prev.map((p, i) => (i === index ? { ...p, question: value } : p)));
+  }
+  function updateNewPollOption(pollIndex, optIndex, value) {
+    setNewPolls((prev) =>
+      prev.map((p, i) => {
+        if (i !== pollIndex) return p;
+        const options = [...p.options];
+        options[optIndex] = value;
+        return { ...p, options };
+      })
+    );
   }
 
-  async function handleSavePoll(e) {
-    e.preventDefault();
-    if (!editingPollFor || !supabase) return;
-    setSavingPoll(true);
-    const cleanOptions = editPollOptions.map((o) => o.trim()).filter(Boolean);
-    const { error } = await supabase
-      .from("events")
-      .update({
-        poll_question: editPollQuestion.trim() || null,
-        poll_options: cleanOptions,
-        poll_votes: cleanOptions.map(() => 0), // on repart de zéro si la question change
+  async function openPollEditor(ev) {
+    setEditingPollFor(ev);
+    setLoadingPolls(true);
+    const { data } = await supabase
+      .from("poll_questions")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("position", { ascending: true });
+    setEditingPolls(
+      (data || []).map((q) => ({
+        id: q.id,
+        question: q.question,
+        options: [q.options?.[0] || "", q.options?.[1] || "", q.options?.[2] || "", q.options?.[3] || ""],
+        isNew: false,
+      }))
+    );
+    setLoadingPolls(false);
+  }
+
+  function addEditingPollBlock() {
+    setEditingPolls((prev) =>
+      prev.length >= 5 ? prev : [...prev, { id: null, question: "", options: ["", "", "", ""], isNew: true }]
+    );
+  }
+  function updateEditingPollQuestion(index, value) {
+    setEditingPolls((prev) => prev.map((p, i) => (i === index ? { ...p, question: value } : p)));
+  }
+  function updateEditingPollOption(pollIndex, optIndex, value) {
+    setEditingPolls((prev) =>
+      prev.map((p, i) => {
+        if (i !== pollIndex) return p;
+        const options = [...p.options];
+        options[optIndex] = value;
+        return { ...p, options };
       })
-      .eq("id", editingPollFor.id);
-    setSavingPoll(false);
-    if (error) {
-      setLoadError("Modification du sondage impossible : " + error.message);
+    );
+  }
+
+  async function handleSaveOnePoll(index) {
+    const poll = editingPolls[index];
+    if (!poll || !editingPollFor || !supabase) return;
+    const cleanOptions = poll.options.map((o) => o.trim()).filter(Boolean);
+    if (!poll.question.trim() || cleanOptions.length < 2) {
+      setLoadError("Il faut une question et au moins 2 réponses.");
       return;
     }
-    setEditingPollFor(null);
+    setSavingPollId(index);
+    if (poll.id) {
+      const { error } = await supabase
+        .from("poll_questions")
+        .update({ question: poll.question.trim(), options: cleanOptions, votes: cleanOptions.map(() => 0) })
+        .eq("id", poll.id);
+      if (error) setLoadError("Modification impossible : " + error.message);
+    } else {
+      const { data, error } = await supabase
+        .from("poll_questions")
+        .insert({
+          event_id: editingPollFor.id,
+          question: poll.question.trim(),
+          options: cleanOptions,
+          votes: cleanOptions.map(() => 0),
+          position: index,
+        })
+        .select()
+        .single();
+      if (error) {
+        setLoadError("Création impossible : " + error.message);
+      } else {
+        setEditingPolls((prev) => prev.map((p, i) => (i === index ? { ...p, id: data.id, isNew: false } : p)));
+      }
+    }
+    setSavingPollId(null);
     loadEvents();
+  }
+
+  async function handleDeletePoll(index) {
+    const poll = editingPolls[index];
+    if (!poll) return;
+    if (poll.id && supabase) {
+      await supabase.from("poll_questions").delete().eq("id", poll.id);
+      loadEvents();
+    }
+    setEditingPolls((prev) => prev.filter((_, i) => i !== index));
   }
 
   function openCagnotteEditor(ev) {
@@ -387,8 +479,8 @@ export default function AdminPage() {
             <span style={styles.statLabel}>Messages reçus</span>
           </div>
           <div style={styles.statCard}>
-            <span style={styles.statNumber}>{events.filter((e) => e.poll_question).length}</span>
-            <span style={styles.statLabel}>Sondages actifs</span>
+            <span style={styles.statNumber}>{events.reduce((sum, e) => sum + (e.poll_questions?.[0]?.count ?? 0), 0)}</span>
+            <span style={styles.statLabel}>Questions de sondage</span>
           </div>
           <div style={styles.statCard}>
             <span style={styles.statNumber}>{catalogs.length}</span>
@@ -452,33 +544,38 @@ export default function AdminPage() {
                       <option>Autre</option>
                     </select>
                   </label>
-                  <label style={styles.label}>
-                    Question du sondage (optionnel)
-                    <input
-                      style={styles.input}
-                      value={pollQuestion}
-                      onChange={(e) => setPollQuestion(e.target.value)}
-                      placeholder="ex. Qui va pleurer en premier ?"
-                    />
-                  </label>
-                  {pollQuestion.trim() && (
-                    <label style={styles.label}>
-                      Réponses possibles
-                      {pollOptions.map((opt, i) => (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {newPolls.map((poll, i) => (
+                      <div key={i} style={styles.pollBlock}>
+                        <div style={styles.pollBlockHead}>
+                          <span style={styles.pollBlockLabel}>Question {i + 1}</span>
+                          <button type="button" style={styles.removePollLink} onClick={() => removeNewPollBlock(i)}>
+                            retirer
+                          </button>
+                        </div>
                         <input
-                          key={i}
-                          style={{ ...styles.input, marginTop: i === 0 ? 0 : "6px" }}
-                          value={opt}
-                          onChange={(e) => {
-                            const next = [...pollOptions];
-                            next[i] = e.target.value;
-                            setPollOptions(next);
-                          }}
-                          placeholder={`Réponse ${i + 1}`}
+                          style={styles.input}
+                          value={poll.question}
+                          onChange={(e) => updateNewPollQuestion(i, e.target.value)}
+                          placeholder="ex. Qui va pleurer en premier ?"
                         />
-                      ))}
-                    </label>
-                  )}
+                        {poll.options.map((opt, j) => (
+                          <input
+                            key={j}
+                            style={{ ...styles.input, marginTop: "6px" }}
+                            value={opt}
+                            onChange={(e) => updateNewPollOption(i, j, e.target.value)}
+                            placeholder={`Réponse ${j + 1}`}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                    {newPolls.length < 5 && (
+                      <button type="button" style={styles.addPollButton} onClick={addNewPollBlock}>
+                        + Ajouter une question de sondage
+                      </button>
+                    )}
+                  </div>
                   <label style={styles.label}>
                     Lien de cagnotte (optionnel)
                     <input
@@ -502,46 +599,65 @@ export default function AdminPage() {
 
             {editingPollFor && (
               <div style={styles.modalOverlay} onClick={() => setEditingPollFor(null)}>
-                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSavePoll}>
-                  <h2 style={styles.modalTitle}>Sondage — {editingPollFor.client}</h2>
-                  <label style={styles.label}>
-                    Question
-                    <input
-                      style={styles.input}
-                      value={editPollQuestion}
-                      onChange={(e) => setEditPollQuestion(e.target.value)}
-                      placeholder="ex. Qui va pleurer en premier ?"
-                      autoFocus
-                    />
-                  </label>
-                  <label style={styles.label}>
-                    Réponses possibles
-                    {editPollOptions.map((opt, i) => (
-                      <input
-                        key={i}
-                        style={{ ...styles.input, marginTop: i === 0 ? 0 : "6px" }}
-                        value={opt}
-                        onChange={(e) => {
-                          const next = [...editPollOptions];
-                          next[i] = e.target.value;
-                          setEditPollOptions(next);
-                        }}
-                        placeholder={`Réponse ${i + 1}`}
-                      />
+                <div style={{ ...styles.modal, maxHeight: "82vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+                  <h2 style={styles.modalTitle}>Sondages — {editingPollFor.client}</h2>
+                  {loadingPolls && <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Chargement…</p>}
+                  {!loadingPolls && editingPolls.length === 0 && (
+                    <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Aucune question pour l'instant.</p>
+                  )}
+                  {!loadingPolls &&
+                    editingPolls.map((poll, i) => (
+                      <div key={poll.id || `new-${i}`} style={styles.pollBlock}>
+                        <div style={styles.pollBlockHead}>
+                          <span style={styles.pollBlockLabel}>Question {i + 1}</span>
+                          <button type="button" style={styles.removePollLink} onClick={() => handleDeletePoll(i)}>
+                            supprimer
+                          </button>
+                        </div>
+                        <input
+                          style={styles.input}
+                          value={poll.question}
+                          onChange={(e) => updateEditingPollQuestion(i, e.target.value)}
+                          placeholder="ex. Qui va pleurer en premier ?"
+                        />
+                        {poll.options.map((opt, j) => (
+                          <input
+                            key={j}
+                            style={{ ...styles.input, marginTop: "6px" }}
+                            value={opt}
+                            onChange={(e) => updateEditingPollOption(i, j, e.target.value)}
+                            placeholder={`Réponse ${j + 1}`}
+                          />
+                        ))}
+                        <button
+                          type="button"
+                          style={{ ...styles.newButton, marginTop: "8px", alignSelf: "flex-start" }}
+                          onClick={() => handleSaveOnePoll(i)}
+                          disabled={savingPollId === i}
+                        >
+                          {savingPollId === i ? "Enregistrement…" : poll.id ? "Mettre à jour" : "Ajouter"}
+                        </button>
+                        {!poll.id && (
+                          <p style={{ fontSize: "0.7rem", color: "#8A7F66", margin: "4px 0 0" }}>
+                            Pas encore enregistrée — clique "Ajouter".
+                          </p>
+                        )}
+                      </div>
                     ))}
-                  </label>
+                  {editingPolls.length < 5 && (
+                    <button type="button" style={styles.addPollButton} onClick={addEditingPollBlock}>
+                      + Ajouter une question de sondage
+                    </button>
+                  )}
                   <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
-                    Changer la question remet les votes à zéro.
+                    Modifier une question remet ses votes à zéro.
                   </p>
                   <div style={styles.modalActions}>
                     <button type="button" style={styles.cancelButton} onClick={() => setEditingPollFor(null)}>
-                      Annuler
-                    </button>
-                    <button type="submit" style={styles.newButton} disabled={savingPoll}>
-                      {savingPoll ? "Enregistrement…" : "Enregistrer"}
+                      Fermer
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             )}
 
@@ -1092,4 +1208,9 @@ const styles = {
   mobileCards: { display: "none", flexDirection: "column", gap: "12px" },
   card: { background: "#FFFFFF", borderRadius: "16px", padding: "16px", border: "1px solid #EAE3D6", display: "flex", flexDirection: "column", gap: "10px" },
   cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
+  pollBlock: { display: "flex", flexDirection: "column", background: "#FBF8F3", border: "1px solid #EAE3D6", borderRadius: "12px", padding: "12px" },
+  pollBlockHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" },
+  pollBlockLabel: { fontSize: "0.72rem", fontWeight: 700, color: "#8A7F66", textTransform: "uppercase", letterSpacing: "0.04em" },
+  removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
+  addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };

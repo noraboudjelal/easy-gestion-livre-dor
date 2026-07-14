@@ -96,15 +96,17 @@ export default function PrintPage() {
 
         <div style={styles.entries}>
           {messages.length === 0 && <p style={{ color: "#8A7F66" }}>Aucun message.</p>}
-          {messages.map((m) => (
-            <div className="entry" key={m.id} style={{ ...styles.entry, color: m.ink }}>
-              {m.photo_url && <img src={m.photo_url} alt="" style={styles.entryPhoto} />}
-              <p style={styles.entryText}>{m.message}</p>
-              <p style={{ ...styles.entrySignature, color: m.ink }}>
-                — {m.name} <span style={styles.entryDate}>{formatDate(m.created_at)}</span>
-              </p>
-            </div>
-          ))}
+          {messages
+            .filter((m) => (m.message && m.message.trim()) || m.photo_url)
+            .map((m) => (
+              <div className="entry" key={m.id} style={{ ...styles.entry, color: m.ink }}>
+                {m.photo_url && <img src={m.photo_url} alt="" style={styles.entryPhoto} />}
+                <p style={styles.entryText}>{m.message}</p>
+                <p style={{ ...styles.entrySignature, color: m.ink }}>
+                  — {m.name} <span style={styles.entryDate}>{formatDate(m.created_at)}</span>
+                </p>
+              </div>
+            ))}
         </div>
       </div>
     </div>

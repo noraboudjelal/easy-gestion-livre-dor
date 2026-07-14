@@ -154,6 +154,7 @@ export default function AdminPage() {
         event_type: eventType,
         slug,
         cagnotte_url: cagnotteUrl.trim() || null,
+        client_password: clientAccessCode(),
       })
       .select()
       .single();
@@ -345,6 +346,22 @@ export default function AdminPage() {
   function linkFor(slug) {
     if (typeof window === "undefined") return slug;
     return `${window.location.origin}/${slug}`;
+  }
+
+  function espaceLinkFor(slug) {
+    if (typeof window === "undefined") return slug;
+    return `${window.location.origin}/${slug}/espace`;
+  }
+
+  async function handleRegenerateEventCode(eventId) {
+    if (!supabase) return;
+    const newCode = clientAccessCode();
+    const { error } = await supabase.from("events").update({ client_password: newCode }).eq("id", eventId);
+    if (error) {
+      setLoadError("Impossible de régénérer le code : " + error.message);
+    } else {
+      loadEvents();
+    }
   }
 
   function catalogLinkFor(slug) {
@@ -711,6 +728,7 @@ export default function AdminPage() {
                       <th style={styles.th}>Client</th>
                       <th style={styles.th}>Type</th>
                       <th style={styles.th}>Lien</th>
+                      <th style={styles.th}>Espace mariés</th>
                       <th style={styles.th}>QR code</th>
                       <th style={styles.th}>Messages</th>
                       <th style={styles.th}></th>
@@ -733,6 +751,25 @@ export default function AdminPage() {
                               {copiedId === ev.id ? "✓" : "copier"}
                             </button>
                           </div>
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.linkRow}>
+                            <code style={styles.codeText}>{ev.client_password || "—"}</code>
+                            <button
+                              style={styles.iconButton}
+                              onClick={() => {
+                                const text = `Lien : ${espaceLinkFor(ev.slug)}\nCode d'accès : ${ev.client_password}`;
+                                if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+                                setCopiedId(`espace-${ev.id}`);
+                                setTimeout(() => setCopiedId(null), 1800);
+                              }}
+                            >
+                              {copiedId === `espace-${ev.id}` ? "✓" : "copier lien + code"}
+                            </button>
+                          </div>
+                          <button style={styles.regenerateButton} onClick={() => handleRegenerateEventCode(ev.id)}>
+                            régénérer le code
+                          </button>
                         </td>
                         <td style={styles.td}>
                           <a href={qrUrlForLink(linkFor(ev.slug))} target="_blank" rel="noreferrer" style={styles.qrThumb}>
@@ -791,6 +828,20 @@ export default function AdminPage() {
                         <span style={styles.linkText}>{linkFor(ev.slug)}</span>
                         <button style={styles.iconButton} onClick={() => handleCopy(ev.id, ev.slug)}>
                           {copiedId === ev.id ? "✓" : "copier"}
+                        </button>
+                      </div>
+                      <div style={styles.linkRow}>
+                        <code style={styles.codeText}>Code espace mariés : {ev.client_password || "—"}</code>
+                        <button
+                          style={styles.iconButton}
+                          onClick={() => {
+                            const text = `Lien : ${espaceLinkFor(ev.slug)}\nCode d'accès : ${ev.client_password}`;
+                            if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+                            setCopiedId(`espace-${ev.id}`);
+                            setTimeout(() => setCopiedId(null), 1800);
+                          }}
+                        >
+                          {copiedId === `espace-${ev.id}` ? "✓" : "copier"}
                         </button>
                       </div>
                       <div style={styles.subText}>{ev.messages?.[0]?.count ?? 0} message(s)</div>

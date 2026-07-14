@@ -131,6 +131,7 @@ export default function GuestbookPage() {
   const [pollQuestions, setPollQuestions] = useState([]);
   const [votedIds, setVotedIds] = useState({});
   const [votingId, setVotingId] = useState(null);
+  const audioMimeTypeRef = useRef("");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const styles = getStyles(theme);
@@ -232,36 +233,99 @@ export default function GuestbookPage() {
   }
 
   async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      audioChunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        setAudioBlob(blob);
-        setAudioPreviewUrl(URL.createObjectURL(blob));
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-      };
-      recorder.start();
-      setRecording(true);
-      setRecordSeconds(0);
-      recordIntervalRef.current = setInterval(() => {
-        setRecordSeconds((s) => s + 1);
-      }, 1000);
-    } catch {
-      setError("Impossible d'accéder au micro. Vérifie les autorisations de ton navigateur.");
-    }
+  async function startRecording() {
+  setError("");
+
+  if (
+    !navigator.mediaDevices?.getUserMedia ||
+    typeof MediaRecorder === "undefined"
+  ) {
+    setError("L'enregistrement vocal n'est pas disponible sur ce navigateur.");
+    return;
   }
 
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    streamRef.current = stream;
+    audioChunksRef.current = [];
+
+    const supportedTypes = [
+      "audio/mp4;codecs=mp4a.40.2",
+      "audio/mp4",
+      "audio/webm;codecs=opus",
+      "audio/webm",
+    ];
+
+    const mimeType =
+      supportedTypes.find((type) =>
+        MediaRecorder.isTypeSupported(type)
+      ) || "";
+
+    audioMimeTypeRef.current = mimeType;
+
+    const recorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
+
+    mediaRecorderRef.current = recorder;
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        audioChunksRef.current.push(e.data);
+      }
+    };
+
+    recorder.onerror = () => {
+      setError("Une erreur est survenue pendant l'enregistrement.");
+      setRecording(false);
+      clearInterval(recordIntervalRef.current);
+      stream.getTracks().forEach((track) => track.stop());
+    };
+
+    recorder.onstop = () => {
+      clearInterval(recordIntervalRef.current);
+
+      const finalMimeType =
+        recorder.mimeType ||
+        audioMimeTypeRef.current ||
+        audioChunksRef.current[0]?.type ||
+        "audio/mp4";
+
+      const blob = new Blob(audioChunksRef.current, {
+        type: finalMimeType,
+      });
+
+      stream.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+
+      if (!blob || blob.size === 0) {
+        setError("Le message vocal est vide. Recommence l'enregistrement.");
+        return;
+      }
+
+      if (audioPreviewUrl) {
+        URL.revokeObjectURL(audioPreviewUrl);
+      }
+
+      setAudioBlob(blob);
+      setAudioPreviewUrl(URL.createObjectURL(blob));
+    };
+
+    recorder.start(250);
+    setRecording(true);
+    setRecordSeconds(0);
+
+    recordIntervalRef.current = setInterval(() => {
+      setRecordSeconds((seconds) => seconds + 1);
+    }, 1000);
+  } catch (err) {
+    console.error("Erreur micro :", err);
+    setError(
+      "Impossible d'accéder au micro. Vérifie que l'accès au micro est autorisé."
+    );
+  }
+}
   function stopRecording() {
     mediaRecorderRef.current?.stop();
     setRecording(false);

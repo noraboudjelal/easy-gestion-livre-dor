@@ -87,7 +87,7 @@ export default function PrintPage() {
       </div>
 
       <div className="print-page" style={styles.sheet}>
-        <p style={styles.eyebrow}>LIVRE D'OR</p>
+        <p style={styles.eyebrow}>LE FIL</p>
         <h1 style={styles.title}>{event?.event_title}</h1>
         <p style={styles.meta}>
           {messages.length} message{messages.length > 1 ? "s" : ""} — édité le {formatDate(Date.now())}

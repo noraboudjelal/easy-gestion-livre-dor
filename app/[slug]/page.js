@@ -395,7 +395,7 @@ export default function GuestbookPage() {
 
       <div style={styles.content}>
         <header style={styles.header}>
-          <p style={styles.eyebrow}>LIVRE D'OR NUMÉRIQUE</p>
+          <p style={styles.eyebrow}>LE FIL</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
           <p style={styles.sub}>
             Laissez un petit mot qui restera gravé dans nos souvenirs.

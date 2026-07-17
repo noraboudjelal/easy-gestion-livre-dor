@@ -266,6 +266,14 @@ export default function EspaceMariesPage() {
               <div key={m.id} style={styles.gridItem}>
                 <img src={m.photo_url} alt="" style={styles.gridImg} />
                 <span style={styles.gridCaption(theme)}>{m.name}</span>
+                <a
+                  href={m.photo_url}
+                  download={`photo-${m.name || "invite"}.jpg`}
+                  style={styles.downloadBtn}
+                  title="Télécharger"
+                >
+                  ⬇
+                </a>
               </div>
             ))}
           </div>
@@ -277,6 +285,14 @@ export default function EspaceMariesPage() {
               <div key={m.id} style={styles.gridItem}>
                 <video src={m.video_url} controls style={styles.gridImg} />
                 <span style={styles.gridCaption(theme)}>{m.name}</span>
+                <a
+                  href={m.video_url}
+                  download={`video-${m.name || "invite"}.mp4`}
+                  style={styles.downloadBtn}
+                  title="Télécharger"
+                >
+                  ⬇
+                </a>
               </div>
             ))}
           </div>
@@ -294,10 +310,27 @@ export default function EspaceMariesPage() {
                   <span style={styles.msgName(theme)}>{m.name}</span>
                   <span style={styles.msgDate(theme)}>{formatDate(m.created_at)}</span>
                 </div>
-                {m.photo_url && <img src={m.photo_url} alt="" style={styles.msgMedia} />}
-                {m.video_url && <video src={m.video_url} controls style={styles.msgMedia} />}
+                {m.photo_url && (
+                  <div style={{ position: "relative" }}>
+                    <img src={m.photo_url} alt="" style={styles.msgMedia} />
+                    <a href={m.photo_url} download={`photo-${m.name || "invite"}.jpg`} style={styles.downloadBtn} title="Télécharger">⬇</a>
+                  </div>
+                )}
+                {m.video_url && (
+                  <div style={{ position: "relative" }}>
+                    <video src={m.video_url} controls style={styles.msgMedia} />
+                    <a href={m.video_url} download={`video-${m.name || "invite"}.mp4`} style={styles.downloadBtn} title="Télécharger">⬇</a>
+                  </div>
+                )}
                 {m.message && <p style={styles.msgText(theme)}>{m.message}</p>}
-                {m.audio_url && <audio src={m.audio_url} controls style={{ width: "100%", marginTop: "6px" }} />}
+                {m.audio_url && (
+                  <>
+                    <audio src={m.audio_url} controls style={{ width: "100%", marginTop: "6px" }} />
+                    <a href={m.audio_url} download={`vocal-${m.name || "invite"}.webm`} style={styles.audioDownload(theme)}>
+                      ⬇ Télécharger le vocal
+                    </a>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -385,6 +418,28 @@ const styles = {
   gridItem: { position: "relative", borderRadius: "10px", overflow: "hidden" },
   gridImg: { width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: "10px", display: "block" },
   gridCaption: (t) => ({ position: "absolute", left: "6px", bottom: "6px", fontSize: "0.65rem", fontWeight: 600, color: "#fff", background: "rgba(0,0,0,0.45)", padding: "2px 7px", borderRadius: "20px" }),
+  downloadBtn: {
+    position: "absolute",
+    top: "6px",
+    right: "6px",
+    width: "26px",
+    height: "26px",
+    borderRadius: "50%",
+    background: "rgba(0,0,0,0.55)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    textDecoration: "none",
+  },
+  audioDownload: (t) => ({
+    display: "inline-block",
+    marginTop: "6px",
+    fontSize: "0.72rem",
+    color: t.accent,
+    textDecoration: "underline",
+  }),
 
   msgList: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" },
   msgCard: (t) => ({ background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "13px 15px" }),

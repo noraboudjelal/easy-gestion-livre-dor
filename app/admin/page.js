@@ -27,6 +27,13 @@ const TYPE_BADGE = {
   "Baby Shower": { background: "#FBE7EF", color: "#B5567F" },
   "Pot de départ": { background: "#E3F1F0", color: "#2E6E68" },
   "Départ en retraite": { background: "#E9F3EA", color: "#3F7A52" },
+  "Henné": { background: "#E9F3EA", color: "#4E7A3F" },
+  "Circoncision": { background: "#E3F3FA", color: "#2E7A9E" },
+  "Fiançailles": { background: "#F7EEE4", color: "#9E6B34" },
+  "Inauguration": { background: "#F7F1DE", color: "#8A6D18" },
+  "Lancement de produit": { background: "#E1F4F0", color: "#1F8072" },
+  "Fête d'entreprise": { background: "#EAEAEC", color: "#4C4E56" },
+  "Vos avis": { background: "#EDEDED", color: "#4A4A4A" },
   "Autre": { background: "#EFE4C8", color: "#7A5A1E" },
 };
 function badgeColors(type) {
@@ -558,6 +565,13 @@ export default function AdminPage() {
                       <option>Baby Shower</option>
                       <option>Pot de départ</option>
                       <option>Départ en retraite</option>
+                      <option>Henné</option>
+                      <option>Circoncision</option>
+                      <option>Fiançailles</option>
+                      <option>Inauguration</option>
+                      <option>Lancement de produit</option>
+                      <option>Fête d'entreprise</option>
+                      <option>Vos avis</option>
                       <option>Autre</option>
                     </select>
                   </label>

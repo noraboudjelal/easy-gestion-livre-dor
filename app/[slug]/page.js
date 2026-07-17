@@ -71,6 +71,83 @@ const THEMES = {
     muted: "#9DB3B8",
     avatarPalette: ["#3E6B75", "#C9A24B", "#5C8993", "#7FADB5"],
   },
+  "Henné": {
+    ink: "#152016",
+    surface: "#1E2E20",
+    surface2: "#283C2B",
+    accent: "#C9A24B",
+    accentSoft: "rgba(201,162,75,0.3)",
+    accentText: "#20180A",
+    ivory: "#EFF3EA",
+    muted: "#9FB29E",
+    avatarPalette: ["#4E7A4F", "#C9A24B", "#6FA070", "#8FBF8F"],
+  },
+  "Circoncision": {
+    ink: "#0F2A38",
+    surface: "#173A4B",
+    surface2: "#1F4A5E",
+    accent: "#8FCFEA",
+    accentSoft: "rgba(143,207,234,0.3)",
+    accentText: "#0F2A38",
+    ivory: "#EAF6FB",
+    muted: "#9FC3D4",
+    avatarPalette: ["#8FCFEA", "#C9A24B", "#6BAFCE", "#B8E2F2"],
+  },
+  "Fiançailles": {
+    ink: "#241A1E",
+    surface: "#332428",
+    surface2: "#402F34",
+    accent: "#D4A574",
+    accentSoft: "rgba(212,165,116,0.3)",
+    accentText: "#241A1E",
+    ivory: "#F7EFEA",
+    muted: "#B8A39D",
+    avatarPalette: ["#D4A574", "#C9A24B", "#B88A63", "#E3C39D"],
+  },
+  "Inauguration": {
+    ink: "#1C1A16",
+    surface: "#28251F",
+    surface2: "#332F27",
+    accent: "#D4AF37",
+    accentSoft: "rgba(212,175,55,0.3)",
+    accentText: "#1C1A16",
+    ivory: "#F5F1E6",
+    muted: "#A69C8A",
+    avatarPalette: ["#D4AF37", "#8A7B5C", "#C9A24B", "#B5A278"],
+  },
+  "Lancement de produit": {
+    ink: "#151833",
+    surface: "#1F2447",
+    surface2: "#2A3059",
+    accent: "#4FB8A8",
+    accentSoft: "rgba(79,184,168,0.3)",
+    accentText: "#0F1F1C",
+    ivory: "#EAF6F3",
+    muted: "#9DB8B2",
+    avatarPalette: ["#4FB8A8", "#C9A24B", "#6FCFC0", "#8BD9CC"],
+  },
+  "Fête d'entreprise": {
+    ink: "#17181C",
+    surface: "#212327",
+    surface2: "#2B2E33",
+    accent: "#B7B9C0",
+    accentSoft: "rgba(183,185,192,0.3)",
+    accentText: "#17181C",
+    ivory: "#F2F2F4",
+    muted: "#9A9CA6",
+    avatarPalette: ["#B7B9C0", "#C9A24B", "#8E9098", "#D3D4D9"],
+  },
+  "Vos avis": {
+    ink: "#151515",
+    surface: "#1F1F1F",
+    surface2: "#292929",
+    accent: "#D9C9A3",
+    accentSoft: "rgba(217,201,163,0.28)",
+    accentText: "#151515",
+    ivory: "#F2F0EC",
+    muted: "#9C9A94",
+    avatarPalette: ["#D9C9A3", "#8C8A85", "#B7B4AC", "#6E6C67"],
+  },
   "Autre": {
     ink: "#14131C",
     surface: "#1F1E2B",
@@ -133,6 +210,7 @@ export default function GuestbookPage() {
   const [votingId, setVotingId] = useState(null);
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
+  const isReview = event?.event_type === "Vos avis";
   const styles = getStyles(theme);
 
   const loadAll = useCallback(async () => {
@@ -398,7 +476,9 @@ export default function GuestbookPage() {
           <p style={styles.eyebrow}>LE FIL</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
           <p style={styles.sub}>
-            Laissez un petit mot qui restera gravé dans nos souvenirs.
+            {isReview
+              ? "Partagez votre avis, ça nous aide à nous améliorer."
+              : "Laissez un petit mot qui restera gravé dans nos souvenirs."}
           </p>
         </header>
 
@@ -489,7 +569,7 @@ export default function GuestbookPage() {
           <div style={styles.formRow}>
             <span style={styles.counter}>{text.length}/400</span>
             <button type="submit" disabled={sending || !event} style={styles.button}>
-              {sending ? "Envoi…" : "Publier"}
+              {sending ? "Envoi…" : isReview ? "Envoyer" : "Publier"}
             </button>
           </div>
           {error && <p style={styles.errorText}>{error}</p>}

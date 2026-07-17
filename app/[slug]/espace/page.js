@@ -35,6 +35,41 @@ const THEMES = {
     accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
     ivory: "#EEF3F3", muted: "#9DB3B8",
   },
+  "Henné": {
+    ink: "#152016", surface: "#1E2E20", surface2: "#283C2B",
+    accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
+    ivory: "#EFF3EA", muted: "#9FB29E",
+  },
+  "Circoncision": {
+    ink: "#0F2A38", surface: "#173A4B", surface2: "#1F4A5E",
+    accent: "#8FCFEA", accentSoft: "rgba(143,207,234,0.3)", accentText: "#0F2A38",
+    ivory: "#EAF6FB", muted: "#9FC3D4",
+  },
+  "Fiançailles": {
+    ink: "#241A1E", surface: "#332428", surface2: "#402F34",
+    accent: "#D4A574", accentSoft: "rgba(212,165,116,0.3)", accentText: "#241A1E",
+    ivory: "#F7EFEA", muted: "#B8A39D",
+  },
+  "Inauguration": {
+    ink: "#1C1A16", surface: "#28251F", surface2: "#332F27",
+    accent: "#D4AF37", accentSoft: "rgba(212,175,55,0.3)", accentText: "#1C1A16",
+    ivory: "#F5F1E6", muted: "#A69C8A",
+  },
+  "Lancement de produit": {
+    ink: "#151833", surface: "#1F2447", surface2: "#2A3059",
+    accent: "#4FB8A8", accentSoft: "rgba(79,184,168,0.3)", accentText: "#0F1F1C",
+    ivory: "#EAF6F3", muted: "#9DB8B2",
+  },
+  "Fête d'entreprise": {
+    ink: "#17181C", surface: "#212327", surface2: "#2B2E33",
+    accent: "#B7B9C0", accentSoft: "rgba(183,185,192,0.3)", accentText: "#17181C",
+    ivory: "#F2F2F4", muted: "#9A9CA6",
+  },
+  "Vos avis": {
+    ink: "#151515", surface: "#1F1F1F", surface2: "#292929",
+    accent: "#D9C9A3", accentSoft: "rgba(217,201,163,0.28)", accentText: "#151515",
+    ivory: "#F2F0EC", muted: "#9C9A94",
+  },
   "Autre": {
     ink: "#14131C", surface: "#1F1E2B", surface2: "#2A2836",
     accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",

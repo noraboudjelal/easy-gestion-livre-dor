@@ -100,9 +100,11 @@ export default function EspaceMariesPage() {
   const [messages, setMessages] = useState([]);
   const [pollQuestions, setPollQuestions] = useState([]);
   const [rsvps, setRsvps] = useState([]);
+  const [gifts, setGifts] = useState([]);
   const [tab, setTab] = useState("tout");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
+  const isReview = event?.event_type === "Vos avis";
 
   const loadEvent = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -143,6 +145,12 @@ export default function EspaceMariesPage() {
       .eq("event_id", event.id)
       .order("created_at", { ascending: false });
     setRsvps(rsvpData || []);
+    const { data: giftData } = await supabase
+      .from("gift_items")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("position", { ascending: true });
+    setGifts(giftData || []);
   }, [event]);
 
   useEffect(() => {
@@ -244,13 +252,15 @@ export default function EspaceMariesPage() {
           </div>
         </div>
 
-        <a href={`/${slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={styles.bookCard(theme)}>
-          <div>
-            <p style={styles.bookTitle(theme)}>Livre Souvenir</p>
-            <p style={styles.bookSub(theme)}>Générer et télécharger le PDF de tous vos souvenirs</p>
-          </div>
-          <span style={styles.bookArrow(theme)}>↗</span>
-        </a>
+        {!isReview && (
+          <a href={`/${slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={styles.bookCard(theme)}>
+            <div>
+              <p style={styles.bookTitle(theme)}>Livre Souvenir</p>
+              <p style={styles.bookSub(theme)}>Générer et télécharger le PDF de tous vos souvenirs</p>
+            </div>
+            <span style={styles.bookArrow(theme)}>↗</span>
+          </a>
+        )}
 
         {event.cagnotte_url && (
           <a href={event.cagnotte_url} target="_blank" rel="noreferrer" style={styles.cagnotteCard(theme)}>
@@ -259,13 +269,13 @@ export default function EspaceMariesPage() {
         )}
 
         <div style={styles.tabs(theme)}>
-          {["tout", "photos", "videos", "messages", "sondages", "invites"].map((t) => (
+          {["tout", "photos", "videos", "messages", "sondages", ...(isReview ? [] : ["invites", "cadeaux"])].map((t) => (
             <button
               key={t}
               style={{ ...styles.tab(theme), ...(tab === t ? styles.tabActive(theme) : {}) }}
               onClick={() => setTab(t)}
             >
-              {t === "tout" ? "Tout" : t === "photos" ? "Photos" : t === "videos" ? "Vidéos" : t === "messages" ? "Messages" : t === "sondages" ? "Sondages" : "Invités"}
+              {t === "tout" ? "Tout" : t === "photos" ? "Photos" : t === "videos" ? "Vidéos" : t === "messages" ? "Messages" : t === "sondages" ? "Sondages" : t === "invites" ? "Invités" : "Cadeaux"}
             </button>
           ))}
         </div>
@@ -398,6 +408,38 @@ export default function EspaceMariesPage() {
                     <span style={styles.msgDate(theme)}>{r.attending ? `✅ +${r.guests_count || 0}` : "❌"}</span>
                   </div>
                   {r.note && <p style={styles.msgText(theme)}>{r.note}</p>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "cadeaux" && (
+          <>
+            <div style={styles.statsRow}>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{gifts.length}</span>
+                <span style={styles.statLabel(theme)}>cadeaux dans la liste</span>
+              </div>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{gifts.filter((g) => g.reserved_by).length}</span>
+                <span style={styles.statLabel(theme)}>déjà réservés</span>
+              </div>
+            </div>
+            <div style={styles.msgList}>
+              {gifts.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucun cadeau dans la liste pour l'instant.</p>}
+              {gifts.map((g) => (
+                <div key={g.id} style={styles.msgCard(theme)}>
+                  <div style={styles.msgHead}>
+                    <span style={styles.msgName(theme)}>{g.name}</span>
+                    <span style={styles.msgDate(theme)}>{g.reserved_by ? `✅ ${g.reserved_by}` : "Disponible"}</span>
+                  </div>
+                  {g.price && <p style={styles.msgText(theme)}>{g.price}</p>}
+                  {g.link && (
+                    <a href={g.link} target="_blank" rel="noreferrer" style={{ fontSize: "0.76rem", color: theme.accent }}>
+                      Voir le produit ↗
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

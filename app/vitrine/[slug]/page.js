@@ -316,7 +316,28 @@ export default function PublicVitrinePage() {
         )}
       </div>
 
-      {/* STICKY CTA */}
+      {/* FOOTER RÉSEAUX SOCIAUX */}
+      {(showcase.instagram_url || showcase.facebook_url || showcase.tiktok_url) && (
+        <div style={{ background: v["--paper"], padding: "28px 26px", textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+            {showcase.instagram_url && (
+              <a href={showcase.instagram_url} target="_blank" rel="noreferrer" style={{ width: "36px", height: "36px", borderRadius: "50%", border: `1px solid ${v["--bg-dim"]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: v["--ink"] }}>
+                IG
+              </a>
+            )}
+            {showcase.facebook_url && (
+              <a href={showcase.facebook_url} target="_blank" rel="noreferrer" style={{ width: "36px", height: "36px", borderRadius: "50%", border: `1px solid ${v["--bg-dim"]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: v["--ink"] }}>
+                FB
+              </a>
+            )}
+            {showcase.tiktok_url && (
+              <a href={showcase.tiktok_url} target="_blank" rel="noreferrer" style={{ width: "36px", height: "36px", borderRadius: "50%", border: `1px solid ${v["--bg-dim"]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: v["--ink"] }}>
+                TT
+              </a>
+            )}
+          </div>
+        </div>
+      )}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, display: "flex", background: v["--ink"] }}>
         <a href="tel:+33600000000" style={{ flex: 1, textAlign: "center", padding: "15px 4px", color: v["--paper"], fontSize: "12.5px", fontWeight: 600, textDecoration: "none", background: v["--accent-2"] }}>
           ☎ Appeler

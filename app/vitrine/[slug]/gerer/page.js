@@ -26,6 +26,12 @@ export default function ClientManageVitrinePage() {
   const [loadError, setLoadError] = useState("");
   const [themeSaving, setThemeSaving] = useState(false);
 
+  // --- Réseaux sociaux ---
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [socialsSaving, setSocialsSaving] = useState(false);
+
   // --- Formulaire réalisation / prestation ---
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
@@ -52,6 +58,9 @@ export default function ClientManageVitrinePage() {
       return;
     }
     setShowcase(sc);
+    setInstagramUrl(sc.instagram_url || "");
+    setFacebookUrl(sc.facebook_url || "");
+    setTiktokUrl(sc.tiktok_url || "");
     setLoading(false);
     if (typeof window !== "undefined" && sessionStorage.getItem(`vitrine-client-auth-${sc.id}`) === "1") {
       setAuthed(true);
@@ -122,6 +131,22 @@ export default function ClientManageVitrinePage() {
     const { error } = await supabase.from("showcases").update({ theme: themeKey }).eq("id", showcase.id);
     if (!error) setShowcase((prev) => ({ ...prev, theme: themeKey }));
     setThemeSaving(false);
+  }
+
+  async function handleSaveSocials(e) {
+    e.preventDefault();
+    if (!supabase || !showcase) return;
+    setSocialsSaving(true);
+    const { error } = await supabase
+      .from("showcases")
+      .update({
+        instagram_url: instagramUrl.trim() || null,
+        facebook_url: facebookUrl.trim() || null,
+        tiktok_url: tiktokUrl.trim() || null,
+      })
+      .eq("id", showcase.id);
+    setSocialsSaving(false);
+    if (error) setLoadError("Enregistrement impossible : " + error.message);
   }
 
   function resetForm() {
@@ -322,6 +347,29 @@ export default function ClientManageVitrinePage() {
               />
             ))}
           </div>
+        </section>
+
+        <section style={styles.themeBlock}>
+          <h2 style={styles.blockTitle}>Réseaux sociaux</h2>
+          <form style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }} onSubmit={handleSaveSocials}>
+            <label style={styles.label}>
+              Instagram
+              <input style={styles.input} value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." />
+            </label>
+            <label style={styles.label}>
+              Facebook
+              <input style={styles.input} value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." />
+            </label>
+            <label style={styles.label}>
+              TikTok
+              <input style={styles.input} value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://tiktok.com/@..." />
+            </label>
+            <div style={styles.formActions}>
+              <button type="submit" style={styles.primaryButton} disabled={socialsSaving}>
+                {socialsSaving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </div>
+          </form>
         </section>
 
         <div style={styles.tabs}>

@@ -55,6 +55,7 @@ export default function AdminPage() {
   const [client, setClient] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventType, setEventType] = useState("Mariage");
+  const [eventDate, setEventDate] = useState("");
   const [newPolls, setNewPolls] = useState([]);
   const [cagnotteUrl, setCagnotteUrl] = useState("");
   const [creating, setCreating] = useState(false);
@@ -66,6 +67,13 @@ export default function AdminPage() {
   const [editingCagnotteFor, setEditingCagnotteFor] = useState(null);
   const [editCagnotteUrl, setEditCagnotteUrl] = useState("");
   const [savingCagnotte, setSavingCagnotte] = useState(false);
+  const [editingDateFor, setEditingDateFor] = useState(null);
+  const [editEventDate, setEditEventDate] = useState("");
+  const [savingDate, setSavingDate] = useState(false);
+  const [editingGiftsFor, setEditingGiftsFor] = useState(null);
+  const [editingGifts, setEditingGifts] = useState([]);
+  const [loadingGifts, setLoadingGifts] = useState(false);
+  const [savingGiftId, setSavingGiftId] = useState(null);
 
   // --- Catalogues ---
   const [catalogs, setCatalogs] = useState([]);
@@ -162,6 +170,7 @@ export default function AdminPage() {
         slug,
         cagnotte_url: cagnotteUrl.trim() || null,
         client_password: clientAccessCode(),
+        event_date: eventDate || null,
       })
       .select()
       .single();
@@ -191,6 +200,7 @@ export default function AdminPage() {
     setClient("");
     setEventTitle("");
     setEventType("Mariage");
+    setEventDate("");
     setNewPolls([]);
     setCagnotteUrl("");
     setShowForm(false);
@@ -302,6 +312,89 @@ export default function AdminPage() {
     setEditingPolls((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function openGiftEditor(ev) {
+    setEditingGiftsFor(ev);
+    setLoadingGifts(true);
+    const { data } = await supabase
+      .from("gift_items")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("position", { ascending: true });
+    setEditingGifts(
+      (data || []).map((g) => ({
+        id: g.id,
+        name: g.name,
+        link: g.link || "",
+        price: g.price || "",
+        reservedBy: g.reserved_by,
+        isNew: false,
+      }))
+    );
+    setLoadingGifts(false);
+  }
+
+  function addEditingGiftBlock() {
+    setEditingGifts((prev) =>
+      prev.length >= 20 ? prev : [...prev, { id: null, name: "", link: "", price: "", reservedBy: null, isNew: true }]
+    );
+  }
+  function updateEditingGift(index, field, value) {
+    setEditingGifts((prev) => prev.map((g, i) => (i === index ? { ...g, [field]: value } : g)));
+  }
+
+  async function handleSaveOneGift(index) {
+    const gift = editingGifts[index];
+    if (!gift || !editingGiftsFor || !supabase) return;
+    if (!gift.name.trim()) {
+      setLoadError("Le cadeau a besoin d'un nom.");
+      return;
+    }
+    setSavingGiftId(index);
+    if (gift.id) {
+      const { error } = await supabase
+        .from("gift_items")
+        .update({ name: gift.name.trim(), link: gift.link.trim() || null, price: gift.price.trim() || null })
+        .eq("id", gift.id);
+      if (error) setLoadError("Modification impossible : " + error.message);
+    } else {
+      const { data, error } = await supabase
+        .from("gift_items")
+        .insert({
+          event_id: editingGiftsFor.id,
+          name: gift.name.trim(),
+          link: gift.link.trim() || null,
+          price: gift.price.trim() || null,
+          position: index,
+        })
+        .select()
+        .single();
+      if (error) {
+        setLoadError("Création impossible : " + error.message);
+      } else {
+        setEditingGifts((prev) => prev.map((g, i) => (i === index ? { ...g, id: data.id, isNew: false } : g)));
+      }
+    }
+    setSavingGiftId(null);
+    loadEvents();
+  }
+
+  async function handleUnreserveGift(index) {
+    const gift = editingGifts[index];
+    if (!gift?.id || !supabase) return;
+    await supabase.from("gift_items").update({ reserved_by: null, reserved_at: null }).eq("id", gift.id);
+    setEditingGifts((prev) => prev.map((g, i) => (i === index ? { ...g, reservedBy: null } : g)));
+  }
+
+  async function handleDeleteGift(index) {
+    const gift = editingGifts[index];
+    if (!gift) return;
+    if (gift.id && supabase) {
+      await supabase.from("gift_items").delete().eq("id", gift.id);
+      loadEvents();
+    }
+    setEditingGifts((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function openCagnotteEditor(ev) {
     setEditingCagnotteFor(ev);
     setEditCagnotteUrl(ev.cagnotte_url || "");
@@ -321,6 +414,28 @@ export default function AdminPage() {
       return;
     }
     setEditingCagnotteFor(null);
+    loadEvents();
+  }
+
+  function openDateEditor(ev) {
+    setEditingDateFor(ev);
+    setEditEventDate(ev.event_date || "");
+  }
+
+  async function handleSaveDate(e) {
+    e.preventDefault();
+    if (!editingDateFor || !supabase) return;
+    setSavingDate(true);
+    const { error } = await supabase
+      .from("events")
+      .update({ event_date: editEventDate || null })
+      .eq("id", editingDateFor.id);
+    setSavingDate(false);
+    if (error) {
+      setLoadError("Modification de la date impossible : " + error.message);
+      return;
+    }
+    setEditingDateFor(null);
     loadEvents();
   }
 
@@ -575,6 +690,18 @@ export default function AdminPage() {
                       <option>Autre</option>
                     </select>
                   </label>
+                  <label style={styles.label}>
+                    Date de l'événement (optionnel)
+                    <input
+                      type="date"
+                      style={styles.input}
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                    />
+                    <span style={{ fontSize: "0.68rem", color: "#8A7F66", fontWeight: 400 }}>
+                      Si renseignée, seul le formulaire "confirmation de présence" s'affiche avant cette date.
+                    </span>
+                  </label>
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {newPolls.map((poll, i) => (
                       <div key={i} style={styles.pollBlock}>
@@ -721,6 +848,107 @@ export default function AdminPage() {
               </div>
             )}
 
+            {editingDateFor && (
+              <div style={styles.modalOverlay} onClick={() => setEditingDateFor(null)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSaveDate}>
+                  <h2 style={styles.modalTitle}>Date — {editingDateFor.client}</h2>
+                  <label style={styles.label}>
+                    Date de l'événement
+                    <input
+                      type="date"
+                      style={styles.input}
+                      value={editEventDate}
+                      onChange={(e) => setEditEventDate(e.target.value)}
+                      autoFocus
+                    />
+                  </label>
+                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
+                    Avant cette date, seule la confirmation de présence s'affiche aux invités. Laisse vide pour désactiver.
+                  </p>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingDateFor(null)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={savingDate}>
+                      {savingDate ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {editingGiftsFor && (
+              <div style={styles.modalOverlay} onClick={() => setEditingGiftsFor(null)}>
+                <div style={{ ...styles.modal, maxHeight: "82vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+                  <h2 style={styles.modalTitle}>Liste de cadeaux — {editingGiftsFor.client}</h2>
+                  {loadingGifts && <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Chargement…</p>}
+                  {!loadingGifts && editingGifts.length === 0 && (
+                    <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Aucun cadeau pour l'instant.</p>
+                  )}
+                  {!loadingGifts &&
+                    editingGifts.map((gift, i) => (
+                      <div key={gift.id || `new-${i}`} style={styles.pollBlock}>
+                        <div style={styles.pollBlockHead}>
+                          <span style={styles.pollBlockLabel}>Cadeau {i + 1}</span>
+                          <button type="button" style={styles.removePollLink} onClick={() => handleDeleteGift(i)}>
+                            supprimer
+                          </button>
+                        </div>
+                        <input
+                          style={styles.input}
+                          value={gift.name}
+                          onChange={(e) => updateEditingGift(i, "name", e.target.value)}
+                          placeholder="ex. Machine à café Nespresso"
+                        />
+                        <input
+                          style={{ ...styles.input, marginTop: "6px" }}
+                          value={gift.link}
+                          onChange={(e) => updateEditingGift(i, "link", e.target.value)}
+                          placeholder="Lien vers le produit (optionnel)"
+                        />
+                        <input
+                          style={{ ...styles.input, marginTop: "6px" }}
+                          value={gift.price}
+                          onChange={(e) => updateEditingGift(i, "price", e.target.value)}
+                          placeholder="Prix indicatif (optionnel, ex. 89€)"
+                        />
+                        {gift.reservedBy && (
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px", fontSize: "0.75rem", color: "#3F7A52" }}>
+                            <span>✅ Réservé par {gift.reservedBy}</span>
+                            <button type="button" style={styles.removePollLink} onClick={() => handleUnreserveGift(i)}>
+                              libérer
+                            </button>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          style={{ ...styles.newButton, marginTop: "8px", alignSelf: "flex-start" }}
+                          onClick={() => handleSaveOneGift(i)}
+                          disabled={savingGiftId === i}
+                        >
+                          {savingGiftId === i ? "Enregistrement…" : gift.id ? "Mettre à jour" : "Ajouter"}
+                        </button>
+                        {!gift.id && (
+                          <p style={{ fontSize: "0.7rem", color: "#8A7F66", margin: "4px 0 0" }}>
+                            Pas encore enregistré — clique "Ajouter".
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  {editingGifts.length < 20 && (
+                    <button type="button" style={styles.addPollButton} onClick={addEditingGiftBlock}>
+                      + Ajouter un cadeau
+                    </button>
+                  )}
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingGiftsFor(null)}>
+                      Fermer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {loading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
 
             {!loading && events.length === 0 && !loadError && (
@@ -811,6 +1039,12 @@ export default function AdminPage() {
                             <button style={styles.iconButton} onClick={() => openCagnotteEditor(ev)}>
                               cagnotte
                             </button>
+                            <button style={styles.iconButton} onClick={() => openDateEditor(ev)}>
+                              date
+                            </button>
+                            <button style={styles.iconButton} onClick={() => openGiftEditor(ev)}>
+                              cadeaux
+                            </button>
                             <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
                               supprimer
                             </button>
@@ -873,6 +1107,14 @@ export default function AdminPage() {
                         </button>
                         <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openCagnotteEditor(ev)}>
                           cagnotte
+                        </button>
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openDateEditor(ev)}>
+                          date
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openGiftEditor(ev)}>
+                          cadeaux
                         </button>
                       </div>
                       <div style={{ display: "flex", gap: "6px" }}>

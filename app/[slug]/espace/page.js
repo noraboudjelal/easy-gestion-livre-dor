@@ -99,6 +99,7 @@ export default function EspaceMariesPage() {
 
   const [messages, setMessages] = useState([]);
   const [pollQuestions, setPollQuestions] = useState([]);
+  const [rsvps, setRsvps] = useState([]);
   const [tab, setTab] = useState("tout");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
@@ -136,6 +137,12 @@ export default function EspaceMariesPage() {
       .eq("event_id", event.id)
       .order("position", { ascending: true });
     setPollQuestions(polls || []);
+    const { data: rsvpData } = await supabase
+      .from("rsvps")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false });
+    setRsvps(rsvpData || []);
   }, [event]);
 
   useEffect(() => {
@@ -160,6 +167,9 @@ export default function EspaceMariesPage() {
   const photos = messages.filter((m) => m.photo_url);
   const videos = messages.filter((m) => m.video_url);
   const totalVotes = pollQuestions.reduce((sum, q) => sum + (q.votes || []).reduce((a, b) => a + b, 0), 0);
+  const rsvpYes = rsvps.filter((r) => r.attending);
+  const rsvpNo = rsvps.filter((r) => !r.attending);
+  const rsvpHeadcount = rsvpYes.reduce((sum, r) => sum + 1 + (r.guests_count || 0), 0);
 
   if (loading) {
     return (
@@ -249,13 +259,13 @@ export default function EspaceMariesPage() {
         )}
 
         <div style={styles.tabs(theme)}>
-          {["tout", "photos", "videos", "messages", "sondages"].map((t) => (
+          {["tout", "photos", "videos", "messages", "sondages", "invites"].map((t) => (
             <button
               key={t}
               style={{ ...styles.tab(theme), ...(tab === t ? styles.tabActive(theme) : {}) }}
               onClick={() => setTab(t)}
             >
-              {t === "tout" ? "Tout" : t === "photos" ? "Photos" : t === "videos" ? "Vidéos" : t === "messages" ? "Messages" : "Sondages"}
+              {t === "tout" ? "Tout" : t === "photos" ? "Photos" : t === "videos" ? "Vidéos" : t === "messages" ? "Messages" : t === "sondages" ? "Sondages" : "Invités"}
             </button>
           ))}
         </div>
@@ -358,6 +368,40 @@ export default function EspaceMariesPage() {
               );
             })}
           </div>
+        )}
+
+        {tab === "invites" && (
+          <>
+            <div style={styles.statsRow}>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{rsvpYes.length}</span>
+                <span style={styles.statLabel(theme)}>confirmés</span>
+              </div>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{rsvpNo.length}</span>
+                <span style={styles.statLabel(theme)}>déclinés</span>
+              </div>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{rsvpHeadcount}</span>
+                <span style={styles.statLabel(theme)}>personnes au total</span>
+              </div>
+            </div>
+            <div style={styles.msgList}>
+              {rsvps.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucune réponse pour l'instant.</p>}
+              {rsvps.map((r) => (
+                <div key={r.id} style={styles.msgCard(theme)}>
+                  <div style={styles.msgHead}>
+                    <span style={{ ...styles.msgAvatar(theme), background: r.attending ? "#6FAE7F" : "#D98C7F" }}>
+                      {(r.name || "?")[0].toUpperCase()}
+                    </span>
+                    <span style={styles.msgName(theme)}>{r.name}</span>
+                    <span style={styles.msgDate(theme)}>{r.attending ? `✅ +${r.guests_count || 0}` : "❌"}</span>
+                  </div>
+                  {r.note && <p style={styles.msgText(theme)}>{r.note}</p>}
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         <p style={styles.footerMark(theme)}>Easy Gestion Toulouse</p>

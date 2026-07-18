@@ -92,11 +92,10 @@ export default function PublicVitrinePage() {
         <div
           style={{
             position: "relative",
-            minHeight: "52vh",
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-start",
-            padding: "64px 26px 40px",
+            padding: "56px 26px 40px",
             color: v["--paper"],
             background: `linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.85) 88%), ${v["--ink"]}`,
           }}

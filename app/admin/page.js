@@ -1,1523 +1,545 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../../lib/supabaseClient";
+import { useParams } from "next/navigation";
+import { supabase } from "../../../lib/supabaseClient";
 
-function slugify(str) {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-function shortCode() {
-  return Math.random().toString(36).slice(2, 6);
-}
-
-function clientAccessCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-const TYPE_BADGE = {
-  "Mariage": { background: "#E8EDF8", color: "#3E4E7A" },
-  "Anniversaire": { background: "#FBE9E4", color: "#B5402D" },
-  "Baptême": { background: "#EAF1F7", color: "#4A6A85" },
-  "Baby Shower": { background: "#FBE7EF", color: "#B5567F" },
-  "Pot de départ": { background: "#E3F1F0", color: "#2E6E68" },
-  "Départ en retraite": { background: "#E9F3EA", color: "#3F7A52" },
-  "Henné": { background: "#E9F3EA", color: "#4E7A3F" },
-  "Circoncision": { background: "#E3F3FA", color: "#2E7A9E" },
-  "Fiançailles": { background: "#F7EEE4", color: "#9E6B34" },
-  "Inauguration": { background: "#F7F1DE", color: "#8A6D18" },
-  "Lancement de produit": { background: "#E1F4F0", color: "#1F8072" },
-  "Fête d'entreprise": { background: "#EAEAEC", color: "#4C4E56" },
-  "Vos avis": { background: "#EDEDED", color: "#4A4A4A" },
-  "Autre": { background: "#EFE4C8", color: "#7A5A1E" },
+const THEMES = {
+  "Mariage": {
+    ink: "#12172A", surface: "#1B2238", surface2: "#242C46",
+    accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
+    ivory: "#EEF1F8", muted: "#9AA3BE",
+  },
+  "Anniversaire": {
+    ink: "#241220", surface: "#34182C", surface2: "#402039",
+    accent: "#E8B44D", accentSoft: "rgba(232,180,77,0.3)", accentText: "#2B1C08",
+    ivory: "#F7EFE0", muted: "#C2A8BA",
+  },
+  "Baby Shower": {
+    ink: "#161B26", surface: "#202838", surface2: "#2A3448",
+    accent: "#E8A3C0", accentSoft: "rgba(232,163,192,0.3)", accentText: "#2A1420",
+    ivory: "#F0F3F8", muted: "#9CA8BE",
+  },
+  "Baptême": {
+    ink: "#1A1C22", surface: "#24272F", surface2: "#2D313B",
+    accent: "#B9C7DD", accentSoft: "rgba(185,199,221,0.3)", accentText: "#1A1C22",
+    ivory: "#F5F3EC", muted: "#A7ABB5",
+  },
+  "Départ en retraite": {
+    ink: "#102019", surface: "#182B22", surface2: "#20362B",
+    accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
+    ivory: "#EEF3EE", muted: "#9DB0A2",
+  },
+  "Pot de départ": {
+    ink: "#12232A", surface: "#1B323A", surface2: "#243F48",
+    accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
+    ivory: "#EEF3F3", muted: "#9DB3B8",
+  },
+  "Henné": {
+    ink: "#152016", surface: "#1E2E20", surface2: "#283C2B",
+    accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
+    ivory: "#EFF3EA", muted: "#9FB29E",
+  },
+  "Circoncision": {
+    ink: "#0F2A38", surface: "#173A4B", surface2: "#1F4A5E",
+    accent: "#8FCFEA", accentSoft: "rgba(143,207,234,0.3)", accentText: "#0F2A38",
+    ivory: "#EAF6FB", muted: "#9FC3D4",
+  },
+  "Fiançailles": {
+    ink: "#241A1E", surface: "#332428", surface2: "#402F34",
+    accent: "#D4A574", accentSoft: "rgba(212,165,116,0.3)", accentText: "#241A1E",
+    ivory: "#F7EFEA", muted: "#B8A39D",
+  },
+  "Inauguration": {
+    ink: "#1C1A16", surface: "#28251F", surface2: "#332F27",
+    accent: "#D4AF37", accentSoft: "rgba(212,175,55,0.3)", accentText: "#1C1A16",
+    ivory: "#F5F1E6", muted: "#A69C8A",
+  },
+  "Lancement de produit": {
+    ink: "#151833", surface: "#1F2447", surface2: "#2A3059",
+    accent: "#4FB8A8", accentSoft: "rgba(79,184,168,0.3)", accentText: "#0F1F1C",
+    ivory: "#EAF6F3", muted: "#9DB8B2",
+  },
+  "Fête d'entreprise": {
+    ink: "#17181C", surface: "#212327", surface2: "#2B2E33",
+    accent: "#B7B9C0", accentSoft: "rgba(183,185,192,0.3)", accentText: "#17181C",
+    ivory: "#F2F2F4", muted: "#9A9CA6",
+  },
+  "Vos avis": {
+    ink: "#151515", surface: "#1F1F1F", surface2: "#292929",
+    accent: "#D9C9A3", accentSoft: "rgba(217,201,163,0.28)", accentText: "#151515",
+    ivory: "#F2F0EC", muted: "#9C9A94",
+  },
+  "Autre": {
+    ink: "#14131C", surface: "#1F1E2B", surface2: "#2A2836",
+    accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
+    ivory: "#F4EFE4", muted: "#A9A4B8",
+  },
 };
-function badgeColors(type) {
-  return TYPE_BADGE[type] || TYPE_BADGE["Autre"];
+
+function formatDate(ts) {
+  try {
+    return new Date(ts).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
 }
 
-export default function AdminPage() {
+export default function EspaceMariesPage() {
+  const params = useParams();
+  const slug = params?.slug;
+
+  const [event, setEvent] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const [authed, setAuthed] = useState(false);
   const [pwd, setPwd] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [view, setView] = useState("livres"); // "livres" | "catalogues"
+  const [messages, setMessages] = useState([]);
+  const [pollQuestions, setPollQuestions] = useState([]);
+  const [rsvps, setRsvps] = useState([]);
+  const [gifts, setGifts] = useState([]);
+  const [tab, setTab] = useState("tout");
 
-  // --- Livres d'or ---
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [client, setClient] = useState("");
-  const [eventTitle, setEventTitle] = useState("");
-  const [eventType, setEventType] = useState("Mariage");
-  const [eventDate, setEventDate] = useState("");
-  const [newPolls, setNewPolls] = useState([]);
-  const [cagnotteUrl, setCagnotteUrl] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [copiedId, setCopiedId] = useState(null);
-  const [editingPollFor, setEditingPollFor] = useState(null);
-  const [editingPolls, setEditingPolls] = useState([]);
-  const [loadingPolls, setLoadingPolls] = useState(false);
-  const [savingPollId, setSavingPollId] = useState(null);
-  const [editingCagnotteFor, setEditingCagnotteFor] = useState(null);
-  const [editCagnotteUrl, setEditCagnotteUrl] = useState("");
-  const [savingCagnotte, setSavingCagnotte] = useState(false);
-  const [editingDateFor, setEditingDateFor] = useState(null);
-  const [editEventDate, setEditEventDate] = useState("");
-  const [savingDate, setSavingDate] = useState(false);
-  const [editingGiftsFor, setEditingGiftsFor] = useState(null);
-  const [editingGifts, setEditingGifts] = useState([]);
-  const [loadingGifts, setLoadingGifts] = useState(false);
-  const [savingGiftId, setSavingGiftId] = useState(null);
+  const theme = THEMES[event?.event_type] || THEMES.Autre;
+  const isReview = event?.event_type === "Vos avis";
 
-  // --- Catalogues ---
-  const [catalogs, setCatalogs] = useState([]);
-  const [catalogsLoading, setCatalogsLoading] = useState(true);
-  const [catalogsError, setCatalogsError] = useState("");
-  const [showCatalogForm, setShowCatalogForm] = useState(false);
-  const [catalogClient, setCatalogClient] = useState("");
-  const [catalogTitle, setCatalogTitle] = useState("");
-  const [catalogColor, setCatalogColor] = useState("#B5402D");
-  const [catalogFont, setCatalogFont] = useState("manuscrite");
-  const [creatingCatalog, setCreatingCatalog] = useState(false);
-  const [copiedCatalogId, setCopiedCatalogId] = useState(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("ld-admin-ok") === "1") {
-      setAuthed(true);
-    }
-  }, []);
-
-  function handleLogin(e) {
-    e.preventDefault();
-    const expected = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-    if (!expected) {
-      setAuthError("Mot de passe admin non configuré. Ajoute NEXT_PUBLIC_ADMIN_PASSWORD dans Vercel.");
-      return;
-    }
-    if (pwd === expected) {
-      sessionStorage.setItem("ld-admin-ok", "1");
-      setAuthed(true);
-      setAuthError("");
-    } else {
-      setAuthError("Mot de passe incorrect.");
-    }
-  }
-
-  const loadEvents = useCallback(async () => {
-    if (!supabase) {
-      setLoadError("Connexion à Supabase non configurée.");
+  const loadEvent = useCallback(async () => {
+    if (!supabase || !slug) return;
+    const { data: ev, error } = await supabase.from("events").select("*").eq("slug", slug).single();
+    if (error || !ev) {
+      setNotFound(true);
       setLoading(false);
       return;
     }
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("events")
-      .select("*, messages(count), poll_questions(count)")
-      .order("created_at", { ascending: false });
-    if (error) {
-      setLoadError("Impossible de charger les livres d'or : " + error.message);
-    } else {
-      setLoadError("");
-      setEvents(data || []);
-    }
+    setEvent(ev);
     setLoading(false);
-  }, []);
-
-  const loadCatalogs = useCallback(async () => {
-    if (!supabase) {
-      setCatalogsError("Connexion à Supabase non configurée.");
-      setCatalogsLoading(false);
-      return;
+    if (typeof window !== "undefined" && sessionStorage.getItem(`event-client-auth-${ev.id}`) === "1") {
+      setAuthed(true);
     }
-    setCatalogsLoading(true);
-    const { data, error } = await supabase
-      .from("catalogs")
-      .select("*, catalog_products(count)")
-      .order("created_at", { ascending: false });
-    if (error) {
-      setCatalogsError("Impossible de charger les catalogues : " + error.message);
-    } else {
-      setCatalogsError("");
-      setCatalogs(data || []);
-    }
-    setCatalogsLoading(false);
-  }, []);
+  }, [slug]);
 
   useEffect(() => {
-    if (authed) {
-      loadEvents();
-      loadCatalogs();
-    }
-  }, [authed, loadEvents, loadCatalogs]);
+    loadEvent();
+  }, [loadEvent]);
 
-  async function handleCreate(e) {
-    e.preventDefault();
-    if (!client.trim() || !eventTitle.trim() || !supabase) return;
-    setCreating(true);
-    const slug = `${slugify(client)}-${shortCode()}`;
-    const { data: created, error } = await supabase
-      .from("events")
-      .insert({
-        client: client.trim(),
-        event_title: eventTitle.trim(),
-        event_type: eventType,
-        slug,
-        cagnotte_url: cagnotteUrl.trim() || null,
-        client_password: clientAccessCode(),
-        event_date: eventDate || null,
-      })
-      .select()
-      .single();
-    if (error) {
-      setCreating(false);
-      setLoadError("Création impossible : " + error.message);
-      return;
-    }
-
-    const validPolls = newPolls
-      .map((p) => ({ question: p.question.trim(), options: p.options.map((o) => o.trim()).filter(Boolean) }))
-      .filter((p) => p.question && p.options.length >= 2);
-
-    if (validPolls.length > 0) {
-      await supabase.from("poll_questions").insert(
-        validPolls.map((p, i) => ({
-          event_id: created.id,
-          question: p.question,
-          options: p.options,
-          votes: p.options.map(() => 0),
-          position: i,
-        }))
-      );
-    }
-
-    setCreating(false);
-    setClient("");
-    setEventTitle("");
-    setEventType("Mariage");
-    setEventDate("");
-    setNewPolls([]);
-    setCagnotteUrl("");
-    setShowForm(false);
-    loadEvents();
-  }
-
-  function addNewPollBlock() {
-    setNewPolls((prev) => (prev.length >= 5 ? prev : [...prev, { question: "", options: ["", "", "", ""] }]));
-  }
-  function removeNewPollBlock(index) {
-    setNewPolls((prev) => prev.filter((_, i) => i !== index));
-  }
-  function updateNewPollQuestion(index, value) {
-    setNewPolls((prev) => prev.map((p, i) => (i === index ? { ...p, question: value } : p)));
-  }
-  function updateNewPollOption(pollIndex, optIndex, value) {
-    setNewPolls((prev) =>
-      prev.map((p, i) => {
-        if (i !== pollIndex) return p;
-        const options = [...p.options];
-        options[optIndex] = value;
-        return { ...p, options };
-      })
-    );
-  }
-
-  async function openPollEditor(ev) {
-    setEditingPollFor(ev);
-    setLoadingPolls(true);
-    const { data } = await supabase
+  const loadContent = useCallback(async () => {
+    if (!supabase || !event) return;
+    const { data: msgs } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false });
+    setMessages(msgs || []);
+    const { data: polls } = await supabase
       .from("poll_questions")
       .select("*")
-      .eq("event_id", ev.id)
+      .eq("event_id", event.id)
       .order("position", { ascending: true });
-    setEditingPolls(
-      (data || []).map((q) => ({
-        id: q.id,
-        question: q.question,
-        options: [q.options?.[0] || "", q.options?.[1] || "", q.options?.[2] || "", q.options?.[3] || ""],
-        isNew: false,
-      }))
-    );
-    setLoadingPolls(false);
-  }
-
-  function addEditingPollBlock() {
-    setEditingPolls((prev) =>
-      prev.length >= 5 ? prev : [...prev, { id: null, question: "", options: ["", "", "", ""], isNew: true }]
-    );
-  }
-  function updateEditingPollQuestion(index, value) {
-    setEditingPolls((prev) => prev.map((p, i) => (i === index ? { ...p, question: value } : p)));
-  }
-  function updateEditingPollOption(pollIndex, optIndex, value) {
-    setEditingPolls((prev) =>
-      prev.map((p, i) => {
-        if (i !== pollIndex) return p;
-        const options = [...p.options];
-        options[optIndex] = value;
-        return { ...p, options };
-      })
-    );
-  }
-
-  async function handleSaveOnePoll(index) {
-    const poll = editingPolls[index];
-    if (!poll || !editingPollFor || !supabase) return;
-    const cleanOptions = poll.options.map((o) => o.trim()).filter(Boolean);
-    if (!poll.question.trim() || cleanOptions.length < 2) {
-      setLoadError("Il faut une question et au moins 2 réponses.");
-      return;
-    }
-    setSavingPollId(index);
-    if (poll.id) {
-      const { error } = await supabase
-        .from("poll_questions")
-        .update({ question: poll.question.trim(), options: cleanOptions, votes: cleanOptions.map(() => 0) })
-        .eq("id", poll.id);
-      if (error) setLoadError("Modification impossible : " + error.message);
-    } else {
-      const { data, error } = await supabase
-        .from("poll_questions")
-        .insert({
-          event_id: editingPollFor.id,
-          question: poll.question.trim(),
-          options: cleanOptions,
-          votes: cleanOptions.map(() => 0),
-          position: index,
-        })
-        .select()
-        .single();
-      if (error) {
-        setLoadError("Création impossible : " + error.message);
-      } else {
-        setEditingPolls((prev) => prev.map((p, i) => (i === index ? { ...p, id: data.id, isNew: false } : p)));
-      }
-    }
-    setSavingPollId(null);
-    loadEvents();
-  }
-
-  async function handleDeletePoll(index) {
-    const poll = editingPolls[index];
-    if (!poll) return;
-    if (poll.id && supabase) {
-      await supabase.from("poll_questions").delete().eq("id", poll.id);
-      loadEvents();
-    }
-    setEditingPolls((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  async function openGiftEditor(ev) {
-    setEditingGiftsFor(ev);
-    setLoadingGifts(true);
-    const { data } = await supabase
+    setPollQuestions(polls || []);
+    const { data: rsvpData } = await supabase
+      .from("rsvps")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false });
+    setRsvps(rsvpData || []);
+    const { data: giftData } = await supabase
       .from("gift_items")
       .select("*")
-      .eq("event_id", ev.id)
+      .eq("event_id", event.id)
       .order("position", { ascending: true });
-    setEditingGifts(
-      (data || []).map((g) => ({
-        id: g.id,
-        name: g.name,
-        link: g.link || "",
-        price: g.price || "",
-        reservedBy: g.reserved_by,
-        isNew: false,
-      }))
+    setGifts(giftData || []);
+  }, [event]);
+
+  useEffect(() => {
+    if (authed && event) loadContent();
+  }, [authed, event, loadContent]);
+
+  function handleLogin(e) {
+    e.preventDefault();
+    if (!event?.client_password) {
+      setAuthError("L'accès n'est pas encore configuré. Contacte Easy Gestion Toulouse.");
+      return;
+    }
+    if (pwd.trim().toUpperCase() === event.client_password.toUpperCase()) {
+      sessionStorage.setItem(`event-client-auth-${event.id}`, "1");
+      setAuthed(true);
+      setAuthError("");
+    } else {
+      setAuthError("Code incorrect.");
+    }
+  }
+
+  const photos = messages.filter((m) => m.photo_url);
+  const videos = messages.filter((m) => m.video_url);
+  const totalVotes = pollQuestions.reduce((sum, q) => sum + (q.votes || []).reduce((a, b) => a + b, 0), 0);
+  const rsvpYes = rsvps.filter((r) => r.attending);
+  const rsvpNo = rsvps.filter((r) => !r.attending);
+  const rsvpHeadcount = rsvpYes.reduce((sum, r) => sum + 1 + (r.guests_count || 0), 0);
+
+  if (loading) {
+    return (
+      <div style={{ ...styles.page(theme), alignItems: "center", justifyContent: "center", display: "flex" }}>
+        <p style={{ color: "#A9A4B8" }}>Chargement…</p>
+      </div>
     );
-    setLoadingGifts(false);
   }
 
-  function addEditingGiftBlock() {
-    setEditingGifts((prev) =>
-      prev.length >= 20 ? prev : [...prev, { id: null, name: "", link: "", price: "", reservedBy: null, isNew: true }]
+  if (notFound) {
+    return (
+      <div style={{ ...styles.page(theme), alignItems: "center", justifyContent: "center", display: "flex" }}>
+        <p style={{ color: "#F4EFE4" }}>Cet espace n'existe pas ou plus.</p>
+      </div>
     );
-  }
-  function updateEditingGift(index, field, value) {
-    setEditingGifts((prev) => prev.map((g, i) => (i === index ? { ...g, [field]: value } : g)));
-  }
-
-  async function handleSaveOneGift(index) {
-    const gift = editingGifts[index];
-    if (!gift || !editingGiftsFor || !supabase) return;
-    if (!gift.name.trim()) {
-      setLoadError("Le cadeau a besoin d'un nom.");
-      return;
-    }
-    setSavingGiftId(index);
-    if (gift.id) {
-      const { error } = await supabase
-        .from("gift_items")
-        .update({ name: gift.name.trim(), link: gift.link.trim() || null, price: gift.price.trim() || null })
-        .eq("id", gift.id);
-      if (error) setLoadError("Modification impossible : " + error.message);
-    } else {
-      const { data, error } = await supabase
-        .from("gift_items")
-        .insert({
-          event_id: editingGiftsFor.id,
-          name: gift.name.trim(),
-          link: gift.link.trim() || null,
-          price: gift.price.trim() || null,
-          position: index,
-        })
-        .select()
-        .single();
-      if (error) {
-        setLoadError("Création impossible : " + error.message);
-      } else {
-        setEditingGifts((prev) => prev.map((g, i) => (i === index ? { ...g, id: data.id, isNew: false } : g)));
-      }
-    }
-    setSavingGiftId(null);
-    loadEvents();
-  }
-
-  async function handleUnreserveGift(index) {
-    const gift = editingGifts[index];
-    if (!gift?.id || !supabase) return;
-    await supabase.from("gift_items").update({ reserved_by: null, reserved_at: null }).eq("id", gift.id);
-    setEditingGifts((prev) => prev.map((g, i) => (i === index ? { ...g, reservedBy: null } : g)));
-  }
-
-  async function handleDeleteGift(index) {
-    const gift = editingGifts[index];
-    if (!gift) return;
-    if (gift.id && supabase) {
-      await supabase.from("gift_items").delete().eq("id", gift.id);
-      loadEvents();
-    }
-    setEditingGifts((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function openCagnotteEditor(ev) {
-    setEditingCagnotteFor(ev);
-    setEditCagnotteUrl(ev.cagnotte_url || "");
-  }
-
-  async function handleSaveCagnotte(e) {
-    e.preventDefault();
-    if (!editingCagnotteFor || !supabase) return;
-    setSavingCagnotte(true);
-    const { error } = await supabase
-      .from("events")
-      .update({ cagnotte_url: editCagnotteUrl.trim() || null })
-      .eq("id", editingCagnotteFor.id);
-    setSavingCagnotte(false);
-    if (error) {
-      setLoadError("Modification de la cagnotte impossible : " + error.message);
-      return;
-    }
-    setEditingCagnotteFor(null);
-    loadEvents();
-  }
-
-  function openDateEditor(ev) {
-    setEditingDateFor(ev);
-    setEditEventDate(ev.event_date || "");
-  }
-
-  async function handleSaveDate(e) {
-    e.preventDefault();
-    if (!editingDateFor || !supabase) return;
-    setSavingDate(true);
-    const { error } = await supabase
-      .from("events")
-      .update({ event_date: editEventDate || null })
-      .eq("id", editingDateFor.id);
-    setSavingDate(false);
-    if (error) {
-      setLoadError("Modification de la date impossible : " + error.message);
-      return;
-    }
-    setEditingDateFor(null);
-    loadEvents();
-  }
-
-  async function handleCreateCatalog(e) {
-    e.preventDefault();
-    if (!catalogClient.trim() || !catalogTitle.trim() || !supabase) return;
-    setCreatingCatalog(true);
-    const slug = `${slugify(catalogClient)}-${shortCode()}`;
-    const { error } = await supabase.from("catalogs").insert({
-      client: catalogClient.trim(),
-      catalog_title: catalogTitle.trim(),
-      slug,
-      accent_color: catalogColor,
-      font_style: catalogFont,
-      client_password: clientAccessCode(),
-    });
-    setCreatingCatalog(false);
-    if (error) {
-      setCatalogsError("Création impossible : " + error.message);
-      return;
-    }
-    setCatalogClient("");
-    setCatalogTitle("");
-    setCatalogColor("#B5402D");
-    setCatalogFont("manuscrite");
-    setShowCatalogForm(false);
-    loadCatalogs();
-  }
-
-  function linkFor(slug) {
-    if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/${slug}`;
-  }
-
-  function espaceLinkFor(slug) {
-    if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/${slug}/espace`;
-  }
-
-  async function handleRegenerateEventCode(eventId) {
-    if (!supabase) return;
-    const newCode = clientAccessCode();
-    const { error } = await supabase.from("events").update({ client_password: newCode }).eq("id", eventId);
-    if (error) {
-      setLoadError("Impossible de régénérer le code : " + error.message);
-    } else {
-      loadEvents();
-    }
-  }
-
-  function catalogLinkFor(slug) {
-    if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/catalogue/${slug}`;
-  }
-
-  function clientManageLinkFor(slug) {
-    if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/catalogue/${slug}/gerer`;
-  }
-
-  async function handleRegenerateCode(catalogId) {
-    if (!supabase) return;
-    const newCode = clientAccessCode();
-    const { error } = await supabase.from("catalogs").update({ client_password: newCode }).eq("id", catalogId);
-    if (error) {
-      setCatalogsError("Impossible de régénérer le code : " + error.message);
-    } else {
-      loadCatalogs();
-    }
-  }
-
-  function qrUrlForLink(link) {
-    const data = encodeURIComponent(link);
-    return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${data}`;
-  }
-
-  function handleCopy(id, slug) {
-    const text = linkFor(slug);
-    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 1800);
-  }
-
-  function handleCopyCatalog(id, slug) {
-    const text = catalogLinkFor(slug);
-    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-    setCopiedCatalogId(id);
-    setTimeout(() => setCopiedCatalogId(null), 1800);
-  }
-
-  async function handleDeleteEvent(id, client) {
-    if (!supabase) return;
-    if (!window.confirm(`Supprimer le livre d'or de "${client}" ? Cette action est définitive.`)) return;
-    const { error } = await supabase.from("events").delete().eq("id", id);
-    if (error) {
-      setLoadError("Suppression impossible : " + error.message);
-    } else {
-      loadEvents();
-    }
-  }
-
-  async function handleDeleteCatalog(id, client) {
-    if (!supabase) return;
-    if (!window.confirm(`Supprimer le catalogue de "${client}" ? Cette action est définitive.`)) return;
-    const { error } = await supabase.from("catalogs").delete().eq("id", id);
-    if (error) {
-      setCatalogsError("Suppression impossible : " + error.message);
-    } else {
-      loadCatalogs();
-    }
   }
 
   if (!authed) {
     return (
-      <div style={styles.loginPage}>
-        <form style={styles.loginBox} onSubmit={handleLogin}>
-          <span style={styles.loginLogoMark}>EG</span>
-          <h1 style={styles.loginTitle}>Espace admin</h1>
+      <div style={{ ...styles.page(theme), alignItems: "center", justifyContent: "center", display: "flex" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');`}</style>
+        <form style={styles.gateCard(theme)} onSubmit={handleLogin}>
+          <p style={styles.gateEyebrow(theme)}>Le Fil</p>
+          <h1 style={styles.gateTitle(theme)}>{event.event_title}</h1>
+          <p style={styles.gateSub(theme)}>Entrez le code reçu par Easy Gestion Toulouse.</p>
           <input
-            type="password"
-            placeholder="Mot de passe"
+            style={styles.gateInput(theme)}
             value={pwd}
             onChange={(e) => setPwd(e.target.value)}
-            style={styles.input}
+            placeholder="Code d'accès"
             autoFocus
           />
-          <button type="submit" style={styles.newButton}>
-            Entrer
+          <button type="submit" style={styles.gateButton(theme)}>
+            Accéder à mon espace
           </button>
-          {authError && <p style={{ color: "#B5402D", fontSize: "0.8rem" }}>{authError}</p>}
+          {authError && <p style={{ color: "#D98C7F", fontSize: "0.8rem" }}>{authError}</p>}
         </form>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
+    <div style={styles.page(theme)}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         button { cursor: pointer; font-family: inherit; }
-        input, select { font-family: inherit; }
-        .row:hover { background: #FAF7F2; }
-        @media (max-width: 720px) {
-          .desktop-table { display: none !important; }
-          .mobile-cards { display: flex !important; }
-        }
-        @media (min-width: 721px) {
-          .mobile-cards { display: none !important; }
-        }
       `}</style>
 
-      <div style={styles.shell}>
+      <div style={styles.shell(theme)}>
         <header style={styles.header}>
-          <div style={styles.brandRow}>
-            <span style={styles.logoMark}>EG</span>
-            <div>
-              <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
-              <h1 style={styles.brandTitle}>{view === "livres" ? "Mes livres d'or" : "Mes catalogues"}</h1>
-            </div>
-          </div>
-          {view === "livres" ? (
-            <button style={styles.newButton} onClick={() => setShowForm(true)}>
-              + Nouveau livre d'or
-            </button>
-          ) : (
-            <button style={styles.newButton} onClick={() => setShowCatalogForm(true)}>
-              + Nouveau catalogue
-            </button>
-          )}
+          <p style={styles.eyebrow(theme)}>Le Fil</p>
+          <h1 style={styles.title(theme)}>{event.event_title}</h1>
         </header>
 
         <div style={styles.statsRow}>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{events.length}</span>
-            <span style={styles.statLabel}>Livres d'or</span>
+          <div style={styles.statCard(theme)}>
+            <span style={styles.statNumber(theme)}>{photos.length}</span>
+            <span style={styles.statLabel(theme)}>photos</span>
           </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{events.reduce((sum, e) => sum + (e.messages?.[0]?.count ?? 0), 0)}</span>
-            <span style={styles.statLabel}>Messages reçus</span>
+          <div style={styles.statCard(theme)}>
+            <span style={styles.statNumber(theme)}>{videos.length}</span>
+            <span style={styles.statLabel(theme)}>vidéos</span>
           </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{events.reduce((sum, e) => sum + (e.poll_questions?.[0]?.count ?? 0), 0)}</span>
-            <span style={styles.statLabel}>Questions de sondage</span>
+          <div style={styles.statCard(theme)}>
+            <span style={styles.statNumber(theme)}>{messages.length}</span>
+            <span style={styles.statLabel(theme)}>messages</span>
           </div>
-          <div style={styles.statCard}>
-            <span style={styles.statNumber}>{catalogs.length}</span>
-            <span style={styles.statLabel}>Catalogues</span>
+          <div style={styles.statCard(theme)}>
+            <span style={styles.statNumber(theme)}>{totalVotes}</span>
+            <span style={styles.statLabel(theme)}>votes sondage</span>
           </div>
         </div>
 
-        <div style={styles.tabs}>
-          <button
-            style={{ ...styles.tab, ...(view === "livres" ? styles.tabActive : {}) }}
-            onClick={() => setView("livres")}
-          >
-            Livres d'or
-          </button>
-          <button
-            style={{ ...styles.tab, ...(view === "catalogues" ? styles.tabActive : {}) }}
-            onClick={() => setView("catalogues")}
-          >
-            Catalogues
-          </button>
+        {!isReview && (
+          <a href={`/${slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={styles.bookCard(theme)}>
+            <div>
+              <p style={styles.bookTitle(theme)}>Livre Souvenir</p>
+              <p style={styles.bookSub(theme)}>Générer et télécharger le PDF de tous vos souvenirs</p>
+            </div>
+            <span style={styles.bookArrow(theme)}>↗</span>
+          </a>
+        )}
+
+        {event.cagnotte_url && (
+          <a href={event.cagnotte_url} target="_blank" rel="noreferrer" style={styles.cagnotteCard(theme)}>
+            💛 Voir la cagnotte
+          </a>
+        )}
+
+        <div style={styles.tabs(theme)}>
+          {["tout", "photos", "videos", "messages", "sondages", ...(isReview ? [] : ["invites", "cadeaux"])].map((t) => (
+            <button
+              key={t}
+              style={{ ...styles.tab(theme), ...(tab === t ? styles.tabActive(theme) : {}) }}
+              onClick={() => setTab(t)}
+            >
+              {t === "tout" ? "Tout" : t === "photos" ? "Photos" : t === "videos" ? "Vidéos" : t === "messages" ? "Messages" : t === "sondages" ? "Sondages" : t === "invites" ? "Invités" : "Cadeaux"}
+            </button>
+          ))}
         </div>
 
-        {view === "livres" && (
+        {(tab === "photos") && photos.length > 0 && (
+          <div style={styles.grid}>
+            {photos.map((m) => (
+              <div key={m.id} style={styles.gridItem}>
+                <img src={m.photo_url} alt="" style={styles.gridImg} />
+                <span style={styles.gridCaption(theme)}>{m.name}</span>
+                <a
+                  href={m.photo_url}
+                  download={`photo-${m.name || "invite"}.jpg`}
+                  style={styles.downloadBtn}
+                  title="Télécharger"
+                >
+                  ⬇
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(tab === "videos") && videos.length > 0 && (
+          <div style={styles.grid}>
+            {videos.map((m) => (
+              <div key={m.id} style={styles.gridItem}>
+                <video src={m.video_url} controls style={styles.gridImg} />
+                <span style={styles.gridCaption(theme)}>{m.name}</span>
+                <a
+                  href={m.video_url}
+                  download={`video-${m.name || "invite"}.mp4`}
+                  style={styles.downloadBtn}
+                  title="Télécharger"
+                >
+                  ⬇
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(tab === "tout" || tab === "messages") && (
+          <div style={styles.msgList}>
+            {messages.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucun message pour l'instant.</p>}
+            {messages.map((m) => (
+              <div key={m.id} style={styles.msgCard(theme)}>
+                <div style={styles.msgHead}>
+                  <span style={{ ...styles.msgAvatar(theme), background: m.ink || theme.accent }}>
+                    {(m.name || "?")[0].toUpperCase()}
+                  </span>
+                  <span style={styles.msgName(theme)}>{m.name}</span>
+                  <span style={styles.msgDate(theme)}>{formatDate(m.created_at)}</span>
+                </div>
+                {m.photo_url && (
+                  <div style={{ position: "relative" }}>
+                    <img src={m.photo_url} alt="" style={styles.msgMedia} />
+                    <a href={m.photo_url} download={`photo-${m.name || "invite"}.jpg`} style={styles.downloadBtn} title="Télécharger">⬇</a>
+                  </div>
+                )}
+                {m.video_url && (
+                  <div style={{ position: "relative" }}>
+                    <video src={m.video_url} controls style={styles.msgMedia} />
+                    <a href={m.video_url} download={`video-${m.name || "invite"}.mp4`} style={styles.downloadBtn} title="Télécharger">⬇</a>
+                  </div>
+                )}
+                {m.message && <p style={styles.msgText(theme)}>{m.message}</p>}
+                {m.audio_url && (
+                  <>
+                    <audio src={m.audio_url} controls style={{ width: "100%", marginTop: "6px" }} />
+                    <a href={m.audio_url} download={`vocal-${m.name || "invite"}.webm`} style={styles.audioDownload(theme)}>
+                      ⬇ Télécharger le vocal
+                    </a>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(tab === "tout" || tab === "sondages") && (
+          <div style={styles.msgList}>
+            {pollQuestions.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucun sondage pour l'instant.</p>}
+            {pollQuestions.map((q) => {
+              const total = (q.votes || []).reduce((a, b) => a + b, 0);
+              return (
+                <div key={q.id} style={styles.msgCard(theme)}>
+                  <p style={styles.pollQuestion(theme)}>{q.question}</p>
+                  {(q.options || []).map((opt, i) => {
+                    const votes = q.votes?.[i] || 0;
+                    const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                    return (
+                      <div key={i} style={styles.pollRow}>
+                        <span style={styles.pollLabel(theme)}>{opt}</span>
+                        <span style={styles.pollPct(theme)}>{pct}% ({votes})</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab === "invites" && (
           <>
-            {loadError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{loadError}</p>}
-
-            {showForm && (
-              <div style={styles.modalOverlay} onClick={() => setShowForm(false)}>
-                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
-                  <h2 style={styles.modalTitle}>Créer un livre d'or</h2>
-                  <label style={styles.label}>
-                    Nom du client
-                    <input
-                      style={styles.input}
-                      value={client}
-                      onChange={(e) => setClient(e.target.value)}
-                      placeholder="ex. Sarah & Karim"
-                      required
-                      autoFocus
-                    />
-                  </label>
-                  <label style={styles.label}>
-                    Titre affiché sur le livre d'or
-                    <input
-                      style={styles.input}
-                      value={eventTitle}
-                      onChange={(e) => setEventTitle(e.target.value)}
-                      placeholder="ex. Le mariage de Sarah & Karim"
-                      required
-                    />
-                  </label>
-                  <label style={styles.label}>
-                    Type d'événement
-                    <select style={styles.input} value={eventType} onChange={(e) => setEventType(e.target.value)}>
-                      <option>Mariage</option>
-                      <option>Anniversaire</option>
-                      <option>Baptême</option>
-                      <option>Baby Shower</option>
-                      <option>Pot de départ</option>
-                      <option>Départ en retraite</option>
-                      <option>Henné</option>
-                      <option>Circoncision</option>
-                      <option>Fiançailles</option>
-                      <option>Inauguration</option>
-                      <option>Lancement de produit</option>
-                      <option>Fête d'entreprise</option>
-                      <option>Vos avis</option>
-                      <option>Autre</option>
-                    </select>
-                  </label>
-                  <label style={styles.label}>
-                    Date de l'événement (optionnel)
-                    <input
-                      type="date"
-                      style={styles.input}
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                    />
-                    <span style={{ fontSize: "0.68rem", color: "#8A7F66", fontWeight: 400 }}>
-                      Si renseignée, seul le formulaire "confirmation de présence" s'affiche avant cette date.
+            <div style={styles.statsRow}>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{rsvpYes.length}</span>
+                <span style={styles.statLabel(theme)}>confirmés</span>
+              </div>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{rsvpNo.length}</span>
+                <span style={styles.statLabel(theme)}>déclinés</span>
+              </div>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{rsvpHeadcount}</span>
+                <span style={styles.statLabel(theme)}>personnes au total</span>
+              </div>
+            </div>
+            <div style={styles.msgList}>
+              {rsvps.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucune réponse pour l'instant.</p>}
+              {rsvps.map((r) => (
+                <div key={r.id} style={styles.msgCard(theme)}>
+                  <div style={styles.msgHead}>
+                    <span style={{ ...styles.msgAvatar(theme), background: r.attending ? "#6FAE7F" : "#D98C7F" }}>
+                      {(r.name || "?")[0].toUpperCase()}
                     </span>
-                  </label>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {newPolls.map((poll, i) => (
-                      <div key={i} style={styles.pollBlock}>
-                        <div style={styles.pollBlockHead}>
-                          <span style={styles.pollBlockLabel}>Question {i + 1}</span>
-                          <button type="button" style={styles.removePollLink} onClick={() => removeNewPollBlock(i)}>
-                            retirer
-                          </button>
-                        </div>
-                        <input
-                          style={styles.input}
-                          value={poll.question}
-                          onChange={(e) => updateNewPollQuestion(i, e.target.value)}
-                          placeholder="ex. Qui va pleurer en premier ?"
-                        />
-                        {poll.options.map((opt, j) => (
-                          <input
-                            key={j}
-                            style={{ ...styles.input, marginTop: "6px" }}
-                            value={opt}
-                            onChange={(e) => updateNewPollOption(i, j, e.target.value)}
-                            placeholder={`Réponse ${j + 1}`}
-                          />
-                        ))}
-                      </div>
-                    ))}
-                    {newPolls.length < 5 && (
-                      <button type="button" style={styles.addPollButton} onClick={addNewPollBlock}>
-                        + Ajouter une question de sondage
-                      </button>
-                    )}
+                    <span style={styles.msgName(theme)}>{r.name}</span>
+                    <span style={styles.msgDate(theme)}>{r.attending ? `✅ +${r.guests_count || 0}` : "❌"}</span>
                   </div>
-                  <label style={styles.label}>
-                    Lien de cagnotte (optionnel)
-                    <input
-                      style={styles.input}
-                      value={cagnotteUrl}
-                      onChange={(e) => setCagnotteUrl(e.target.value)}
-                      placeholder="ex. https://onparticipe.fr/cagnottes/..."
-                    />
-                  </label>
-                  <div style={styles.modalActions}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setShowForm(false)}>
-                      Annuler
-                    </button>
-                    <button type="submit" style={styles.newButton} disabled={creating}>
-                      {creating ? "Création…" : "Créer"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {editingPollFor && (
-              <div style={styles.modalOverlay} onClick={() => setEditingPollFor(null)}>
-                <div style={{ ...styles.modal, maxHeight: "82vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-                  <h2 style={styles.modalTitle}>Sondages — {editingPollFor.client}</h2>
-                  {loadingPolls && <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Chargement…</p>}
-                  {!loadingPolls && editingPolls.length === 0 && (
-                    <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Aucune question pour l'instant.</p>
-                  )}
-                  {!loadingPolls &&
-                    editingPolls.map((poll, i) => (
-                      <div key={poll.id || `new-${i}`} style={styles.pollBlock}>
-                        <div style={styles.pollBlockHead}>
-                          <span style={styles.pollBlockLabel}>Question {i + 1}</span>
-                          <button type="button" style={styles.removePollLink} onClick={() => handleDeletePoll(i)}>
-                            supprimer
-                          </button>
-                        </div>
-                        <input
-                          style={styles.input}
-                          value={poll.question}
-                          onChange={(e) => updateEditingPollQuestion(i, e.target.value)}
-                          placeholder="ex. Qui va pleurer en premier ?"
-                        />
-                        {poll.options.map((opt, j) => (
-                          <input
-                            key={j}
-                            style={{ ...styles.input, marginTop: "6px" }}
-                            value={opt}
-                            onChange={(e) => updateEditingPollOption(i, j, e.target.value)}
-                            placeholder={`Réponse ${j + 1}`}
-                          />
-                        ))}
-                        <button
-                          type="button"
-                          style={{ ...styles.newButton, marginTop: "8px", alignSelf: "flex-start" }}
-                          onClick={() => handleSaveOnePoll(i)}
-                          disabled={savingPollId === i}
-                        >
-                          {savingPollId === i ? "Enregistrement…" : poll.id ? "Mettre à jour" : "Ajouter"}
-                        </button>
-                        {!poll.id && (
-                          <p style={{ fontSize: "0.7rem", color: "#8A7F66", margin: "4px 0 0" }}>
-                            Pas encore enregistrée — clique "Ajouter".
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  {editingPolls.length < 5 && (
-                    <button type="button" style={styles.addPollButton} onClick={addEditingPollBlock}>
-                      + Ajouter une question de sondage
-                    </button>
-                  )}
-                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
-                    Modifier une question remet ses votes à zéro.
-                  </p>
-                  <div style={styles.modalActions}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setEditingPollFor(null)}>
-                      Fermer
-                    </button>
-                  </div>
+                  {r.note && <p style={styles.msgText(theme)}>{r.note}</p>}
                 </div>
-              </div>
-            )}
-
-            {editingCagnotteFor && (
-              <div style={styles.modalOverlay} onClick={() => setEditingCagnotteFor(null)}>
-                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSaveCagnotte}>
-                  <h2 style={styles.modalTitle}>Cagnotte — {editingCagnotteFor.client}</h2>
-                  <label style={styles.label}>
-                    Lien de cagnotte
-                    <input
-                      style={styles.input}
-                      value={editCagnotteUrl}
-                      onChange={(e) => setEditCagnotteUrl(e.target.value)}
-                      placeholder="ex. https://onparticipe.fr/cagnottes/..."
-                      autoFocus
-                    />
-                  </label>
-                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
-                    Laisse vide pour retirer la cagnotte du livre d'or.
-                  </p>
-                  <div style={styles.modalActions}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setEditingCagnotteFor(null)}>
-                      Annuler
-                    </button>
-                    <button type="submit" style={styles.newButton} disabled={savingCagnotte}>
-                      {savingCagnotte ? "Enregistrement…" : "Enregistrer"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {editingDateFor && (
-              <div style={styles.modalOverlay} onClick={() => setEditingDateFor(null)}>
-                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSaveDate}>
-                  <h2 style={styles.modalTitle}>Date — {editingDateFor.client}</h2>
-                  <label style={styles.label}>
-                    Date de l'événement
-                    <input
-                      type="date"
-                      style={styles.input}
-                      value={editEventDate}
-                      onChange={(e) => setEditEventDate(e.target.value)}
-                      autoFocus
-                    />
-                  </label>
-                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
-                    Avant cette date, seule la confirmation de présence s'affiche aux invités. Laisse vide pour désactiver.
-                  </p>
-                  <div style={styles.modalActions}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setEditingDateFor(null)}>
-                      Annuler
-                    </button>
-                    <button type="submit" style={styles.newButton} disabled={savingDate}>
-                      {savingDate ? "Enregistrement…" : "Enregistrer"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {editingGiftsFor && (
-              <div style={styles.modalOverlay} onClick={() => setEditingGiftsFor(null)}>
-                <div style={{ ...styles.modal, maxHeight: "82vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-                  <h2 style={styles.modalTitle}>Liste de cadeaux — {editingGiftsFor.client}</h2>
-                  {loadingGifts && <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Chargement…</p>}
-                  {!loadingGifts && editingGifts.length === 0 && (
-                    <p style={{ fontSize: "0.8rem", color: "#8A7F66" }}>Aucun cadeau pour l'instant.</p>
-                  )}
-                  {!loadingGifts &&
-                    editingGifts.map((gift, i) => (
-                      <div key={gift.id || `new-${i}`} style={styles.pollBlock}>
-                        <div style={styles.pollBlockHead}>
-                          <span style={styles.pollBlockLabel}>Cadeau {i + 1}</span>
-                          <button type="button" style={styles.removePollLink} onClick={() => handleDeleteGift(i)}>
-                            supprimer
-                          </button>
-                        </div>
-                        <input
-                          style={styles.input}
-                          value={gift.name}
-                          onChange={(e) => updateEditingGift(i, "name", e.target.value)}
-                          placeholder="ex. Machine à café Nespresso"
-                        />
-                        <input
-                          style={{ ...styles.input, marginTop: "6px" }}
-                          value={gift.link}
-                          onChange={(e) => updateEditingGift(i, "link", e.target.value)}
-                          placeholder="Lien vers le produit (optionnel)"
-                        />
-                        <input
-                          style={{ ...styles.input, marginTop: "6px" }}
-                          value={gift.price}
-                          onChange={(e) => updateEditingGift(i, "price", e.target.value)}
-                          placeholder="Prix indicatif (optionnel, ex. 89€)"
-                        />
-                        {gift.reservedBy && (
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px", fontSize: "0.75rem", color: "#3F7A52" }}>
-                            <span>✅ Réservé par {gift.reservedBy}</span>
-                            <button type="button" style={styles.removePollLink} onClick={() => handleUnreserveGift(i)}>
-                              libérer
-                            </button>
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          style={{ ...styles.newButton, marginTop: "8px", alignSelf: "flex-start" }}
-                          onClick={() => handleSaveOneGift(i)}
-                          disabled={savingGiftId === i}
-                        >
-                          {savingGiftId === i ? "Enregistrement…" : gift.id ? "Mettre à jour" : "Ajouter"}
-                        </button>
-                        {!gift.id && (
-                          <p style={{ fontSize: "0.7rem", color: "#8A7F66", margin: "4px 0 0" }}>
-                            Pas encore enregistré — clique "Ajouter".
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  {editingGifts.length < 20 && (
-                    <button type="button" style={styles.addPollButton} onClick={addEditingGiftBlock}>
-                      + Ajouter un cadeau
-                    </button>
-                  )}
-                  <div style={styles.modalActions}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setEditingGiftsFor(null)}>
-                      Fermer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {loading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
-
-            {!loading && events.length === 0 && !loadError && (
-              <div style={styles.emptyState}>
-                <p style={{ fontSize: "1.4rem", fontFamily: "'Caveat', cursive", margin: 0 }}>
-                  Aucun livre d'or créé pour l'instant
-                </p>
-                <p style={{ color: "#8A7F66", marginTop: "6px" }}>
-                  Clique sur "Nouveau livre d'or" pour ton premier client
-                </p>
-              </div>
-            )}
-
-            {!loading && events.length > 0 && (
-              <>
-                <table className="desktop-table" style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Client</th>
-                      <th style={styles.th}>Type</th>
-                      <th style={styles.th}>Lien</th>
-                      <th style={styles.th}>Espace mariés</th>
-                      <th style={styles.th}>QR code</th>
-                      <th style={styles.th}>Messages</th>
-                      <th style={styles.th}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.map((ev) => (
-                      <tr className="row" key={ev.id}>
-                        <td style={styles.td}>
-                          <strong>{ev.client}</strong>
-                          <div style={styles.subText}>{ev.event_title}</div>
-                        </td>
-                        <td style={styles.td}>
-                          <span style={{ ...styles.badge, ...badgeColors(ev.event_type) }}>{ev.event_type}</span>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.linkRow}>
-                            <span style={styles.linkText}>{linkFor(ev.slug)}</span>
-                            <button style={styles.iconButton} onClick={() => handleCopy(ev.id, ev.slug)}>
-                              {copiedId === ev.id ? "✓" : "copier"}
-                            </button>
-                          </div>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.linkRow}>
-                            <code style={styles.codeText}>{ev.client_password || "—"}</code>
-                            <button
-                              style={styles.iconButton}
-                              onClick={() => {
-                                const text = `Lien : ${espaceLinkFor(ev.slug)}\nCode d'accès : ${ev.client_password}`;
-                                if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-                                setCopiedId(`espace-${ev.id}`);
-                                setTimeout(() => setCopiedId(null), 1800);
-                              }}
-                            >
-                              {copiedId === `espace-${ev.id}` ? "✓" : "copier lien + code"}
-                            </button>
-                          </div>
-                          <button style={styles.regenerateButton} onClick={() => handleRegenerateEventCode(ev.id)}>
-                            régénérer le code
-                          </button>
-                        </td>
-                        <td style={styles.td}>
-                          <a href={qrUrlForLink(linkFor(ev.slug))} target="_blank" rel="noreferrer" style={styles.qrThumb}>
-                            <img
-                              src={qrUrlForLink(linkFor(ev.slug))}
-                              alt={`QR code pour ${ev.client}`}
-                              width={40}
-                              height={40}
-                              style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                            />
-                          </a>
-                        </td>
-                        <td style={styles.td}>{ev.messages?.[0]?.count ?? 0}</td>
-                        <td style={styles.td}>
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={styles.iconButton}>
-                              imprimer
-                            </a>
-                            <a href={`/${ev.slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={styles.iconButton}>
-                              livre souvenir
-                            </a>
-                            <button style={styles.iconButton} onClick={() => openPollEditor(ev)}>
-                              sondage
-                            </button>
-                            <button style={styles.iconButton} onClick={() => openCagnotteEditor(ev)}>
-                              cagnotte
-                            </button>
-                            <button style={styles.iconButton} onClick={() => openDateEditor(ev)}>
-                              date
-                            </button>
-                            <button style={styles.iconButton} onClick={() => openGiftEditor(ev)}>
-                              cadeaux
-                            </button>
-                            <button style={styles.iconButtonDanger} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
-                              supprimer
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="mobile-cards" style={styles.mobileCards}>
-                  {events.map((ev) => (
-                    <div style={styles.card} key={ev.id}>
-                      <div style={styles.cardHeader}>
-                        <div>
-                          <strong>{ev.client}</strong>
-                          <div style={styles.subText}>{ev.event_title}</div>
-                        </div>
-                        <img
-                          src={qrUrlForLink(linkFor(ev.slug))}
-                          alt={`QR code pour ${ev.client}`}
-                          width={56}
-                          height={56}
-                          style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                        />
-                      </div>
-                      <span style={{ ...styles.badge, ...badgeColors(ev.event_type) }}>{ev.event_type}</span>
-                      <div style={styles.linkRow}>
-                        <span style={styles.linkText}>{linkFor(ev.slug)}</span>
-                        <button style={styles.iconButton} onClick={() => handleCopy(ev.id, ev.slug)}>
-                          {copiedId === ev.id ? "✓" : "copier"}
-                        </button>
-                      </div>
-                      <div style={styles.linkRow}>
-                        <code style={styles.codeText}>Code espace mariés : {ev.client_password || "—"}</code>
-                        <button
-                          style={styles.iconButton}
-                          onClick={() => {
-                            const text = `Lien : ${espaceLinkFor(ev.slug)}\nCode d'accès : ${ev.client_password}`;
-                            if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-                            setCopiedId(`espace-${ev.id}`);
-                            setTimeout(() => setCopiedId(null), 1800);
-                          }}
-                        >
-                          {copiedId === `espace-${ev.id}` ? "✓" : "copier"}
-                        </button>
-                      </div>
-                      <div style={styles.subText}>{ev.messages?.[0]?.count ?? 0} message(s)</div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <a href={`/${ev.slug}/imprimer`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
-                          imprimer le souvenir
-                        </a>
-                        <a href={`/${ev.slug}/livre-souvenir`} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
-                          livre souvenir
-                        </a>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openPollEditor(ev)}>
-                          sondage
-                        </button>
-                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openCagnotteEditor(ev)}>
-                          cagnotte
-                        </button>
-                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openDateEditor(ev)}>
-                          date
-                        </button>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openGiftEditor(ev)}>
-                          cadeaux
-                        </button>
-                      </div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <button style={{ ...styles.iconButtonDanger, flex: 1 }} onClick={() => handleDeleteEvent(ev.id, ev.client)}>
-                          supprimer
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+              ))}
+            </div>
           </>
         )}
 
-        {view === "catalogues" && (
+        {tab === "cadeaux" && (
           <>
-            {catalogsError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{catalogsError}</p>}
-
-            {showCatalogForm && (
-              <div style={styles.modalOverlay} onClick={() => setShowCatalogForm(false)}>
-                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateCatalog}>
-                  <h2 style={styles.modalTitle}>Créer un catalogue</h2>
-                  <label style={styles.label}>
-                    Nom du client
-                    <input
-                      style={styles.input}
-                      value={catalogClient}
-                      onChange={(e) => setCatalogClient(e.target.value)}
-                      placeholder="ex. Boulangerie Amel"
-                      required
-                      autoFocus
-                    />
-                  </label>
-                  <label style={styles.label}>
-                    Titre affiché sur le catalogue
-                    <input
-                      style={styles.input}
-                      value={catalogTitle}
-                      onChange={(e) => setCatalogTitle(e.target.value)}
-                      placeholder="ex. Nos produits"
-                      required
-                    />
-                  </label>
-                  <div style={styles.formRow2}>
-                    <label style={styles.label}>
-                      Couleur principale
-                      <input
-                        type="color"
-                        value={catalogColor}
-                        onChange={(e) => setCatalogColor(e.target.value)}
-                        style={styles.colorInput}
-                      />
-                    </label>
-                    <label style={styles.label}>
-                      Police du titre
-                      <select style={styles.input} value={catalogFont} onChange={(e) => setCatalogFont(e.target.value)}>
-                        <option value="manuscrite">Manuscrite (Caveat)</option>
-                        <option value="moderne">Moderne (Inter)</option>
-                        <option value="elegante">Élégante (Playfair)</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div style={styles.swatchRow}>
-                    {[
-                      ["#1E1E1E", "Noir"],
-                      ["#C9B790", "Beige"],
-                      ["#355E3B", "Vert"],
-                      ["#2A4D69", "Bleu"],
-                      ["#B5402D", "Rouge"],
-                    ].map(([hex, label]) => (
-                      <button
-                        type="button"
-                        key={hex}
-                        onClick={() => setCatalogColor(hex)}
-                        title={label}
-                        style={{
-                          ...styles.swatch,
-                          background: hex,
-                          outline: catalogColor === hex ? "2px solid #1E2A3A" : "1px solid #D8CCAB",
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div style={styles.modalActions}>
-                    <button type="button" style={styles.cancelButton} onClick={() => setShowCatalogForm(false)}>
-                      Annuler
-                    </button>
-                    <button type="submit" style={styles.newButton} disabled={creatingCatalog}>
-                      {creatingCatalog ? "Création…" : "Créer"}
-                    </button>
-                  </div>
-                </form>
+            <div style={styles.statsRow}>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{gifts.length}</span>
+                <span style={styles.statLabel(theme)}>cadeaux dans la liste</span>
               </div>
-            )}
-
-            {catalogsLoading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
-
-            {!catalogsLoading && catalogs.length === 0 && !catalogsError && (
-              <div style={styles.emptyState}>
-                <p style={{ fontSize: "1.4rem", fontFamily: "'Caveat', cursive", margin: 0 }}>
-                  Aucun catalogue créé pour l'instant
-                </p>
-                <p style={{ color: "#8A7F66", marginTop: "6px" }}>
-                  Clique sur "Nouveau catalogue" pour ton premier client
-                </p>
+              <div style={styles.statCard(theme)}>
+                <span style={styles.statNumber(theme)}>{gifts.filter((g) => g.reserved_by).length}</span>
+                <span style={styles.statLabel(theme)}>déjà réservés</span>
               </div>
-            )}
-
-            {!catalogsLoading && catalogs.length > 0 && (
-              <>
-                <table className="desktop-table" style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Client</th>
-                      <th style={styles.th}>Lien</th>
-                      <th style={styles.th}>Accès client</th>
-                      <th style={styles.th}>QR code</th>
-                      <th style={styles.th}>Produits</th>
-                      <th style={styles.th}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {catalogs.map((cat) => (
-                      <tr className="row" key={cat.id}>
-                        <td style={styles.td}>
-                          <strong>{cat.client}</strong>
-                          <div style={styles.subText}>{cat.catalog_title}</div>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.linkRow}>
-                            <span style={styles.linkText}>{catalogLinkFor(cat.slug)}</span>
-                            <button style={styles.iconButton} onClick={() => handleCopyCatalog(cat.id, cat.slug)}>
-                              {copiedCatalogId === cat.id ? "✓" : "copier"}
-                            </button>
-                          </div>
-                        </td>
-                        <td style={styles.td}>
-                          <div style={styles.linkRow}>
-                            <code style={styles.codeText}>{cat.client_password || "—"}</code>
-                            <button
-                              style={styles.iconButton}
-                              onClick={() => {
-                                const text = `Lien : ${clientManageLinkFor(cat.slug)}\nCode d'accès : ${cat.client_password}`;
-                                if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-                                setCopiedCatalogId(`gerer-${cat.id}`);
-                                setTimeout(() => setCopiedCatalogId(null), 1800);
-                              }}
-                            >
-                              {copiedCatalogId === `gerer-${cat.id}` ? "✓" : "copier lien + code"}
-                            </button>
-                          </div>
-                          <button style={styles.regenerateButton} onClick={() => handleRegenerateCode(cat.id)}>
-                            régénérer le code
-                          </button>
-                        </td>
-                        <td style={styles.td}>
-                          <a href={qrUrlForLink(catalogLinkFor(cat.slug))} target="_blank" rel="noreferrer" style={styles.qrThumb}>
-                            <img
-                              src={qrUrlForLink(catalogLinkFor(cat.slug))}
-                              alt={`QR code pour ${cat.client}`}
-                              width={40}
-                              height={40}
-                              style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                            />
-                          </a>
-                        </td>
-                        <td style={styles.td}>{cat.catalog_products?.[0]?.count ?? 0}</td>
-                        <td style={styles.td}>
-                          <div style={{ display: "flex", gap: "6px" }}>
-                            <a href={`/admin/catalogue/${cat.id}`} style={styles.iconButton}>
-                              gérer les produits
-                            </a>
-                            <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>
-                              supprimer
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="mobile-cards" style={styles.mobileCards}>
-                  {catalogs.map((cat) => (
-                    <div style={styles.card} key={cat.id}>
-                      <div style={styles.cardHeader}>
-                        <div>
-                          <strong>{cat.client}</strong>
-                          <div style={styles.subText}>{cat.catalog_title}</div>
-                        </div>
-                        <img
-                          src={qrUrlForLink(catalogLinkFor(cat.slug))}
-                          alt={`QR code pour ${cat.client}`}
-                          width={56}
-                          height={56}
-                          style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                        />
-                      </div>
-                      <div style={styles.linkRow}>
-                        <span style={styles.linkText}>{catalogLinkFor(cat.slug)}</span>
-                        <button style={styles.iconButton} onClick={() => handleCopyCatalog(cat.id, cat.slug)}>
-                          {copiedCatalogId === cat.id ? "✓" : "copier"}
-                        </button>
-                      </div>
-                      <div style={styles.linkRow}>
-                        <code style={styles.codeText}>Code client : {cat.client_password || "—"}</code>
-                        <button
-                          style={styles.iconButton}
-                          onClick={() => {
-                            const text = `Lien : ${clientManageLinkFor(cat.slug)}\nCode d'accès : ${cat.client_password}`;
-                            if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-                            setCopiedCatalogId(`gerer-${cat.id}`);
-                            setTimeout(() => setCopiedCatalogId(null), 1800);
-                          }}
-                        >
-                          {copiedCatalogId === `gerer-${cat.id}` ? "✓" : "copier lien + code"}
-                        </button>
-                      </div>
-                      <div style={styles.subText}>{cat.catalog_products?.[0]?.count ?? 0} produit(s)</div>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        <a href={`/admin/catalogue/${cat.id}`} style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
-                          gérer les produits
-                        </a>
-                        <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>
-                          supprimer
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+            </div>
+            <div style={styles.msgList}>
+              {gifts.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucun cadeau dans la liste pour l'instant.</p>}
+              {gifts.map((g) => (
+                <div key={g.id} style={styles.msgCard(theme)}>
+                  <div style={styles.msgHead}>
+                    <span style={styles.msgName(theme)}>{g.name}</span>
+                    <span style={styles.msgDate(theme)}>{g.reserved_by ? `✅ ${g.reserved_by}` : "Disponible"}</span>
+                  </div>
+                  {g.price && <p style={styles.msgText(theme)}>{g.price}</p>}
+                  {g.link && (
+                    <a href={g.link} target="_blank" rel="noreferrer" style={{ fontSize: "0.76rem", color: theme.accent }}>
+                      Voir le produit ↗
+                    </a>
+                  )}
                 </div>
-              </>
-            )}
+              ))}
+            </div>
           </>
         )}
+
+        <p style={styles.footerMark(theme)}>Easy Gestion Toulouse</p>
       </div>
     </div>
   );
 }
 
 const styles = {
-  loginPage: {
+  page: (t) => ({
     minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#F7F4EF",
-    fontFamily: "'Inter', sans-serif",
-  },
-  loginBox: {
-    background: "#FFFFFF",
-    padding: "32px 28px",
-    borderRadius: "20px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "14px",
-    width: "280px",
-    border: "1px solid #EAE3D6",
-    boxShadow: "0 1px 2px rgba(20,15,10,0.04), 0 20px 40px -20px rgba(20,15,10,0.15)",
-  },
-  loginLogoMark: {
-    width: "44px",
-    height: "44px",
-    borderRadius: "13px",
-    background: "#B5402D",
-    color: "#FFF",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: "0.9rem",
-    letterSpacing: "0.02em",
-  },
-  loginTitle: { margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#221D18" },
-  page: {
-    minHeight: "100vh",
-    background: "#F7F4EF",
-    fontFamily: "'Inter', sans-serif",
-    color: "#221D18",
-    padding: "28px 16px",
-    display: "flex",
-    justifyContent: "center",
-  },
-  shell: { width: "100%", maxWidth: "860px" },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: "12px",
-    marginBottom: "20px",
-  },
-  brandRow: { display: "flex", alignItems: "center", gap: "12px" },
-  logoMark: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "12px",
-    background: "#B5402D",
-    color: "#FFF",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: "0.8rem",
-    flex: "none",
-  },
-  statsRow: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-    gap: "10px",
-    marginBottom: "20px",
-  },
-  statCard: {
-    background: "#FFFFFF",
-    border: "1px solid #EAE3D6",
-    borderRadius: "14px",
-    padding: "14px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-  },
-  statNumber: { fontSize: "1.5rem", fontWeight: 800, color: "#221D18", lineHeight: 1.1 },
-  statLabel: { fontSize: "0.72rem", color: "#8A7F66", fontWeight: 600 },
-  tabs: { display: "flex", gap: "4px", marginBottom: "22px", background: "#EFEAE0", borderRadius: "12px", padding: "4px", width: "fit-content" },
-  tab: {
-    background: "none",
-    border: "none",
-    borderRadius: "9px",
-    padding: "8px 18px",
-    fontSize: "0.82rem",
-    fontWeight: 600,
-    color: "#8A7F66",
-  },
-  tabActive: { background: "#FFFFFF", color: "#221D18", boxShadow: "0 1px 3px rgba(20,15,10,0.1)" },
-  brandKicker: { fontSize: "0.65rem", letterSpacing: "0.14em", color: "#A6792B", margin: 0, fontWeight: 700 },
-  brandTitle: {
-    fontFamily: "'Inter', sans-serif",
-    fontSize: "1.5rem",
-    fontWeight: 800,
-    margin: "2px 0 0 0",
-    color: "#221D18",
-    letterSpacing: "-0.01em",
-  },
-  newButton: {
-    background: "#B5402D",
-    color: "#FFF",
-    border: "none",
-    borderRadius: "11px",
-    padding: "11px 18px",
-    fontSize: "0.85rem",
-    fontWeight: 700,
-    boxShadow: "0 1px 2px rgba(181,64,45,0.2), 0 8px 16px -8px rgba(181,64,45,0.35)",
-  },
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(30,26,20,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "16px",
-    zIndex: 10,
-  },
-  modal: {
-    background: "#FFFFFF",
-    borderRadius: "18px",
-    padding: "26px",
+    background: t.ink,
+    fontFamily: "Inter, system-ui, sans-serif",
+    padding: "0 0 40px",
+  }),
+  gateCard: (t) => ({
     width: "100%",
-    maxWidth: "380px",
+    maxWidth: "340px",
+    background: t.surface,
+    border: "1px solid rgba(255,255,255,0.06)",
+    borderRadius: "20px",
+    padding: "30px 26px",
     display: "flex",
     flexDirection: "column",
-    gap: "14px",
-    boxShadow: "0 30px 60px -20px rgba(0,0,0,0.3)",
+    alignItems: "center",
+    gap: "12px",
+    textAlign: "center",
+    margin: "0 16px",
+  }),
+  gateEyebrow: (t) => ({ fontSize: "0.68rem", letterSpacing: "0.16em", color: t.accent, margin: 0, textTransform: "uppercase" }),
+  gateTitle: (t) => ({ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, fontSize: "1.7rem", color: t.ivory, margin: "4px 0" }),
+  gateSub: (t) => ({ fontSize: "0.82rem", color: t.muted, margin: "0 0 10px" }),
+  gateInput: (t) => ({ width: "100%", textAlign: "center", fontSize: "1rem", letterSpacing: "0.15em", padding: "12px 14px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)", background: t.surface2, color: t.ivory }),
+  gateButton: (t) => ({ width: "100%", padding: "13px 0", borderRadius: "12px", border: "none", background: t.accent, color: t.accentText, fontWeight: 700, fontSize: "0.88rem" }),
+
+  shell: (t) => ({ width: "100%", maxWidth: "620px", margin: "0 auto", padding: "40px 18px 0" }),
+  header: { textAlign: "center", marginBottom: "20px" },
+  eyebrow: (t) => ({ fontSize: "0.68rem", letterSpacing: "0.16em", color: t.accent, textTransform: "uppercase", margin: "0 0 8px" }),
+  title: (t) => ({ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, fontSize: "2rem", color: t.ivory, margin: 0 }),
+
+  statsRow: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "18px" },
+  statCard: (t) => ({ background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "12px 6px", textAlign: "center" }),
+  statNumber: (t) => ({ display: "block", fontSize: "1.3rem", fontWeight: 800, color: t.ivory }),
+  statLabel: (t) => ({ display: "block", fontSize: "0.65rem", color: t.muted, marginTop: "2px" }),
+
+  bookCard: (t) => ({ display: "flex", justifyContent: "space-between", alignItems: "center", background: `linear-gradient(135deg, ${t.surface}, ${t.surface2})`, border: `1px solid ${t.accentSoft}`, borderRadius: "16px", padding: "16px 18px", marginBottom: "12px", textDecoration: "none" }),
+  bookTitle: (t) => ({ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.15rem", color: t.ivory, margin: "0 0 3px" }),
+  bookSub: (t) => ({ fontSize: "0.75rem", color: t.muted, margin: 0 }),
+  bookArrow: (t) => ({ fontSize: "1.3rem", color: t.accent }),
+
+  cagnotteCard: (t) => ({ display: "block", textAlign: "center", background: t.surface2, border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", padding: "12px", marginBottom: "20px", color: t.ivory, textDecoration: "none", fontSize: "0.88rem", fontWeight: 600 }),
+
+  tabs: (t) => ({ display: "flex", gap: "4px", background: t.surface2, borderRadius: "12px", padding: "4px", marginBottom: "16px", overflowX: "auto" }),
+  tab: (t) => ({ flex: "none", background: "none", border: "none", borderRadius: "9px", padding: "8px 14px", fontSize: "0.78rem", fontWeight: 600, color: t.muted }),
+  tabActive: (t) => ({ background: t.accent, color: t.accentText }),
+
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "8px", marginBottom: "16px" },
+  gridItem: { position: "relative", borderRadius: "10px", overflow: "hidden" },
+  gridImg: { width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: "10px", display: "block" },
+  gridCaption: (t) => ({ position: "absolute", left: "6px", bottom: "6px", fontSize: "0.65rem", fontWeight: 600, color: "#fff", background: "rgba(0,0,0,0.45)", padding: "2px 7px", borderRadius: "20px" }),
+  downloadBtn: {
+    position: "absolute",
+    top: "6px",
+    right: "6px",
+    width: "26px",
+    height: "26px",
+    borderRadius: "50%",
+    background: "rgba(0,0,0,0.55)",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    textDecoration: "none",
   },
-  modalTitle: { fontFamily: "'Inter', sans-serif", fontSize: "1.2rem", fontWeight: 800, margin: 0, color: "#221D18" },
-  label: { display: "flex", flexDirection: "column", gap: "6px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636" },
-  formRow2: { display: "flex", gap: "12px" },
-  colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #EAE3D6", borderRadius: "8px", background: "#fff" },
-  swatchRow: { display: "flex", gap: "8px" },
-  swatch: { width: "28px", height: "28px", borderRadius: "50%", border: "none", cursor: "pointer" },
-  input: { fontSize: "0.9rem", padding: "10px 12px", border: "1px solid #EAE3D6", borderRadius: "10px", background: "#FCFAF6", color: "#221D18" },
-  modalActions: { display: "flex", justifyContent: "flex-end", gap: "8px" },
-  cancelButton: { background: "none", border: "1px solid #EAE3D6", borderRadius: "10px", padding: "10px 16px", fontSize: "0.85rem", color: "#5B4636", fontWeight: 600 },
-  emptyState: { textAlign: "center", padding: "48px 20px", background: "#FFFFFF", borderRadius: "16px", border: "1px dashed #D8CCAB" },
-  table: { width: "100%", borderCollapse: "collapse", background: "#FFFFFF", borderRadius: "16px", overflow: "hidden", border: "1px solid #EAE3D6" },
-  th: { textAlign: "left", fontSize: "0.68rem", letterSpacing: "0.06em", textTransform: "uppercase", color: "#A6792B", fontWeight: 700, padding: "13px 14px", borderBottom: "1px solid #EAE3D6", background: "#FBF8F3" },
-  td: { padding: "13px 14px", fontSize: "0.85rem", verticalAlign: "middle", borderBottom: "1px solid #F1ECE1" },
-  subText: { fontSize: "0.75rem", color: "#8A7F66", marginTop: "2px" },
-  badge: { fontSize: "0.68rem", padding: "4px 10px", borderRadius: "20px", fontWeight: 700 },
-  linkRow: { display: "flex", alignItems: "center", gap: "6px" },
-  linkText: { fontSize: "0.75rem", color: "#221D18", fontFamily: "monospace", wordBreak: "break-all" },
-  codeText: { fontSize: "0.8rem", color: "#B5402D", fontFamily: "monospace", fontWeight: 700, letterSpacing: "0.05em" },
-  regenerateButton: { background: "none", border: "none", color: "#8A7F66", fontSize: "0.65rem", textDecoration: "underline", padding: "4px 0 0 0" },
-  iconButton: { background: "#F3EEE3", border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "0.7rem", fontWeight: 600, color: "#5B4636" },
-  iconButtonDanger: { background: "#FBEAE6", color: "#B5402D", border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "0.7rem", fontWeight: 600 },
-  qrThumb: { display: "flex", alignItems: "center", gap: "4px" },
-  mobileCards: { display: "none", flexDirection: "column", gap: "12px" },
-  card: { background: "#FFFFFF", borderRadius: "16px", padding: "16px", border: "1px solid #EAE3D6", display: "flex", flexDirection: "column", gap: "10px" },
-  cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },
-  pollBlock: { display: "flex", flexDirection: "column", background: "#FBF8F3", border: "1px solid #EAE3D6", borderRadius: "12px", padding: "12px" },
-  pollBlockHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" },
-  pollBlockLabel: { fontSize: "0.72rem", fontWeight: 700, color: "#8A7F66", textTransform: "uppercase", letterSpacing: "0.04em" },
-  removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
-  addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
+  audioDownload: (t) => ({
+    display: "inline-block",
+    marginTop: "6px",
+    fontSize: "0.72rem",
+    color: t.accent,
+    textDecoration: "underline",
+  }),
+
+  msgList: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" },
+  msgCard: (t) => ({ background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "13px 15px" }),
+  msgHead: { display: "flex", alignItems: "center", gap: "9px", marginBottom: "6px" },
+  msgAvatar: (t) => ({ width: "26px", height: "26px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.68rem", fontWeight: 700, color: t.ivory, flex: "none" }),
+  msgName: (t) => ({ fontSize: "0.82rem", fontWeight: 600, color: t.ivory, flex: 1 }),
+  msgDate: (t) => ({ fontSize: "0.65rem", color: t.muted }),
+  msgMedia: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "10px", marginBottom: "8px" },
+  msgText: (t) => ({ fontSize: "0.85rem", color: t.ivory, opacity: 0.9, margin: 0, lineHeight: 1.5 }),
+
+  pollQuestion: (t) => ({ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1rem", color: t.ivory, margin: "0 0 8px" }),
+  pollRow: { display: "flex", justifyContent: "space-between", fontSize: "0.8rem", padding: "4px 0" },
+  pollLabel: (t) => ({ color: t.ivory, opacity: 0.9 }),
+  pollPct: (t) => ({ color: t.accent, fontWeight: 700 }),
+
+  footerMark: (t) => ({ textAlign: "center", fontSize: "0.68rem", color: t.muted, opacity: 0.6, marginTop: "10px" }),
 };

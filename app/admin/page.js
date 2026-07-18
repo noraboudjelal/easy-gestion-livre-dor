@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { VITRINE_THEMES } from "../../lib/vitrineThemes";
 
 function slugify(str) {
   return str
@@ -45,7 +46,7 @@ export default function AdminPage() {
   const [pwd, setPwd] = useState("");
   const [authError, setAuthError] = useState("");
 
-  const [view, setView] = useState("livres"); // "livres" | "catalogues"
+  const [view, setView] = useState("livres"); // "livres" | "catalogues" | "vitrine"
 
   // --- Livres d'or ---
   const [events, setEvents] = useState([]);
@@ -86,6 +87,17 @@ export default function AdminPage() {
   const [catalogFont, setCatalogFont] = useState("manuscrite");
   const [creatingCatalog, setCreatingCatalog] = useState(false);
   const [copiedCatalogId, setCopiedCatalogId] = useState(null);
+
+  // --- Ma Vitrine ---
+  const [showcases, setShowcases] = useState([]);
+  const [showcasesLoading, setShowcasesLoading] = useState(true);
+  const [showcasesError, setShowcasesError] = useState("");
+  const [showShowcaseForm, setShowShowcaseForm] = useState(false);
+  const [showcaseBusinessName, setShowcaseBusinessName] = useState("");
+  const [showcaseTagline, setShowcaseTagline] = useState("");
+  const [showcaseTheme, setShowcaseTheme] = useState("coiffure");
+  const [creatingShowcase, setCreatingShowcase] = useState(false);
+  const [copiedShowcaseId, setCopiedShowcaseId] = useState(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem("ld-admin-ok") === "1") {
@@ -149,12 +161,33 @@ export default function AdminPage() {
     setCatalogsLoading(false);
   }, []);
 
+  const loadShowcases = useCallback(async () => {
+    if (!supabase) {
+      setShowcasesError("Connexion à Supabase non configurée.");
+      setShowcasesLoading(false);
+      return;
+    }
+    setShowcasesLoading(true);
+    const { data, error } = await supabase
+      .from("showcases")
+      .select("*, showcase_products(count)")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setShowcasesError("Impossible de charger les vitrines : " + error.message);
+    } else {
+      setShowcasesError("");
+      setShowcases(data || []);
+    }
+    setShowcasesLoading(false);
+  }, []);
+
   useEffect(() => {
     if (authed) {
       loadEvents();
       loadCatalogs();
+      loadShowcases();
     }
-  }, [authed, loadEvents, loadCatalogs]);
+  }, [authed, loadEvents, loadCatalogs, loadShowcases]);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -548,6 +581,69 @@ export default function AdminPage() {
     }
   }
 
+  async function handleCreateShowcase(e) {
+    e.preventDefault();
+    if (!showcaseBusinessName.trim() || !supabase) return;
+    setCreatingShowcase(true);
+    const slug = `${slugify(showcaseBusinessName)}-${shortCode()}`;
+    const { error } = await supabase.from("showcases").insert({
+      slug,
+      business_name: showcaseBusinessName.trim(),
+      tagline: showcaseTagline.trim() || null,
+      theme: showcaseTheme,
+      client_password: clientAccessCode(),
+    });
+    setCreatingShowcase(false);
+    if (error) {
+      setShowcasesError("Création impossible : " + error.message);
+      return;
+    }
+    setShowcaseBusinessName("");
+    setShowcaseTagline("");
+    setShowcaseTheme("coiffure");
+    setShowShowcaseForm(false);
+    loadShowcases();
+  }
+
+  function showcaseLinkFor(slug) {
+    if (typeof window === "undefined") return slug;
+    return `${window.location.origin}/vitrine/${slug}`;
+  }
+
+  function showcaseManageLinkFor(slug) {
+    if (typeof window === "undefined") return slug;
+    return `${window.location.origin}/vitrine/${slug}/gerer`;
+  }
+
+  async function handleRegenerateShowcaseCode(showcaseId) {
+    if (!supabase) return;
+    const newCode = clientAccessCode();
+    const { error } = await supabase.from("showcases").update({ client_password: newCode }).eq("id", showcaseId);
+    if (error) {
+      setShowcasesError("Impossible de régénérer le code : " + error.message);
+    } else {
+      loadShowcases();
+    }
+  }
+
+  function handleCopyShowcase(id, slug) {
+    const text = showcaseLinkFor(slug);
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    setCopiedShowcaseId(id);
+    setTimeout(() => setCopiedShowcaseId(null), 1800);
+  }
+
+  async function handleDeleteShowcase(id, name) {
+    if (!supabase) return;
+    if (!window.confirm(`Supprimer la vitrine de "${name}" ? Cette action est définitive.`)) return;
+    const { error } = await supabase.from("showcases").delete().eq("id", id);
+    if (error) {
+      setShowcasesError("Suppression impossible : " + error.message);
+    } else {
+      loadShowcases();
+    }
+  }
+
   if (!authed) {
     return (
       <div style={styles.loginPage}>
@@ -594,16 +690,24 @@ export default function AdminPage() {
             <span style={styles.logoMark}>EG</span>
             <div>
               <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
-              <h1 style={styles.brandTitle}>{view === "livres" ? "Mes livres d'or" : "Mes catalogues"}</h1>
+              <h1 style={styles.brandTitle}>
+                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : "Ma Vitrine"}
+              </h1>
             </div>
           </div>
-          {view === "livres" ? (
+          {view === "livres" && (
             <button style={styles.newButton} onClick={() => setShowForm(true)}>
               + Nouveau livre d'or
             </button>
-          ) : (
+          )}
+          {view === "catalogues" && (
             <button style={styles.newButton} onClick={() => setShowCatalogForm(true)}>
               + Nouveau catalogue
+            </button>
+          )}
+          {view === "vitrine" && (
+            <button style={styles.newButton} onClick={() => setShowShowcaseForm(true)}>
+              + Nouvelle vitrine
             </button>
           )}
         </header>
@@ -625,6 +729,10 @@ export default function AdminPage() {
             <span style={styles.statNumber}>{catalogs.length}</span>
             <span style={styles.statLabel}>Catalogues</span>
           </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{showcases.length}</span>
+            <span style={styles.statLabel}>Ma Vitrine</span>
+          </div>
         </div>
 
         <div style={styles.tabs}>
@@ -639,6 +747,12 @@ export default function AdminPage() {
             onClick={() => setView("catalogues")}
           >
             Catalogues
+          </button>
+          <button
+            style={{ ...styles.tab, ...(view === "vitrine" ? styles.tabActive : {}) }}
+            onClick={() => setView("vitrine")}
+          >
+            Ma Vitrine
           </button>
         </div>
 
@@ -1340,6 +1454,201 @@ export default function AdminPage() {
                           gérer les produits
                         </a>
                         <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>
+                          supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {view === "vitrine" && (
+          <>
+            {showcasesError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{showcasesError}</p>}
+
+            {showShowcaseForm && (
+              <div style={styles.modalOverlay} onClick={() => setShowShowcaseForm(false)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateShowcase}>
+                  <h2 style={styles.modalTitle}>Créer une vitrine</h2>
+                  <label style={styles.label}>
+                    Nom du client / commerce
+                    <input
+                      style={styles.input}
+                      value={showcaseBusinessName}
+                      onChange={(e) => setShowcaseBusinessName(e.target.value)}
+                      placeholder="ex. Léa Ferrand Coiffure"
+                      required
+                      autoFocus
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Accroche <span style={{ fontWeight: 400, color: "#8A7F66" }}>(optionnel)</span>
+                    <input
+                      style={styles.input}
+                      value={showcaseTagline}
+                      onChange={(e) => setShowcaseTagline(e.target.value)}
+                      placeholder="ex. Coiffure & stylisme"
+                    />
+                  </label>
+                  <div style={styles.swatchRow}>
+                    {Object.entries(VITRINE_THEMES).map(([key, theme]) => (
+                      <button
+                        type="button"
+                        key={key}
+                        onClick={() => setShowcaseTheme(key)}
+                        title={theme.label}
+                        style={{
+                          ...styles.swatch,
+                          background: theme.swatch,
+                          outline: showcaseTheme === key ? "2px solid #1E2A3A" : "1px solid #D8CCAB",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setShowShowcaseForm(false)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={creatingShowcase}>
+                      {creatingShowcase ? "Création…" : "Créer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {showcasesLoading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
+
+            {!showcasesLoading && showcases.length === 0 && !showcasesError && (
+              <div style={styles.emptyState}>
+                <p style={{ fontSize: "1.4rem", fontFamily: "'Caveat', cursive", margin: 0 }}>
+                  Aucune vitrine créée pour l'instant
+                </p>
+                <p style={{ color: "#8A7F66", marginTop: "6px" }}>
+                  Clique sur "Nouvelle vitrine" pour ton premier client
+                </p>
+              </div>
+            )}
+
+            {!showcasesLoading && showcases.length > 0 && (
+              <>
+                <table className="desktop-table" style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Client</th>
+                      <th style={styles.th}>Lien</th>
+                      <th style={styles.th}>Accès client</th>
+                      <th style={styles.th}>QR code</th>
+                      <th style={styles.th}>Réalisations</th>
+                      <th style={styles.th}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {showcases.map((sc) => (
+                      <tr className="row" key={sc.id}>
+                        <td style={styles.td}>
+                          <strong>{sc.business_name}</strong>
+                          <div style={styles.subText}>{sc.tagline}</div>
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.linkRow}>
+                            <span style={styles.linkText}>{showcaseLinkFor(sc.slug)}</span>
+                            <button style={styles.iconButton} onClick={() => handleCopyShowcase(sc.id, sc.slug)}>
+                              {copiedShowcaseId === sc.id ? "✓" : "copier"}
+                            </button>
+                          </div>
+                        </td>
+                        <td style={styles.td}>
+                          <div style={styles.linkRow}>
+                            <code style={styles.codeText}>{sc.client_password || "—"}</code>
+                            <button
+                              style={styles.iconButton}
+                              onClick={() => {
+                                const text = `Lien : ${showcaseManageLinkFor(sc.slug)}\nCode d'accès : ${sc.client_password}`;
+                                if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+                                setCopiedShowcaseId(`gerer-${sc.id}`);
+                                setTimeout(() => setCopiedShowcaseId(null), 1800);
+                              }}
+                            >
+                              {copiedShowcaseId === `gerer-${sc.id}` ? "✓" : "copier lien + code"}
+                            </button>
+                          </div>
+                          <button style={styles.regenerateButton} onClick={() => handleRegenerateShowcaseCode(sc.id)}>
+                            régénérer le code
+                          </button>
+                        </td>
+                        <td style={styles.td}>
+                          <a href={qrUrlForLink(showcaseLinkFor(sc.slug))} target="_blank" rel="noreferrer" style={styles.qrThumb}>
+                            <img
+                              src={qrUrlForLink(showcaseLinkFor(sc.slug))}
+                              alt={`QR code pour ${sc.business_name}`}
+                              width={40}
+                              height={40}
+                              style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
+                            />
+                          </a>
+                        </td>
+                        <td style={styles.td}>{sc.showcase_products?.[0]?.count ?? 0}</td>
+                        <td style={styles.td}>
+                          <div style={{ display: "flex", gap: "6px" }}>
+                            <a href={showcaseManageLinkFor(sc.slug)} target="_blank" rel="noreferrer" style={styles.iconButton}>
+                              gérer
+                            </a>
+                            <button style={styles.iconButtonDanger} onClick={() => handleDeleteShowcase(sc.id, sc.business_name)}>
+                              supprimer
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="mobile-cards" style={styles.mobileCards}>
+                  {showcases.map((sc) => (
+                    <div style={styles.card} key={sc.id}>
+                      <div style={styles.cardHeader}>
+                        <div>
+                          <strong>{sc.business_name}</strong>
+                          <div style={styles.subText}>{sc.tagline}</div>
+                        </div>
+                        <img
+                          src={qrUrlForLink(showcaseLinkFor(sc.slug))}
+                          alt={`QR code pour ${sc.business_name}`}
+                          width={56}
+                          height={56}
+                          style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
+                        />
+                      </div>
+                      <div style={styles.linkRow}>
+                        <span style={styles.linkText}>{showcaseLinkFor(sc.slug)}</span>
+                        <button style={styles.iconButton} onClick={() => handleCopyShowcase(sc.id, sc.slug)}>
+                          {copiedShowcaseId === sc.id ? "✓" : "copier"}
+                        </button>
+                      </div>
+                      <div style={styles.linkRow}>
+                        <code style={styles.codeText}>Code client : {sc.client_password || "—"}</code>
+                        <button
+                          style={styles.iconButton}
+                          onClick={() => {
+                            const text = `Lien : ${showcaseManageLinkFor(sc.slug)}\nCode d'accès : ${sc.client_password}`;
+                            if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+                            setCopiedShowcaseId(`gerer-${sc.id}`);
+                            setTimeout(() => setCopiedShowcaseId(null), 1800);
+                          }}
+                        >
+                          {copiedShowcaseId === `gerer-${sc.id}` ? "✓" : "copier lien + code"}
+                        </button>
+                      </div>
+                      <div style={styles.subText}>{sc.showcase_products?.[0]?.count ?? 0} réalisation(s)</div>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <a href={showcaseManageLinkFor(sc.slug)} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
+                          gérer
+                        </a>
+                        <button style={styles.iconButtonDanger} onClick={() => handleDeleteShowcase(sc.id, sc.business_name)}>
                           supprimer
                         </button>
                       </div>

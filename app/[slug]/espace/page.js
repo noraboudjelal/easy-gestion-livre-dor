@@ -101,6 +101,11 @@ export default function EspaceMariesPage() {
   const [pollQuestions, setPollQuestions] = useState([]);
   const [rsvps, setRsvps] = useState([]);
   const [gifts, setGifts] = useState([]);
+  const [newGiftName, setNewGiftName] = useState("");
+  const [newGiftLink, setNewGiftLink] = useState("");
+  const [newGiftPrice, setNewGiftPrice] = useState("");
+  const [addingGift, setAddingGift] = useState(false);
+  const [giftFormError, setGiftFormError] = useState("");
   const [tab, setTab] = useState("tout");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
@@ -170,6 +175,38 @@ export default function EspaceMariesPage() {
     } else {
       setAuthError("Code incorrect.");
     }
+  }
+
+  async function handleAddGift(e) {
+    e.preventDefault();
+    if (!newGiftName.trim() || !event || !supabase) {
+      setGiftFormError("Indique au moins un nom pour le cadeau.");
+      return;
+    }
+    setGiftFormError("");
+    setAddingGift(true);
+    const { error } = await supabase.from("gift_items").insert({
+      event_id: event.id,
+      name: newGiftName.trim(),
+      link: newGiftLink.trim() || null,
+      price: newGiftPrice.trim() || null,
+      position: gifts.length,
+    });
+    setAddingGift(false);
+    if (error) {
+      setGiftFormError("Une erreur est survenue, réessaie.");
+      return;
+    }
+    setNewGiftName("");
+    setNewGiftLink("");
+    setNewGiftPrice("");
+    loadContent();
+  }
+
+  async function handleDeleteGift(giftId) {
+    if (!supabase) return;
+    await supabase.from("gift_items").delete().eq("id", giftId);
+    loadContent();
   }
 
   const photos = messages.filter((m) => m.photo_url);
@@ -426,6 +463,36 @@ export default function EspaceMariesPage() {
                 <span style={styles.statLabel(theme)}>déjà réservés</span>
               </div>
             </div>
+
+            <form onSubmit={handleAddGift} style={styles.giftAddForm(theme)}>
+              <p style={styles.giftAddTitle(theme)}>Ajouter un cadeau</p>
+              <input
+                type="text"
+                placeholder="Nom du cadeau"
+                value={newGiftName}
+                onChange={(e) => setNewGiftName(e.target.value)}
+                style={styles.gateInput(theme)}
+              />
+              <input
+                type="text"
+                placeholder="Lien vers le produit (optionnel)"
+                value={newGiftLink}
+                onChange={(e) => setNewGiftLink(e.target.value)}
+                style={{ ...styles.gateInput(theme), marginTop: "8px" }}
+              />
+              <input
+                type="text"
+                placeholder="Prix indicatif (optionnel)"
+                value={newGiftPrice}
+                onChange={(e) => setNewGiftPrice(e.target.value)}
+                style={{ ...styles.gateInput(theme), marginTop: "8px" }}
+              />
+              {giftFormError && <p style={{ color: "#D98C7F", fontSize: "0.76rem", margin: "8px 0 0" }}>{giftFormError}</p>}
+              <button type="submit" disabled={addingGift} style={{ ...styles.gateButton(theme), marginTop: "10px" }}>
+                {addingGift ? "Ajout…" : "+ Ajouter à la liste"}
+              </button>
+            </form>
+
             <div style={styles.msgList}>
               {gifts.length === 0 && <p style={{ color: theme.muted, fontSize: "0.85rem" }}>Aucun cadeau dans la liste pour l'instant.</p>}
               {gifts.map((g) => (
@@ -440,6 +507,9 @@ export default function EspaceMariesPage() {
                       Voir le produit ↗
                     </a>
                   )}
+                  <button type="button" style={styles.giftDeleteBtn(theme)} onClick={() => handleDeleteGift(g.id)}>
+                    Retirer de la liste
+                  </button>
                 </div>
               ))}
             </div>
@@ -542,4 +612,21 @@ const styles = {
   pollPct: (t) => ({ color: t.accent, fontWeight: 700 }),
 
   footerMark: (t) => ({ textAlign: "center", fontSize: "0.68rem", color: t.muted, opacity: 0.6, marginTop: "10px" }),
+  giftAddForm: (t) => ({
+    background: t.surface,
+    border: `1px dashed ${t.accentSoft}`,
+    borderRadius: "14px",
+    padding: "16px",
+    marginBottom: "16px",
+  }),
+  giftAddTitle: (t) => ({ fontSize: "0.82rem", fontWeight: 700, color: t.ivory, margin: "0 0 10px" }),
+  giftDeleteBtn: (t) => ({
+    marginTop: "8px",
+    fontSize: "0.72rem",
+    color: "#D98C7F",
+    background: "none",
+    border: "none",
+    textDecoration: "underline",
+    padding: 0,
+  }),
 };

@@ -208,9 +208,29 @@ export default function GuestbookPage() {
   const [pollQuestions, setPollQuestions] = useState([]);
   const [votedIds, setVotedIds] = useState({});
   const [votingId, setVotingId] = useState(null);
+  const [giftItems, setGiftItems] = useState([]);
+  const [reservedByMe, setReservedByMe] = useState({});
+  const [reservingId, setReservingId] = useState(null);
+  const [giftNamePrompt, setGiftNamePrompt] = useState(null);
+  const [giftNameInput, setGiftNameInput] = useState("");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
+  const isBeforeEvent = (() => {
+    if (!event?.event_date) return false;
+    const eventDay = new Date(event.event_date + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDay.getTime() > today.getTime();
+  })();
+
+  const [rsvpName, setRsvpName] = useState("");
+  const [rsvpAttending, setRsvpAttending] = useState(null);
+  const [rsvpGuests, setRsvpGuests] = useState(0);
+  const [rsvpNote, setRsvpNote] = useState("");
+  const [rsvpSending, setRsvpSending] = useState(false);
+  const [rsvpDone, setRsvpDone] = useState(false);
+  const [rsvpError, setRsvpError] = useState("");
   const styles = getStyles(theme);
 
   const loadAll = useCallback(async () => {
@@ -253,6 +273,23 @@ export default function GuestbookPage() {
       });
     }
 
+    const { data: gifts } = await supabase
+      .from("gift_items")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("position", { ascending: true });
+
+    setGiftItems(gifts || []);
+    if (typeof window !== "undefined") {
+      setReservedByMe((prev) => {
+        const next = { ...prev };
+        (gifts || []).forEach((g) => {
+          if (window.localStorage.getItem(`gift-reserved-${g.id}`) === "1") next[g.id] = true;
+        });
+        return next;
+      });
+    }
+
     setLoading(false);
   }, [slug]);
 
@@ -261,6 +298,55 @@ export default function GuestbookPage() {
     const interval = setInterval(loadAll, 4000);
     return () => clearInterval(interval);
   }, [loadAll]);
+
+  useEffect(() => {
+    if (event?.id && typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(`rsvp-done-${event.id}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setRsvpDone(true);
+          setRsvpName(parsed.name || "");
+          setRsvpAttending(parsed.attending);
+          setRsvpGuests(parsed.guests || 0);
+        } catch {}
+      }
+    }
+  }, [event?.id]);
+
+  async function handleRsvpSubmit(e) {
+    e.preventDefault();
+    if (!event || !supabase) return;
+    if (!rsvpName.trim() || rsvpAttending === null) {
+      setRsvpError("Indique ton prénom et si tu viens.");
+      return;
+    }
+    setRsvpError("");
+    setRsvpSending(true);
+    const { error } = await supabase.from("rsvps").insert({
+      event_id: event.id,
+      name: rsvpName.trim(),
+      attending: rsvpAttending,
+      guests_count: rsvpAttending ? rsvpGuests : 0,
+      note: rsvpNote.trim() || null,
+    });
+    setRsvpSending(false);
+    if (error) {
+      setRsvpError("Une erreur est survenue, réessaie.");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        `rsvp-done-${event.id}`,
+        JSON.stringify({ name: rsvpName.trim(), attending: rsvpAttending, guests: rsvpGuests })
+      );
+    }
+    setRsvpDone(true);
+  }
+
+  function handleRsvpEdit() {
+    setRsvpDone(false);
+  }
 
   async function handleVote(questionId, optionIndex) {
     if (votedIds[questionId] || votingId || !supabase) return;
@@ -275,6 +361,39 @@ export default function GuestbookPage() {
       loadAll();
     }
     setVotingId(null);
+  }
+
+  function openGiftNamePrompt(giftId) {
+    setGiftNamePrompt(giftId);
+    setGiftNameInput("");
+  }
+
+  async function confirmReserveGift() {
+    if (!giftNamePrompt || !giftNameInput.trim() || reservingId || !supabase) return;
+    setReservingId(giftNamePrompt);
+    const { data: ok, error } = await supabase.rpc("reserve_gift", {
+      p_gift_id: giftNamePrompt,
+      p_name: giftNameInput.trim(),
+    });
+    if (!error && ok) {
+      window.localStorage.setItem(`gift-reserved-${giftNamePrompt}`, "1");
+      setReservedByMe((prev) => ({ ...prev, [giftNamePrompt]: true }));
+      loadAll();
+    }
+    setReservingId(null);
+    setGiftNamePrompt(null);
+  }
+
+  async function handleUnreserveGift(giftId, name) {
+    if (!supabase) return;
+    await supabase.rpc("unreserve_gift", { p_gift_id: giftId, p_name: name });
+    window.localStorage.removeItem(`gift-reserved-${giftId}`);
+    setReservedByMe((prev) => {
+      const next = { ...prev };
+      delete next[giftId];
+      return next;
+    });
+    loadAll();
   }
 
   function handlePhotoChange(e) {
@@ -448,12 +567,198 @@ export default function GuestbookPage() {
     setSending(false);
   }
 
+  function renderGiftList() {
+    if (giftItems.length === 0) return null;
+    return (
+      <div style={styles.giftCard}>
+        <p style={styles.giftCardTitle}>🎁 Liste de cadeaux</p>
+        <p style={styles.giftCardSub}>Réservez un cadeau pour éviter les doublons.</p>
+        <div style={styles.giftList}>
+          {giftItems.map((g) => {
+            const takenByMe = !!reservedByMe[g.id];
+            const taken = !!g.reserved_by;
+            return (
+              <div key={g.id} style={styles.giftItem}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={styles.giftName}>{g.name}</p>
+                  {g.price && <span style={styles.giftPrice}>{g.price}</span>}
+                  {g.link && (
+                    <a href={g.link} target="_blank" rel="noreferrer" style={styles.giftLink}>
+                      Voir le produit ↗
+                    </a>
+                  )}
+                </div>
+                {taken ? (
+                  takenByMe ? (
+                    <button
+                      type="button"
+                      style={styles.giftUnreserveBtn}
+                      onClick={() => handleUnreserveGift(g.id, g.reserved_by)}
+                    >
+                      Annuler
+                    </button>
+                  ) : (
+                    <span style={styles.giftTakenBadge}>Réservé</span>
+                  )
+                ) : (
+                  <button
+                    type="button"
+                    style={styles.giftReserveBtn}
+                    disabled={reservingId === g.id}
+                    onClick={() => openGiftNamePrompt(g.id)}
+                  >
+                    Réserver
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {giftNamePrompt && (
+          <div style={styles.giftPromptOverlay} onClick={() => setGiftNamePrompt(null)}>
+            <div style={styles.giftPromptBox} onClick={(e) => e.stopPropagation()}>
+              <p style={styles.giftCardTitle}>Votre prénom</p>
+              <input
+                type="text"
+                autoFocus
+                value={giftNameInput}
+                onChange={(e) => setGiftNameInput(e.target.value)}
+                placeholder="Pour identifier votre réservation"
+                style={styles.input}
+              />
+              <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                <button type="button" style={styles.rsvpToggleBtn} onClick={() => setGiftNamePrompt(null)}>
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  style={{ ...styles.button, flex: 1 }}
+                  disabled={!giftNameInput.trim() || reservingId === giftNamePrompt}
+                  onClick={confirmReserveGift}
+                >
+                  {reservingId === giftNamePrompt ? "…" : "Confirmer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (notFound) {
     return (
       <div style={{ ...styles.page, alignItems: "center", justifyContent: "center", display: "flex" }}>
         <p style={{ color: "#F4EFE4", fontFamily: "Inter, system-ui, sans-serif" }}>
           Ce livre d'or n'existe pas ou plus.
         </p>
+      </div>
+    );
+  }
+
+  if (isBeforeEvent) {
+    return (
+      <div style={styles.page}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
+          * { box-sizing: border-box; }
+          textarea:focus, input:focus, button:focus-visible { outline: 2px solid ${theme.accent}; outline-offset: 2px; }
+          ::placeholder { color: ${theme.muted}; }
+        `}</style>
+        <div style={styles.content}>
+          <header style={styles.header}>
+            <p style={styles.eyebrow}>LE FIL</p>
+            <h1 style={styles.title}>{event?.event_title}</h1>
+            <p style={styles.sub}>On a hâte de vous voir !</p>
+          </header>
+
+          {rsvpDone ? (
+            <div style={styles.rsvpConfirmedCard}>
+              <div style={{ fontSize: "1.6rem", marginBottom: "6px" }}>🎉</div>
+              <p style={styles.rsvpConfirmedTitle}>Merci {rsvpName} !</p>
+              <p style={styles.rsvpConfirmedSub}>
+                {rsvpAttending
+                  ? `Votre présence${rsvpGuests > 0 ? ` (+${rsvpGuests} accompagnant${rsvpGuests > 1 ? "s" : ""})` : ""} est bien notée.`
+                  : "C'est noté, merci de nous avoir prévenus."}
+              </p>
+              <button type="button" style={styles.rsvpEditLink} onClick={handleRsvpEdit}>
+                Modifier ma réponse
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleRsvpSubmit} style={styles.rsvpCard}>
+              <p style={styles.rsvpCardTitle}>Serez-vous présent·e ?</p>
+              <input
+                type="text"
+                placeholder="Votre prénom"
+                value={rsvpName}
+                onChange={(e) => setRsvpName(e.target.value)}
+                style={styles.input}
+              />
+              <div style={styles.rsvpToggleRow}>
+                <button
+                  type="button"
+                  onClick={() => setRsvpAttending(true)}
+                  style={{
+                    ...styles.rsvpToggleBtn,
+                    ...(rsvpAttending === true ? styles.rsvpToggleYesActive : {}),
+                  }}
+                >
+                  ✅ Je viens
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRsvpAttending(false)}
+                  style={{
+                    ...styles.rsvpToggleBtn,
+                    ...(rsvpAttending === false ? styles.rsvpToggleNoActive : {}),
+                  }}
+                >
+                  ❌ Je ne peux pas
+                </button>
+              </div>
+
+              {rsvpAttending === true && (
+                <div style={styles.rsvpStepperRow}>
+                  <span style={styles.rsvpStepperLabel}>Accompagnants</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <button
+                      type="button"
+                      style={styles.rsvpStepperBtn}
+                      onClick={() => setRsvpGuests((g) => Math.max(0, g - 1))}
+                    >
+                      −
+                    </button>
+                    <span style={styles.rsvpStepperCount}>{rsvpGuests}</span>
+                    <button
+                      type="button"
+                      style={styles.rsvpStepperBtn}
+                      onClick={() => setRsvpGuests((g) => Math.min(10, g + 1))}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <textarea
+                placeholder="Un mot pour les mariés (optionnel)"
+                value={rsvpNote}
+                onChange={(e) => setRsvpNote(e.target.value)}
+                rows={2}
+                style={styles.textarea}
+              />
+
+              {rsvpError && <p style={styles.errorText}>{rsvpError}</p>}
+              <button type="submit" disabled={rsvpSending} style={styles.button}>
+                {rsvpSending ? "Envoi…" : "Confirmer ma présence"}
+              </button>
+            </form>
+          )}
+
+          {renderGiftList()}
+        </div>
       </div>
     );
   }
@@ -626,6 +931,8 @@ export default function GuestbookPage() {
           </a>
         )}
 
+        {renderGiftList()}
+
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
           <span style={styles.dividerLabel}>Le Fil</span>
@@ -747,6 +1054,69 @@ function getStyles(t) {
     cagnotteIcon: { fontSize: "1.3rem", flex: "none" },
     cagnotteTitle: { display: "block", fontSize: "0.88rem", fontWeight: 600, color: t.ivory },
     cagnotteSub: { display: "block", fontSize: "0.75rem", color: t.muted, marginTop: "2px" },
+    giftCard: {
+      background: t.surface2,
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: "16px",
+      padding: "18px",
+      marginBottom: "22px",
+    },
+    giftCardTitle: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.1rem", color: t.ivory, margin: "0 0 4px" },
+    giftCardSub: { fontSize: "0.76rem", color: t.muted, margin: "0 0 14px" },
+    giftList: { display: "flex", flexDirection: "column", gap: "10px" },
+    giftItem: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      background: t.surface,
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: "12px",
+      padding: "12px 14px",
+    },
+    giftName: { fontSize: "0.85rem", fontWeight: 600, color: t.ivory, margin: "0 0 2px" },
+    giftPrice: { fontSize: "0.72rem", color: t.accent, fontWeight: 700, marginRight: "8px" },
+    giftLink: { fontSize: "0.72rem", color: t.muted, textDecoration: "underline" },
+    giftReserveBtn: {
+      flex: "none",
+      background: t.accent,
+      color: t.accentText,
+      border: "none",
+      borderRadius: "10px",
+      padding: "9px 14px",
+      fontWeight: 700,
+      fontSize: "0.75rem",
+      fontFamily: "Inter, sans-serif",
+    },
+    giftUnreserveBtn: {
+      flex: "none",
+      background: "none",
+      color: "#D98C7F",
+      border: "1px solid rgba(217,140,127,0.4)",
+      borderRadius: "10px",
+      padding: "8px 12px",
+      fontWeight: 600,
+      fontSize: "0.72rem",
+      fontFamily: "Inter, sans-serif",
+    },
+    giftTakenBadge: { flex: "none", fontSize: "0.72rem", color: "#6FAE7F", fontWeight: 700 },
+    giftPromptOverlay: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.55)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "20px",
+      zIndex: 30,
+    },
+    giftPromptBox: {
+      width: "100%",
+      maxWidth: "320px",
+      background: t.surface,
+      borderRadius: "16px",
+      padding: "18px",
+      border: "1px solid rgba(255,255,255,0.08)",
+    },
     divider: { textAlign: "center", margin: "10px 0 20px 0", borderTop: "1px solid rgba(255,255,255,0.08)", position: "relative" },
     dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
     dividerRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", margin: "10px 0 18px 0" },
@@ -763,5 +1133,59 @@ function getStyles(t) {
     entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "10px", marginBottom: "10px" },
     entryAudio: { width: "100%", marginTop: "8px", height: "36px" },
     entryText: { fontSize: "0.88rem", lineHeight: 1.5, color: t.ivory, margin: 0, opacity: 0.9 },
+    rsvpCard: {
+      background: t.surface,
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: "16px",
+      padding: "20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+    },
+    rsvpCardTitle: {
+      fontFamily: "'Instrument Serif', serif",
+      fontStyle: "italic",
+      fontSize: "1.2rem",
+      color: t.ivory,
+      margin: "0 0 4px",
+    },
+    rsvpToggleRow: { display: "flex", gap: "10px" },
+    rsvpToggleBtn: {
+      flex: 1,
+      padding: "13px 0",
+      borderRadius: "12px",
+      border: "1.5px solid rgba(255,255,255,0.1)",
+      background: t.surface2,
+      color: t.ivory,
+      fontWeight: 700,
+      fontSize: "0.85rem",
+      fontFamily: "Inter, sans-serif",
+    },
+    rsvpToggleYesActive: { background: "rgba(111,174,127,0.18)", borderColor: "#6FAE7F", color: "#6FAE7F" },
+    rsvpToggleNoActive: { background: "rgba(217,140,127,0.15)", borderColor: "#D98C7F", color: "#D98C7F" },
+    rsvpStepperRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+    rsvpStepperLabel: { fontSize: "0.82rem", color: t.muted, fontWeight: 600 },
+    rsvpStepperBtn: {
+      width: "32px",
+      height: "32px",
+      borderRadius: "50%",
+      background: t.surface2,
+      border: "1px solid rgba(255,255,255,0.1)",
+      color: t.accent,
+      fontSize: "1.1rem",
+      fontWeight: 700,
+      fontFamily: "Inter, sans-serif",
+    },
+    rsvpStepperCount: { fontSize: "1rem", fontWeight: 700, color: t.ivory, minWidth: "18px", textAlign: "center" },
+    rsvpConfirmedCard: {
+      background: "rgba(111,174,127,0.1)",
+      border: "1px solid rgba(111,174,127,0.35)",
+      borderRadius: "16px",
+      padding: "22px",
+      textAlign: "center",
+    },
+    rsvpConfirmedTitle: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.2rem", color: t.ivory, margin: "0 0 4px" },
+    rsvpConfirmedSub: { fontSize: "0.82rem", color: t.muted, margin: "0 0 14px" },
+    rsvpEditLink: { fontSize: "0.78rem", color: t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
   };
 }

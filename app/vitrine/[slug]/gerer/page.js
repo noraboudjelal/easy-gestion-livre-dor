@@ -32,6 +32,10 @@ export default function ClientManageVitrinePage() {
   const [tiktokUrl, setTiktokUrl] = useState("");
   const [socialsSaving, setSocialsSaving] = useState(false);
 
+  // --- À propos ---
+  const [aboutText, setAboutText] = useState("");
+  const [aboutSaving, setAboutSaving] = useState(false);
+
   // --- Formulaire réalisation / prestation ---
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
@@ -61,6 +65,7 @@ export default function ClientManageVitrinePage() {
     setInstagramUrl(sc.instagram_url || "");
     setFacebookUrl(sc.facebook_url || "");
     setTiktokUrl(sc.tiktok_url || "");
+    setAboutText(sc.about_text || "");
     setLoading(false);
     if (typeof window !== "undefined" && sessionStorage.getItem(`vitrine-client-auth-${sc.id}`) === "1") {
       setAuthed(true);
@@ -146,6 +151,15 @@ export default function ClientManageVitrinePage() {
       })
       .eq("id", showcase.id);
     setSocialsSaving(false);
+    if (error) setLoadError("Enregistrement impossible : " + error.message);
+  }
+
+  async function handleSaveAbout(e) {
+    e.preventDefault();
+    if (!supabase || !showcase) return;
+    setAboutSaving(true);
+    const { error } = await supabase.from("showcases").update({ about_text: aboutText.trim() || null }).eq("id", showcase.id);
+    setAboutSaving(false);
     if (error) setLoadError("Enregistrement impossible : " + error.message);
   }
 
@@ -332,6 +346,27 @@ export default function ClientManageVitrinePage() {
         </div>
 
         {loadError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{loadError}</p>}
+
+        <section style={styles.themeBlock}>
+          <h2 style={styles.blockTitle}>À propos</h2>
+          <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: "6px 0 0" }}>
+            Ton expérience, tes diplômes, ce qui te définit — ça apparaît sur ta vitrine juste sous le titre.
+          </p>
+          <form style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }} onSubmit={handleSaveAbout}>
+            <textarea
+              style={{ ...styles.textarea, minHeight: "110px" }}
+              value={aboutText}
+              onChange={(e) => setAboutText(e.target.value)}
+              placeholder="ex. Diplômée d'un Brevet Professionnel de coiffure, 12 ans d'expérience en salon avant d'ouvrir mon propre espace à Toulouse…"
+              rows={4}
+            />
+            <div style={styles.formActions}>
+              <button type="submit" style={styles.primaryButton} disabled={aboutSaving}>
+                {aboutSaving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </div>
+          </form>
+        </section>
 
         <section style={styles.themeBlock}>
           <h2 style={styles.blockTitle}>Couleur de ma vitrine</h2>

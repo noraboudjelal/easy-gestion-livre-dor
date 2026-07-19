@@ -26,6 +26,7 @@ const TYPE_BADGE = {
   "Anniversaire": { background: "#FBE9E4", color: "#B5402D" },
   "Baptême": { background: "#EAF1F7", color: "#4A6A85" },
   "Baby Shower": { background: "#FBE7EF", color: "#B5567F" },
+  "Notre Journal": { background: "#FDEFD8", color: "#B5762E" },
   "Pot de départ": { background: "#E3F1F0", color: "#2E6E68" },
   "Départ en retraite": { background: "#E9F3EA", color: "#3F7A52" },
   "Henné": { background: "#E9F3EA", color: "#4E7A3F" },
@@ -204,6 +205,7 @@ export default function AdminPage() {
         cagnotte_url: cagnotteUrl.trim() || null,
         client_password: clientAccessCode(),
         event_date: eventDate || null,
+        polls_open_to_all: eventType === "Notre Journal",
       })
       .select()
       .single();
@@ -806,21 +808,29 @@ export default function AdminPage() {
                       <option>Lancement de produit</option>
                       <option>Fête d'entreprise</option>
                       <option>Vos avis</option>
+                      <option>Notre Journal</option>
                       <option>Autre</option>
                     </select>
                   </label>
-                  <label style={styles.label}>
-                    Date de l'événement (optionnel)
-                    <input
-                      type="date"
-                      style={styles.input}
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                    />
-                    <span style={{ fontSize: "0.68rem", color: "#8A7F66", fontWeight: 400 }}>
-                      Si renseignée, seul le formulaire "confirmation de présence" s'affiche avant cette date.
-                    </span>
-                  </label>
+                  {eventType === "Notre Journal" ? (
+                    <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: 0 }}>
+                      Pas de date de fin — c'est un espace qui vit dans la durée. Les sondages seront ouverts à tout le
+                      groupe (pas juste toi).
+                    </p>
+                  ) : (
+                    <label style={styles.label}>
+                      Date de l'événement (optionnel)
+                      <input
+                        type="date"
+                        style={styles.input}
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                      />
+                      <span style={{ fontSize: "0.68rem", color: "#8A7F66", fontWeight: 400 }}>
+                        Si renseignée, seul le formulaire "confirmation de présence" s'affiche avant cette date.
+                      </span>
+                    </label>
+                  )}
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {newPolls.map((poll, i) => (
                       <div key={i} style={styles.pollBlock}>

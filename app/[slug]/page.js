@@ -148,6 +148,11 @@ const THEMES = {
     muted: "#9C9A94",
     avatarPalette: ["#D9C9A3", "#8C8A85", "#B7B4AC", "#6E6C67"],
   },
+  "Notre Journal": {
+    ink: "#332A22", surface: "#3D3226", surface2: "#4A3C2C",
+    accent: "#E07856", accentSoft: "rgba(224,120,86,0.3)", accentText: "#2A1A10",
+    ivory: "#FBF3EA", muted: "#C9B49C",
+  },
   "Autre": {
     ink: "#14131C",
     surface: "#1F1E2B",
@@ -214,8 +219,25 @@ export default function GuestbookPage() {
   const [giftNamePrompt, setGiftNamePrompt] = useState(null);
   const [giftNameInput, setGiftNameInput] = useState("");
 
+  // --- Notre Journal ---
+  const [wallRefs, setWallRefs] = useState([]);
+  const [eventDates, setEventDates] = useState([]);
+  const [likedIds, setLikedIds] = useState({});
+  const [newRefText, setNewRefText] = useState("");
+  const [newRefAuthor, setNewRefAuthor] = useState("");
+  const [addingRef, setAddingRef] = useState(false);
+  const [newDateTitle, setNewDateTitle] = useState("");
+  const [newDateValue, setNewDateValue] = useState("");
+  const [addingDate, setAddingDate] = useState(false);
+  const [showNewPollForm, setShowNewPollForm] = useState(false);
+  const [newPollQuestion, setNewPollQuestion] = useState("");
+  const [newPollOptions, setNewPollOptions] = useState(["", ""]);
+  const [addingPoll, setAddingPoll] = useState(false);
+
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
+  const isJournal = event?.event_type === "Notre Journal";
+  const canAnyoneStartPoll = isJournal && event?.polls_open_to_all;
   const isBeforeEvent = (() => {
     if (!event?.event_date) return false;
     const eventDay = new Date(event.event_date + "T00:00:00");
@@ -255,6 +277,15 @@ export default function GuestbookPage() {
       .order("created_at", { ascending: true });
 
     setMessages(msgs || []);
+    if (typeof window !== "undefined") {
+      setLikedIds((prev) => {
+        const next = { ...prev };
+        (msgs || []).forEach((m) => {
+          if (window.localStorage.getItem(`msg-liked-${m.id}`) === "1") next[m.id] = true;
+        });
+        return next;
+      });
+    }
 
     const { data: polls } = await supabase
       .from("poll_questions")
@@ -289,6 +320,20 @@ export default function GuestbookPage() {
         return next;
       });
     }
+
+    const { data: refsData } = await supabase
+      .from("event_wall_refs")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("created_at", { ascending: false });
+    setWallRefs(refsData || []);
+
+    const { data: datesData } = await supabase
+      .from("event_dates")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("event_date", { ascending: true });
+    setEventDates(datesData || []);
 
     setLoading(false);
   }, [slug]);
@@ -361,6 +406,75 @@ export default function GuestbookPage() {
       loadAll();
     }
     setVotingId(null);
+  }
+
+  async function handleLikeMessage(messageId) {
+    if (likedIds[messageId] || !supabase) return;
+    const { error } = await supabase.rpc("increment_message_likes", { p_message_id: messageId });
+    if (!error) {
+      window.localStorage.setItem(`msg-liked-${messageId}`, "1");
+      setLikedIds((prev) => ({ ...prev, [messageId]: true }));
+      loadAll();
+    }
+  }
+
+  async function handleAddRef(e) {
+    e.preventDefault();
+    if (!newRefText.trim() || !supabase || !event) return;
+    setAddingRef(true);
+    const { error } = await supabase.from("event_wall_refs").insert({
+      event_id: event.id,
+      text: newRefText.trim(),
+      author_name: newRefAuthor.trim() || null,
+    });
+    setAddingRef(false);
+    if (!error) {
+      setNewRefText("");
+      setNewRefAuthor("");
+      loadAll();
+    }
+  }
+
+  async function handleAddDate(e) {
+    e.preventDefault();
+    if (!newDateTitle.trim() || !newDateValue || !supabase || !event) return;
+    setAddingDate(true);
+    const { error } = await supabase.from("event_dates").insert({
+      event_id: event.id,
+      title: newDateTitle.trim(),
+      event_date: newDateValue,
+    });
+    setAddingDate(false);
+    if (!error) {
+      setNewDateTitle("");
+      setNewDateValue("");
+      loadAll();
+    }
+  }
+
+  function updatePollOption(index, value) {
+    setNewPollOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
+  }
+
+  async function handleCreatePoll(e) {
+    e.preventDefault();
+    const cleanOptions = newPollOptions.map((o) => o.trim()).filter(Boolean);
+    if (!newPollQuestion.trim() || cleanOptions.length < 2 || !supabase || !event) return;
+    setAddingPoll(true);
+    const { error } = await supabase.from("poll_questions").insert({
+      event_id: event.id,
+      question: newPollQuestion.trim(),
+      options: cleanOptions,
+      votes: cleanOptions.map(() => 0),
+      position: pollQuestions.length,
+    });
+    setAddingPoll(false);
+    if (!error) {
+      setNewPollQuestion("");
+      setNewPollOptions(["", ""]);
+      setShowNewPollForm(false);
+      loadAll();
+    }
   }
 
   function openGiftNamePrompt(giftId) {
@@ -933,6 +1047,99 @@ export default function GuestbookPage() {
 
         {renderGiftList()}
 
+        {isJournal && eventDates.length > 0 && (
+          <div style={{ marginBottom: "22px" }}>
+            <div style={styles.dividerRow}>
+              <span style={styles.liveDot} />
+              <span style={styles.dividerLabel}>À venir</span>
+            </div>
+            <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "6px" }}>
+              {eventDates.map((d) => {
+                const dt = new Date(d.event_date + "T00:00:00");
+                return (
+                  <div
+                    key={d.id}
+                    style={{
+                      flex: "0 0 auto",
+                      width: "110px",
+                      background: theme.surface2,
+                      borderRadius: "12px",
+                      padding: "12px",
+                      border: `1px solid ${theme.accentSoft}`,
+                    }}
+                  >
+                    <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.5rem", color: theme.accent, lineHeight: 1 }}>
+                      {dt.getDate()}
+                    </div>
+                    <div style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>
+                      {dt.toLocaleDateString("fr-FR", { month: "short" })}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: theme.ivory, lineHeight: 1.3 }}>{d.title}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {isJournal && (
+          <form onSubmit={handleAddDate} style={{ ...styles.form, marginBottom: "22px" }}>
+            <div style={styles.dividerRow}>
+              <span style={styles.dividerLabel}>Ajouter une date</span>
+            </div>
+            <input style={styles.input} type="text" placeholder="ex. Anniv de Léa" value={newDateTitle} onChange={(e) => setNewDateTitle(e.target.value)} />
+            <div style={styles.formRow}>
+              <input style={{ ...styles.input, flex: 1, marginRight: "8px" }} type="date" value={newDateValue} onChange={(e) => setNewDateValue(e.target.value)} />
+              <button type="submit" style={styles.button} disabled={addingDate}>
+                {addingDate ? "…" : "Ajouter"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {canAnyoneStartPoll && (
+          <div style={{ marginBottom: "22px" }}>
+            <button
+              type="button"
+              onClick={() => setShowNewPollForm((v) => !v)}
+              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.accent, width: "100%" }}
+            >
+              + Lancer un sondage
+            </button>
+            {showNewPollForm && (
+              <form onSubmit={handleCreatePoll} style={{ ...styles.form, marginTop: "10px" }}>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Pose ta question au groupe…"
+                  value={newPollQuestion}
+                  onChange={(e) => setNewPollQuestion(e.target.value)}
+                />
+                {newPollOptions.map((opt, i) => (
+                  <input
+                    key={i}
+                    style={styles.input}
+                    type="text"
+                    placeholder={`Option ${i + 1}`}
+                    value={opt}
+                    onChange={(e) => updatePollOption(i, e.target.value)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setNewPollOptions((prev) => [...prev, ""])}
+                  style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accentSoft}`, color: theme.muted, fontSize: "0.75rem" }}
+                >
+                  + option
+                </button>
+                <button type="submit" style={styles.button} disabled={addingPoll}>
+                  {addingPoll ? "…" : "Publier le sondage"}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
           <span style={styles.dividerLabel}>Le Fil</span>
@@ -969,9 +1176,88 @@ export default function GuestbookPage() {
                 {m.audio_url && (
                   <audio src={m.audio_url} controls style={styles.entryAudio} />
                 )}
+                {isJournal && (
+                  <button
+                    onClick={() => handleLikeMessage(m.id)}
+                    disabled={!!likedIds[m.id]}
+                    style={{
+                      marginTop: "8px",
+                      background: "none",
+                      border: "none",
+                      cursor: likedIds[m.id] ? "default" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: "0.8rem",
+                      fontWeight: 700,
+                      color: likedIds[m.id] ? theme.accent : theme.muted,
+                    }}
+                  >
+                    <span style={{ fontSize: "1.1rem" }}>{likedIds[m.id] ? "♥" : "♡"}</span>
+                    {m.likes_count || 0}
+                  </button>
+                )}
               </article>
             ))}
         </div>
+
+        {isJournal && (
+          <div style={{ marginTop: "26px" }}>
+            <div style={styles.dividerRow}>
+              <span style={styles.liveDot} />
+              <span style={styles.dividerLabel}>Nos refs</span>
+            </div>
+            <form onSubmit={handleAddRef} style={{ ...styles.form, marginBottom: "14px" }}>
+              <input
+                style={styles.input}
+                type="text"
+                placeholder="Une private joke à ajouter au mur…"
+                value={newRefText}
+                onChange={(e) => setNewRefText(e.target.value)}
+              />
+              <div style={styles.formRow}>
+                <input
+                  style={{ ...styles.input, flex: 1, marginRight: "8px" }}
+                  type="text"
+                  placeholder="Ton prénom (optionnel)"
+                  value={newRefAuthor}
+                  onChange={(e) => setNewRefAuthor(e.target.value)}
+                />
+                <button type="submit" style={styles.button} disabled={addingRef}>
+                  {addingRef ? "…" : "Ajouter"}
+                </button>
+              </div>
+            </form>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {wallRefs.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    flex: "1 1 130px",
+                    background: theme.surface2,
+                    border: `1px solid ${theme.accentSoft}`,
+                    borderRadius: "10px",
+                    padding: "12px 14px",
+                    fontFamily: "'Instrument Serif', serif",
+                    fontStyle: "italic",
+                    fontSize: "1.05rem",
+                    color: theme.ivory,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {r.text}
+                  {r.author_name && (
+                    <div style={{ fontFamily: "Inter, sans-serif", fontStyle: "normal", fontSize: "0.65rem", fontWeight: 700, opacity: 0.5, marginTop: "6px", textTransform: "uppercase" }}>
+                      ajouté par {r.author_name}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {wallRefs.length === 0 && <p style={{ fontSize: "0.8rem", color: theme.muted }}>Rien pour l'instant — à vous d'écrire la première !</p>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

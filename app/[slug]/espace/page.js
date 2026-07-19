@@ -70,6 +70,11 @@ const THEMES = {
     accent: "#D9C9A3", accentSoft: "rgba(217,201,163,0.28)", accentText: "#151515",
     ivory: "#F2F0EC", muted: "#9C9A94",
   },
+  "Notre Journal": {
+    ink: "#332A22", surface: "#3D3226", surface2: "#4A3C2C",
+    accent: "#E07856", accentSoft: "rgba(224,120,86,0.3)", accentText: "#2A1A10",
+    ivory: "#FBF3EA", muted: "#C9B49C",
+  },
   "Autre": {
     ink: "#14131C", surface: "#1F1E2B", surface2: "#2A2836",
     accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
@@ -108,8 +113,24 @@ export default function EspaceMariesPage() {
   const [giftFormError, setGiftFormError] = useState("");
   const [tab, setTab] = useState("tout");
 
+  // --- Notre Journal ---
+  const [wallRefs, setWallRefs] = useState([]);
+  const [eventDates, setEventDates] = useState([]);
+  const [newRefText, setNewRefText] = useState("");
+  const [newRefAuthor, setNewRefAuthor] = useState("");
+  const [addingRef, setAddingRef] = useState(false);
+  const [newDateTitle, setNewDateTitle] = useState("");
+  const [newDateValue, setNewDateValue] = useState("");
+  const [addingDate, setAddingDate] = useState(false);
+  const [showNewPollForm, setShowNewPollForm] = useState(false);
+  const [newPollQuestion, setNewPollQuestion] = useState("");
+  const [newPollOptions, setNewPollOptions] = useState(["", ""]);
+  const [addingPoll, setAddingPoll] = useState(false);
+
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
+  const isJournal = event?.event_type === "Notre Journal";
+  const canAnyoneStartPoll = isJournal && event?.polls_open_to_all;
 
   const loadEvent = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -156,6 +177,18 @@ export default function EspaceMariesPage() {
       .eq("event_id", event.id)
       .order("position", { ascending: true });
     setGifts(giftData || []);
+    const { data: refsData } = await supabase
+      .from("event_wall_refs")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("created_at", { ascending: false });
+    setWallRefs(refsData || []);
+    const { data: datesData } = await supabase
+      .from("event_dates")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("event_date", { ascending: true });
+    setEventDates(datesData || []);
   }, [event]);
 
   useEffect(() => {

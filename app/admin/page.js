@@ -545,6 +545,11 @@ export default function AdminPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${data}`;
   }
 
+  function qrUrlHighRes(link) {
+    const data = encodeURIComponent(link);
+    return `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=12&data=${data}`;
+  }
+
   function handleCopy(id, slug) {
     const text = linkFor(slug);
     if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
@@ -1137,6 +1142,9 @@ export default function AdminPage() {
                               style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
                             />
                           </a>
+                          <a href={qrUrlHighRes(linkFor(ev.slug))} download={`qr-${ev.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>
+                            télécharger HD
+                          </a>
                         </td>
                         <td style={styles.td}>{ev.messages?.[0]?.count ?? 0}</td>
                         <td style={styles.td}>
@@ -1177,13 +1185,18 @@ export default function AdminPage() {
                           <strong>{ev.client}</strong>
                           <div style={styles.subText}>{ev.event_title}</div>
                         </div>
-                        <img
-                          src={qrUrlForLink(linkFor(ev.slug))}
-                          alt={`QR code pour ${ev.client}`}
-                          width={56}
-                          height={56}
-                          style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                        />
+                        <div style={{ textAlign: "center" }}>
+                          <img
+                            src={qrUrlForLink(linkFor(ev.slug))}
+                            alt={`QR code pour ${ev.client}`}
+                            width={56}
+                            height={56}
+                            style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
+                          />
+                          <a href={qrUrlHighRes(linkFor(ev.slug))} download={`qr-${ev.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>
+                            télécharger HD
+                          </a>
+                        </div>
                       </div>
                       <span style={{ ...styles.badge, ...badgeColors(ev.event_type) }}>{ev.event_type}</span>
                       <div style={styles.linkRow}>
@@ -1395,6 +1408,9 @@ export default function AdminPage() {
                               style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
                             />
                           </a>
+                          <a href={qrUrlHighRes(catalogLinkFor(cat.slug))} download={`qr-${cat.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>
+                            télécharger HD
+                          </a>
                         </td>
                         <td style={styles.td}>{cat.catalog_products?.[0]?.count ?? 0}</td>
                         <td style={styles.td}>
@@ -1420,13 +1436,18 @@ export default function AdminPage() {
                           <strong>{cat.client}</strong>
                           <div style={styles.subText}>{cat.catalog_title}</div>
                         </div>
-                        <img
-                          src={qrUrlForLink(catalogLinkFor(cat.slug))}
-                          alt={`QR code pour ${cat.client}`}
-                          width={56}
-                          height={56}
-                          style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                        />
+                        <div style={{ textAlign: "center" }}>
+                          <img
+                            src={qrUrlForLink(catalogLinkFor(cat.slug))}
+                            alt={`QR code pour ${cat.client}`}
+                            width={56}
+                            height={56}
+                            style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
+                          />
+                          <a href={qrUrlHighRes(catalogLinkFor(cat.slug))} download={`qr-${cat.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>
+                            télécharger HD
+                          </a>
+                        </div>
                       </div>
                       <div style={styles.linkRow}>
                         <span style={styles.linkText}>{catalogLinkFor(cat.slug)}</span>
@@ -1590,6 +1611,9 @@ export default function AdminPage() {
                               style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
                             />
                           </a>
+                          <a href={qrUrlHighRes(showcaseLinkFor(sc.slug))} download={`qr-${sc.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>
+                            télécharger HD
+                          </a>
                         </td>
                         <td style={styles.td}>{sc.showcase_products?.[0]?.count ?? 0}</td>
                         <td style={styles.td}>
@@ -1615,13 +1639,18 @@ export default function AdminPage() {
                           <strong>{sc.business_name}</strong>
                           <div style={styles.subText}>{sc.tagline}</div>
                         </div>
-                        <img
-                          src={qrUrlForLink(showcaseLinkFor(sc.slug))}
-                          alt={`QR code pour ${sc.business_name}`}
-                          width={56}
-                          height={56}
-                          style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
-                        />
+                        <div style={{ textAlign: "center" }}>
+                          <img
+                            src={qrUrlForLink(showcaseLinkFor(sc.slug))}
+                            alt={`QR code pour ${sc.business_name}`}
+                            width={56}
+                            height={56}
+                            style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }}
+                          />
+                          <a href={qrUrlHighRes(showcaseLinkFor(sc.slug))} download={`qr-${sc.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>
+                            télécharger HD
+                          </a>
+                        </div>
                       </div>
                       <div style={styles.linkRow}>
                         <span style={styles.linkText}>{showcaseLinkFor(sc.slug)}</span>
@@ -1821,6 +1850,7 @@ const styles = {
   iconButton: { background: "#F3EEE3", border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "0.7rem", fontWeight: 600, color: "#5B4636" },
   iconButtonDanger: { background: "#FBEAE6", color: "#B5402D", border: "none", borderRadius: "8px", padding: "6px 10px", fontSize: "0.7rem", fontWeight: 600 },
   qrThumb: { display: "flex", alignItems: "center", gap: "4px" },
+  qrDownload: { fontSize: "0.62rem", color: "#B5402D", fontWeight: 600, textDecoration: "none", marginTop: "4px", display: "inline-block" },
   mobileCards: { display: "none", flexDirection: "column", gap: "12px" },
   card: { background: "#FFFFFF", borderRadius: "16px", padding: "16px", border: "1px solid #EAE3D6", display: "flex", flexDirection: "column", gap: "10px" },
   cardHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start" },

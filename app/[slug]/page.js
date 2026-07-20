@@ -6,15 +6,15 @@ import { supabase } from "../../lib/supabaseClient";
 
 const THEMES = {
   "Mariage": {
-    ink: "#12172A",
-    surface: "#1B2238",
-    surface2: "#242C46",
+    ink: "#F7F1E4",
+    surface: "#FFFFFF",
+    surface2: "#F3E9D0",
     accent: "#C9A24B",
-    accentSoft: "rgba(201,162,75,0.3)",
-    accentText: "#20180A",
-    ivory: "#EEF1F8",
-    muted: "#9AA3BE",
-    avatarPalette: ["#3E4E7A", "#C9A24B", "#5C6FA0", "#8797C4"],
+    accentSoft: "rgba(201,162,75,0.18)",
+    accentText: "#2A1F0A",
+    ivory: "#241F14",
+    muted: "#9B8F72",
+    avatarPalette: ["#C9A24B", "#8797C4", "#B79C6B", "#D9C08A"],
   },
   "Anniversaire": {
     ink: "#241220",

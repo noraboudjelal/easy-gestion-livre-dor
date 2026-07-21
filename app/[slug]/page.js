@@ -1398,11 +1398,20 @@ export default function GuestbookPage() {
           </div>
         )}
 
-        <div style={{ marginTop: "12px", marginBottom: "16px" }}>
-          <div style={styles.dividerRow}>
-            <span style={styles.liveDot} />
-            <span style={styles.dividerLabel}>Partagez vos réponses ou vos souvenirs ici</span>
-          </div>
+        <div style={{ marginTop: "40px", marginBottom: "18px", textAlign: "center" }}>
+          <span style={styles.liveDot} />
+          <p
+            style={{
+              fontFamily: isJournal ? "'Fredoka', sans-serif" : "'Instrument Serif', serif",
+              fontStyle: isJournal ? "normal" : "italic",
+              fontWeight: isJournal ? 700 : 400,
+              fontSize: "1.4rem",
+              color: theme.ivory,
+              margin: "10px 0 0",
+            }}
+          >
+            Partagez vos réponses et souvenirs ici
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>

@@ -322,6 +322,7 @@ export default function CatalogPage() {
   const [notFound, setNotFound] = useState(false);
   const [showTop, setShowTop] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
+  const [quizLoadError, setQuizLoadError] = useState("");
   const [showQuiz, setShowQuiz] = useState(true);
   const mainRef = useRef(null);
 
@@ -349,13 +350,19 @@ export default function CatalogPage() {
     setProducts(prods || []);
 
     if (cat.quiz_enabled) {
-      const { data: questions } = await supabase
+      const { data: questions, error: quizErr } = await supabase
         .from("quiz_questions")
         .select("*, quiz_options(*)")
         .eq("catalog_id", cat.id)
         .order("step_order", { ascending: true });
-      const withOptions = (questions || []).filter((q) => (q.quiz_options || []).length >= 2);
-      setQuizQuestions(withOptions);
+
+      if (quizErr) {
+        console.error("Erreur chargement quiz :", quizErr);
+        setQuizLoadError(quizErr.message);
+      } else {
+        const withOptions = (questions || []).filter((q) => (q.quiz_options || []).length >= 2);
+        setQuizQuestions(withOptions);
+      }
     }
 
     setLoading(false);
@@ -415,6 +422,12 @@ export default function CatalogPage() {
 
       <main style={styles.main} ref={mainRef}>
         {loading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
+
+        {quizLoadError && (
+          <p style={{ color: "#B5402D", fontSize: "0.8rem", fontWeight: 600 }}>
+            Erreur chargement quiz : {quizLoadError}
+          </p>
+        )}
 
         {!loading && showQuiz && quizQuestions.length > 0 && (
           <QuizWidget

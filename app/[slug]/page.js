@@ -1080,245 +1080,6 @@ export default function GuestbookPage() {
           </p>
         </header>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <input
-            type="text"
-            placeholder="Votre prénom"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={40}
-            style={styles.input}
-          />
-          <textarea
-            placeholder="Votre message"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            maxLength={400}
-            rows={3}
-            style={styles.textarea}
-          />
-
-          {photoPreview ? (
-            <div style={styles.photoPreviewWrap}>
-              <img src={photoPreview} alt="Aperçu" style={styles.photoPreview} />
-              <button type="button" onClick={removePhoto} style={styles.removePhotoButton}>
-                ✕ retirer la photo
-              </button>
-            </div>
-          ) : (
-            <label style={styles.photoLabel}>
-              📷 Ajouter une photo (optionnel)
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                style={{ display: "none" }}
-              />
-            </label>
-          )}
-
-          {videoPreview ? (
-            <div style={styles.photoPreviewWrap}>
-              <video src={videoPreview} controls style={styles.photoPreview} />
-              <button type="button" onClick={removeVideo} style={styles.removePhotoButton}>
-                ✕ retirer la vidéo
-              </button>
-            </div>
-          ) : (
-            <label style={styles.photoLabel}>
-              🎥 Ajouter une vidéo (optionnel)
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideoChange}
-                style={{ display: "none" }}
-              />
-            </label>
-          )}
-
-          {audioPreviewUrl ? (
-            <div style={styles.photoPreviewWrap}>
-              <audio src={audioPreviewUrl} controls style={{ width: "100%" }} />
-              <button type="button" onClick={removeAudio} style={styles.removePhotoButton}>
-                ✕ retirer le message vocal
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={recording ? stopRecording : startRecording}
-              style={{
-                ...styles.photoLabel,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                borderStyle: recording ? "solid" : "dashed",
-              }}
-            >
-              {recording ? (
-                <>🔴 Arrêter l'enregistrement · {formatTimer(recordSeconds)}</>
-              ) : (
-                <>🎙️ Enregistrer un message vocal (optionnel)</>
-              )}
-            </button>
-          )}
-
-          <div style={styles.formRow}>
-            <span style={styles.counter}>{text.length}/400</span>
-            <button type="submit" disabled={sending || !event} style={styles.button}>
-              {sending ? "Envoi…" : isReview ? "Envoyer" : "Publier"}
-            </button>
-          </div>
-          {error && <p style={styles.errorText}>{error}</p>}
-          {justSent && <p style={styles.successText}>Merci, votre message a été publié ✓</p>}
-        </form>
-
-        {pollQuestions.map((q) => {
-          const voted = !!votedIds[q.id];
-          const total = (q.votes || []).reduce((a, b) => a + b, 0);
-          return (
-            <div style={styles.pollCard} key={q.id}>
-              <p style={styles.pollQuestion}>🎉 {q.question}</p>
-              <div style={styles.pollOptions}>
-                {(q.options || []).map((opt, i) => {
-                  const votes = q.votes?.[i] || 0;
-                  const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleVote(q.id, i)}
-                      disabled={voted || votingId === q.id}
-                      style={styles.pollOption}
-                    >
-                      <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
-                      <span style={styles.pollOptionRow}>
-                        <span>{opt}</span>
-                        <strong style={{ color: theme.accent }}>{pct}%</strong>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p style={styles.pollNote}>
-                {total === 0 ? "Soyez le premier·ère à voter !" : `${total} invité${total > 1 ? "s ont" : " a"} voté`}
-                {voted ? " · merci pour votre vote ✓" : ""}
-              </p>
-            </div>
-          );
-        })}
-
-        {event?.cagnotte_url && (
-          <a
-            href={event.cagnotte_url}
-            target="_blank"
-            rel="noreferrer"
-            style={styles.cagnotteCard}
-          >
-            <span style={styles.cagnotteIcon}>💛</span>
-            <span>
-              <span style={styles.cagnotteTitle}>Participer à la cagnotte</span>
-              <span style={styles.cagnotteSub}>Un geste qui fera plaisir ↗</span>
-            </span>
-          </a>
-        )}
-
-        {renderGiftList()}
-
-        {isJournal && eventDates.length > 0 && (
-          <div style={{ marginBottom: "22px" }}>
-            <div style={styles.dividerRow}>
-              <span style={styles.liveDot} />
-              <span style={styles.dividerLabel}>À venir</span>
-            </div>
-            <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "6px" }}>
-              {eventDates.map((d) => {
-                const dt = new Date(d.event_date + "T00:00:00");
-                return (
-                  <div
-                    key={d.id}
-                    style={{
-                      flex: "0 0 auto",
-                      width: "110px",
-                      background: theme.surface2,
-                      borderRadius: "12px",
-                      padding: "12px",
-                      border: `1px solid ${theme.accentSoft}`,
-                    }}
-                  >
-                    <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.5rem", color: theme.accent, lineHeight: 1 }}>
-                      {dt.getDate()}
-                    </div>
-                    <div style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>
-                      {dt.toLocaleDateString("fr-FR", { month: "short" })}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: theme.ivory, lineHeight: 1.3 }}>{d.title}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {isJournal && (
-          <form onSubmit={handleAddDate} style={{ ...styles.form, marginBottom: "22px" }}>
-            <div style={styles.dividerRow}>
-              <span style={styles.dividerLabel}>Ajouter une date</span>
-            </div>
-            <input style={styles.input} type="text" placeholder="ex. Anniv de Léa" value={newDateTitle} onChange={(e) => setNewDateTitle(e.target.value)} />
-            <div style={styles.formRow}>
-              <input style={{ ...styles.input, flex: 1, marginRight: "8px" }} type="date" value={newDateValue} onChange={(e) => setNewDateValue(e.target.value)} />
-              <button type="submit" style={styles.button} disabled={addingDate}>
-                {addingDate ? "…" : "Ajouter"}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {canAnyoneStartPoll && (
-          <div style={{ marginBottom: "22px" }}>
-            <button
-              type="button"
-              onClick={() => setShowNewPollForm((v) => !v)}
-              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.accent, width: "100%" }}
-            >
-              + Lancer un sondage
-            </button>
-            {showNewPollForm && (
-              <form onSubmit={handleCreatePoll} style={{ ...styles.form, marginTop: "10px" }}>
-                <input
-                  style={styles.input}
-                  type="text"
-                  placeholder="Pose ta question au groupe…"
-                  value={newPollQuestion}
-                  onChange={(e) => setNewPollQuestion(e.target.value)}
-                />
-                {newPollOptions.map((opt, i) => (
-                  <input
-                    key={i}
-                    style={styles.input}
-                    type="text"
-                    placeholder={`Option ${i + 1}`}
-                    value={opt}
-                    onChange={(e) => updatePollOption(i, e.target.value)}
-                  />
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setNewPollOptions((prev) => [...prev, ""])}
-                  style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accentSoft}`, color: theme.muted, fontSize: "0.75rem" }}
-                >
-                  + option
-                </button>
-                <button type="submit" style={styles.button} disabled={addingPoll}>
-                  {addingPoll ? "…" : "Publier le sondage"}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-
         {isJournal && (
           <div className="fun-card" style={styles.wheelCard}>
             <p style={styles.wheelTitle}>🎡 La Roue Folle</p>
@@ -1479,6 +1240,245 @@ export default function GuestbookPage() {
           </div>
         )}
 
+        {pollQuestions.map((q) => {
+          const voted = !!votedIds[q.id];
+          const total = (q.votes || []).reduce((a, b) => a + b, 0);
+          return (
+            <div style={styles.pollCard} key={q.id}>
+              <p style={styles.pollQuestion}>🎉 {q.question}</p>
+              <div style={styles.pollOptions}>
+                {(q.options || []).map((opt, i) => {
+                  const votes = q.votes?.[i] || 0;
+                  const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleVote(q.id, i)}
+                      disabled={voted || votingId === q.id}
+                      style={styles.pollOption}
+                    >
+                      <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
+                      <span style={styles.pollOptionRow}>
+                        <span>{opt}</span>
+                        <strong style={{ color: theme.accent }}>{pct}%</strong>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={styles.pollNote}>
+                {total === 0 ? "Soyez le premier·ère à voter !" : `${total} invité${total > 1 ? "s ont" : " a"} voté`}
+                {voted ? " · merci pour votre vote ✓" : ""}
+              </p>
+            </div>
+          );
+        })}
+
+        {event?.cagnotte_url && (
+          <a
+            href={event.cagnotte_url}
+            target="_blank"
+            rel="noreferrer"
+            style={styles.cagnotteCard}
+          >
+            <span style={styles.cagnotteIcon}>💛</span>
+            <span>
+              <span style={styles.cagnotteTitle}>Participer à la cagnotte</span>
+              <span style={styles.cagnotteSub}>Un geste qui fera plaisir ↗</span>
+            </span>
+          </a>
+        )}
+
+        {renderGiftList()}
+
+        {isJournal && eventDates.length > 0 && (
+          <div style={{ marginBottom: "22px" }}>
+            <div style={styles.dividerRow}>
+              <span style={styles.liveDot} />
+              <span style={styles.dividerLabel}>À venir</span>
+            </div>
+            <div style={{ display: "flex", gap: "10px", overflowX: "auto", paddingBottom: "6px" }}>
+              {eventDates.map((d) => {
+                const dt = new Date(d.event_date + "T00:00:00");
+                return (
+                  <div
+                    key={d.id}
+                    style={{
+                      flex: "0 0 auto",
+                      width: "110px",
+                      background: theme.surface2,
+                      borderRadius: "12px",
+                      padding: "12px",
+                      border: `1px solid ${theme.accentSoft}`,
+                    }}
+                  >
+                    <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.5rem", color: theme.accent, lineHeight: 1 }}>
+                      {dt.getDate()}
+                    </div>
+                    <div style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>
+                      {dt.toLocaleDateString("fr-FR", { month: "short" })}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: theme.ivory, lineHeight: 1.3 }}>{d.title}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {isJournal && (
+          <form onSubmit={handleAddDate} style={{ ...styles.form, marginBottom: "22px" }}>
+            <div style={styles.dividerRow}>
+              <span style={styles.dividerLabel}>Ajouter une date</span>
+            </div>
+            <input style={styles.input} type="text" placeholder="ex. Anniv de Léa" value={newDateTitle} onChange={(e) => setNewDateTitle(e.target.value)} />
+            <div style={styles.formRow}>
+              <input style={{ ...styles.input, flex: 1, marginRight: "8px" }} type="date" value={newDateValue} onChange={(e) => setNewDateValue(e.target.value)} />
+              <button type="submit" style={styles.button} disabled={addingDate}>
+                {addingDate ? "…" : "Ajouter"}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {canAnyoneStartPoll && (
+          <div style={{ marginBottom: "22px" }}>
+            <button
+              type="button"
+              onClick={() => setShowNewPollForm((v) => !v)}
+              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.accent, width: "100%" }}
+            >
+              + Lancer un sondage
+            </button>
+            {showNewPollForm && (
+              <form onSubmit={handleCreatePoll} style={{ ...styles.form, marginTop: "10px" }}>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Pose ta question au groupe…"
+                  value={newPollQuestion}
+                  onChange={(e) => setNewPollQuestion(e.target.value)}
+                />
+                {newPollOptions.map((opt, i) => (
+                  <input
+                    key={i}
+                    style={styles.input}
+                    type="text"
+                    placeholder={`Option ${i + 1}`}
+                    value={opt}
+                    onChange={(e) => updatePollOption(i, e.target.value)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setNewPollOptions((prev) => [...prev, ""])}
+                  style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accentSoft}`, color: theme.muted, fontSize: "0.75rem" }}
+                >
+                  + option
+                </button>
+                <button type="submit" style={styles.button} disabled={addingPoll}>
+                  {addingPoll ? "…" : "Publier le sondage"}
+                </button>
+              </form>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <input
+            type="text"
+            placeholder="Votre prénom"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={40}
+            style={styles.input}
+          />
+          <textarea
+            placeholder="Votre message"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={400}
+            rows={3}
+            style={styles.textarea}
+          />
+
+          {photoPreview ? (
+            <div style={styles.photoPreviewWrap}>
+              <img src={photoPreview} alt="Aperçu" style={styles.photoPreview} />
+              <button type="button" onClick={removePhoto} style={styles.removePhotoButton}>
+                ✕ retirer la photo
+              </button>
+            </div>
+          ) : (
+            <label style={styles.photoLabel}>
+              📷 Ajouter une photo (optionnel)
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          )}
+
+          {videoPreview ? (
+            <div style={styles.photoPreviewWrap}>
+              <video src={videoPreview} controls style={styles.photoPreview} />
+              <button type="button" onClick={removeVideo} style={styles.removePhotoButton}>
+                ✕ retirer la vidéo
+              </button>
+            </div>
+          ) : (
+            <label style={styles.photoLabel}>
+              🎥 Ajouter une vidéo (optionnel)
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleVideoChange}
+                style={{ display: "none" }}
+              />
+            </label>
+          )}
+
+          {audioPreviewUrl ? (
+            <div style={styles.photoPreviewWrap}>
+              <audio src={audioPreviewUrl} controls style={{ width: "100%" }} />
+              <button type="button" onClick={removeAudio} style={styles.removePhotoButton}>
+                ✕ retirer le message vocal
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={recording ? stopRecording : startRecording}
+              style={{
+                ...styles.photoLabel,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                borderStyle: recording ? "solid" : "dashed",
+              }}
+            >
+              {recording ? (
+                <>🔴 Arrêter l'enregistrement · {formatTimer(recordSeconds)}</>
+              ) : (
+                <>🎙️ Enregistrer un message vocal (optionnel)</>
+              )}
+            </button>
+          )}
+
+          <div style={styles.formRow}>
+            <span style={styles.counter}>{text.length}/400</span>
+            <button type="submit" disabled={sending || !event} style={styles.button}>
+              {sending ? "Envoi…" : isReview ? "Envoyer" : "Publier"}
+            </button>
+          </div>
+          {error && <p style={styles.errorText}>{error}</p>}
+          {justSent && <p style={styles.successText}>Merci, votre message a été publié ✓</p>}
+        </form>
+
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
           <span style={styles.dividerLabel}>Le Fil</span>
@@ -1540,63 +1540,6 @@ export default function GuestbookPage() {
               </article>
             ))}
         </div>
-
-        {isJournal && (
-          <div style={{ marginTop: "26px" }}>
-            <div style={styles.dividerRow}>
-              <span style={styles.liveDot} />
-              <span style={styles.dividerLabel}>Nos refs</span>
-            </div>
-            <form onSubmit={handleAddRef} style={{ ...styles.form, marginBottom: "14px" }}>
-              <input
-                style={styles.input}
-                type="text"
-                placeholder="Une private joke à ajouter au mur…"
-                value={newRefText}
-                onChange={(e) => setNewRefText(e.target.value)}
-              />
-              <div style={styles.formRow}>
-                <input
-                  style={{ ...styles.input, flex: 1, marginRight: "8px" }}
-                  type="text"
-                  placeholder="Ton prénom (optionnel)"
-                  value={newRefAuthor}
-                  onChange={(e) => setNewRefAuthor(e.target.value)}
-                />
-                <button type="submit" style={styles.button} disabled={addingRef}>
-                  {addingRef ? "…" : "Ajouter"}
-                </button>
-              </div>
-            </form>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {wallRefs.map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    flex: "1 1 130px",
-                    background: theme.surface2,
-                    border: `1px solid ${theme.accentSoft}`,
-                    borderRadius: "10px",
-                    padding: "12px 14px",
-                    fontFamily: "'Instrument Serif', serif",
-                    fontStyle: "italic",
-                    fontSize: "1.05rem",
-                    color: theme.ivory,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {r.text}
-                  {r.author_name && (
-                    <div style={{ fontFamily: "Inter, sans-serif", fontStyle: "normal", fontSize: "0.65rem", fontWeight: 700, opacity: 0.5, marginTop: "6px", textTransform: "uppercase" }}>
-                      ajouté par {r.author_name}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {wallRefs.length === 0 && <p style={{ fontSize: "0.8rem", color: theme.muted }}>Rien pour l'instant — à vous d'écrire la première !</p>}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

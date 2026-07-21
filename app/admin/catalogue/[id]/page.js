@@ -85,9 +85,12 @@ export default function ManageCatalogPage() {
       .eq("catalog_id", catalogId)
       .order("step_order", { ascending: true });
 
-    if (!quizErr && questions) {
+    if (quizErr) {
+      console.error("Erreur chargement quiz :", quizErr);
+      setLoadError("Erreur chargement quiz : " + quizErr.message);
+    } else {
       setQuizQuestions(
-        questions.map((q) => ({
+        (questions || []).map((q) => ({
           ...q,
           answer_type: q.answer_type || "product",
           parent_option_id: q.parent_option_id || "",

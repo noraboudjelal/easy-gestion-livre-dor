@@ -234,6 +234,14 @@ export default function GuestbookPage() {
   const [newPollOptions, setNewPollOptions] = useState(["", ""]);
   const [addingPoll, setAddingPoll] = useState(false);
 
+  // --- La Roue ---
+  const [wheelPlayerInput, setWheelPlayerInput] = useState("");
+  const [wheelPlayers, setWheelPlayers] = useState([]);
+  const [spinning, setSpinning] = useState(false);
+  const [wheelDisplay, setWheelDisplay] = useState(null);
+  const [wheelResult, setWheelResult] = useState(null);
+  const wheelIntervalRef = useRef(null);
+
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
   const isJournal = event?.event_type === "Notre Journal";
@@ -359,38 +367,55 @@ export default function GuestbookPage() {
     }
   }, [event?.id]);
 
-  async function handleRsvpSubmit(e) {
+  // --- La Roue : hydrate + cleanup ---
+  useEffect(() => {
+    if (event?.wheel_players) setWheelPlayers(event.wheel_players);
+    if (event?.wheel_last_result) setWheelResult(event.wheel_last_result);
+  }, [event?.id]);
+
+  useEffect(() => {
+    return () => clearInterval(wheelIntervalRef.current);
+  }, []);
+
+  async function handleAddWheelPlayer(e) {
     e.preventDefault();
-    if (!event || !supabase) return;
-    if (!rsvpName.trim() || rsvpAttending === null) {
-      setRsvpError("Indique ton prénom et si tu viens.");
-      return;
-    }
-    setRsvpError("");
-    setRsvpSending(true);
-    const { error } = await supabase.from("rsvps").insert({
-      event_id: event.id,
-      name: rsvpName.trim(),
-      attending: rsvpAttending,
-      guests_count: rsvpAttending ? rsvpGuests : 0,
-      note: rsvpNote.trim() || null,
-    });
-    setRsvpSending(false);
-    if (error) {
-      setRsvpError("Une erreur est survenue, réessaie.");
-      return;
-    }
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        `rsvp-done-${event.id}`,
-        JSON.stringify({ name: rsvpName.trim(), attending: rsvpAttending, guests: rsvpGuests })
-      );
-    }
-    setRsvpDone(true);
+    const nameTrim = wheelPlayerInput.trim();
+    if (!nameTrim || !event || !supabase) return;
+    const updated = [...wheelPlayers, nameTrim];
+    setWheelPlayers(updated);
+    setWheelPlayerInput("");
+    await supabase.from("events").update({ wheel_players: updated }).eq("id", event.id);
   }
 
-  function handleRsvpEdit() {
-    setRsvpDone(false);
+  async function handleRemoveWheelPlayer(index) {
+    if (!event || !supabase) return;
+    const updated = wheelPlayers.filter((_, i) => i !== index);
+    setWheelPlayers(updated);
+    await supabase.from("events").update({ wheel_players: updated }).eq("id", event.id);
+  }
+
+  function handleSpinWheel() {
+    if (spinning || wheelPlayers.length < 2 || !event?.wheel_pool?.length) return;
+    setSpinning(true);
+    setWheelResult(null);
+    let ticks = 0;
+    const maxTicks = 18;
+    wheelIntervalRef.current = setInterval(() => {
+      const randomQuestion = event.wheel_pool[Math.floor(Math.random() * event.wheel_pool.length)];
+      setWheelDisplay(randomQuestion);
+      ticks += 1;
+      if (ticks >= maxTicks) {
+        clearInterval(wheelIntervalRef.current);
+        const finalQuestion = event.wheel_pool[Math.floor(Math.random() * event.wheel_pool.length)];
+        setWheelDisplay(finalQuestion);
+        const result = { question: finalQuestion, timestamp: new Date().toISOString() };
+        setWheelResult(result);
+        setSpinning(false);
+        if (supabase) {
+          supabase.from("events").update({ wheel_last_result: result }).eq("id", event.id);
+        }
+      }
+    }, 90);
   }
 
   async function handleVote(questionId, optionIndex) {
@@ -1140,6 +1165,53 @@ export default function GuestbookPage() {
           </div>
         )}
 
+        {isJournal && (
+          <div style={styles.wheelCard}>
+            <p style={styles.wheelTitle}>🎡 La Roue</p>
+            <p style={styles.wheelSub}>Ajoutez les joueurs présents, puis lancez la roue</p>
+
+            <form onSubmit={handleAddWheelPlayer} style={styles.wheelInputRow}>
+              <input
+                type="text"
+                placeholder="Prénom du joueur"
+                value={wheelPlayerInput}
+                onChange={(e) => setWheelPlayerInput(e.target.value)}
+                maxLength={20}
+                style={{ ...styles.input, flex: 1 }}
+              />
+              <button type="submit" style={styles.wheelAddBtn}>Ajouter</button>
+            </form>
+
+            <div style={styles.wheelPlayersList}>
+              {wheelPlayers.map((p, i) => (
+                <span key={i} style={styles.wheelChip}>
+                  {p}
+                  <button type="button" onClick={() => handleRemoveWheelPlayer(i)} style={styles.wheelChipRemove}>✕</button>
+                </span>
+              ))}
+              {wheelPlayers.length === 0 && (
+                <p style={{ fontSize: "0.78rem", color: theme.muted, margin: 0 }}>Ajoutez au moins 2 joueurs</p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSpinWheel}
+              disabled={spinning || wheelPlayers.length < 2}
+              style={{ ...styles.button, width: "100%", marginTop: "12px", opacity: wheelPlayers.length < 2 ? 0.4 : 1 }}
+            >
+              {spinning ? "La roue tourne…" : "🎲 Lancer la roue"}
+            </button>
+
+            {(spinning || wheelResult) && (
+              <div style={styles.wheelResultBox}>
+                <p style={styles.wheelResultLabel}>{spinning ? "…" : "La roue a désigné"}</p>
+                <p style={styles.wheelResultText}>{spinning ? wheelDisplay : wheelResult?.question}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
           <span style={styles.dividerLabel}>Le Fil</span>
@@ -1325,6 +1397,17 @@ function getStyles(t) {
       justifyContent: "space-between",
     },
     pollNote: { fontSize: "0.75rem", color: t.muted, textAlign: "center", margin: "10px 0 0 0" },
+    wheelCard: { background: t.surface2, border: `1px dashed ${t.accentSoft}`, borderRadius: "14px", padding: "18px", marginBottom: "22px" },
+    wheelTitle: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.3rem", color: t.ivory, margin: "0 0 4px" },
+    wheelSub: { fontSize: "0.78rem", color: t.muted, margin: "0 0 14px" },
+    wheelInputRow: { display: "flex", gap: "8px", marginBottom: "10px" },
+    wheelAddBtn: { fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.8rem", padding: "0 16px", background: t.accent, color: t.accentText, border: "none", borderRadius: "10px" },
+    wheelPlayersList: { display: "flex", flexWrap: "wrap", gap: "8px" },
+    wheelChip: { display: "flex", alignItems: "center", gap: "6px", background: t.surface, border: `1px solid ${t.accentSoft}`, borderRadius: "999px", padding: "6px 6px 6px 12px", fontSize: "0.78rem", fontWeight: 600, color: t.accent },
+    wheelChipRemove: { background: "none", border: "none", color: t.accent, opacity: 0.6, fontSize: "0.8rem", cursor: "pointer", padding: "2px 4px" },
+    wheelResultBox: { marginTop: "14px", textAlign: "center", background: t.surface, border: `1px solid ${t.accentSoft}`, borderRadius: "12px", padding: "16px" },
+    wheelResultLabel: { fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.08em", color: t.muted, margin: "0 0 6px" },
+    wheelResultText: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.1rem", color: t.accent, margin: 0, lineHeight: 1.4 },
     cagnotteCard: {
       display: "flex",
       alignItems: "center",

@@ -359,84 +359,111 @@ export default function ManageCatalogPage() {
     }
     setSavingQuestionId(qIndex);
 
-    let questionId = q.id;
-    if (questionId) {
-      await supabase
-        .from("quiz_questions")
-        .update({
-          question: q.question.trim(),
-          answer_type: q.answer_type,
-          parent_option_id: q.parent_option_id || null,
-        })
-        .eq("id", questionId);
-
-      // On garde les identifiants des réponses existantes pour ne jamais casser
-      // une question conditionnée sur l'une de ces réponses.
-      const { data: existingOpts } = await supabase
-        .from("quiz_options")
-        .select("id")
-        .eq("question_id", questionId);
-      const keepIds = cleanOptions.filter((o) => o.id).map((o) => o.id);
-      const idsToDelete = (existingOpts || []).map((o) => o.id).filter((id) => !keepIds.includes(id));
-      if (idsToDelete.length > 0) {
-        await supabase.from("quiz_options").delete().in("id", idsToDelete);
+    function check(result, label) {
+      if (result?.error) {
+        throw new Error(`${label} : ${result.error.message}`);
       }
+      return result;
+    }
 
-      for (let idx = 0; idx < cleanOptions.length; idx++) {
-        const o = cleanOptions[idx];
-        if (o.id) {
+    try {
+      let questionId = q.id;
+      if (questionId) {
+        check(
           await supabase
-            .from("quiz_options")
+            .from("quiz_questions")
             .update({
+              question: q.question.trim(),
+              answer_type: q.answer_type,
+              parent_option_id: q.parent_option_id || null,
+            })
+            .eq("id", questionId),
+          "Mise à jour de la question"
+        );
+
+        // On garde les identifiants des réponses existantes pour ne jamais casser
+        // une question conditionnée sur l'une de ces réponses.
+        const existingRes = check(
+          await supabase.from("quiz_options").select("id").eq("question_id", questionId),
+          "Lecture des réponses existantes"
+        );
+        const existingOpts = existingRes.data;
+        const keepIds = cleanOptions.filter((o) => o.id).map((o) => o.id);
+        const idsToDelete = (existingOpts || []).map((o) => o.id).filter((id) => !keepIds.includes(id));
+        if (idsToDelete.length > 0) {
+          check(
+            await supabase.from("quiz_options").delete().in("id", idsToDelete),
+            "Suppression d'anciennes réponses"
+          );
+        }
+
+        for (let idx = 0; idx < cleanOptions.length; idx++) {
+          const o = cleanOptions[idx];
+          if (o.id) {
+            check(
+              await supabase
+                .from("quiz_options")
+                .update({
+                  label: o.label.trim(),
+                  product_ids: isCategory ? [] : o.product_ids,
+                  category: isCategory ? o.category.trim() : null,
+                  option_order: idx,
+                })
+                .eq("id", o.id),
+              "Mise à jour d'une réponse"
+            );
+          } else {
+            check(
+              await supabase.from("quiz_options").insert({
+                question_id: questionId,
+                label: o.label.trim(),
+                product_ids: isCategory ? [] : o.product_ids,
+                category: isCategory ? o.category.trim() : null,
+                option_order: idx,
+              }),
+              "Ajout d'une réponse"
+            );
+          }
+        }
+      } else {
+        const insertRes = check(
+          await supabase
+            .from("quiz_questions")
+            .insert({
+              catalog_id: catalogId,
+              question: q.question.trim(),
+              answer_type: q.answer_type,
+              parent_option_id: q.parent_option_id || null,
+              step_order: qIndex,
+            })
+            .select()
+            .single(),
+          "Création de la question"
+        );
+        questionId = insertRes.data.id;
+
+        check(
+          await supabase.from("quiz_options").insert(
+            cleanOptions.map((o, idx) => ({
+              question_id: questionId,
               label: o.label.trim(),
               product_ids: isCategory ? [] : o.product_ids,
               category: isCategory ? o.category.trim() : null,
               option_order: idx,
-            })
-            .eq("id", o.id);
-        } else {
-          await supabase.from("quiz_options").insert({
-            question_id: questionId,
-            label: o.label.trim(),
-            product_ids: isCategory ? [] : o.product_ids,
-            category: isCategory ? o.category.trim() : null,
-            option_order: idx,
-          });
-        }
+            }))
+          ),
+          "Ajout des réponses"
+        );
       }
-    } else {
-      const { data: inserted, error } = await supabase
-        .from("quiz_questions")
-        .insert({
-          catalog_id: catalogId,
-          question: q.question.trim(),
-          answer_type: q.answer_type,
-          parent_option_id: q.parent_option_id || null,
-          step_order: qIndex,
-        })
-        .select()
-        .single();
-      if (error || !inserted) {
-        setLoadError("Impossible d'enregistrer la question : " + (error?.message || ""));
-        setSavingQuestionId(null);
-        return;
-      }
-      questionId = inserted.id;
 
-      await supabase.from("quiz_options").insert(
-        cleanOptions.map((o, idx) => ({
-          question_id: questionId,
-          label: o.label.trim(),
-          product_ids: isCategory ? [] : o.product_ids,
-          category: isCategory ? o.category.trim() : null,
-          option_order: idx,
-        }))
-      );
+      setSavingQuestionId(null);
+      load();
+    } catch (err) {
+      setSavingQuestionId(null);
+      setLoadError("Impossible d'enregistrer : " + (err?.message || "erreur inconnue"));
     }
-
-    setSavingQuestionId(null);
-    load();
   }
+
 
   async function deleteQuestion(qIndex) {
     const q = quizQuestions[qIndex];

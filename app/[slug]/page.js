@@ -149,9 +149,9 @@ const THEMES = {
     avatarPalette: ["#D9C9A3", "#8C8A85", "#B7B4AC", "#6E6C67"],
   },
   "Notre Journal": {
-    ink: "#332A22", surface: "#3D3226", surface2: "#4A3C2C",
-    accent: "#E07856", accentSoft: "rgba(224,120,86,0.3)", accentText: "#2A1A10",
-    ivory: "#FBF3EA", muted: "#C9B49C",
+    ink: "#241B3D", surface: "#32245A", surface2: "#3D2C6E",
+    accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
+    ivory: "#FBF6FF", muted: "#C7B8E8",
   },
   "Autre": {
     ink: "#14131C",
@@ -165,6 +165,8 @@ const THEMES = {
     avatarPalette: ["#1E2A3A", "#8B3A2B", "#355E3B", "#5B4636"],
   },
 };
+
+const WHEEL_COLORS = ["#FF6B6B", "#4ECDC4", "#FFD93D", "#A78BFA", "#FF9F45", "#6BCB77", "#FF6FB5", "#5EC8F2"];
 
 function randomRotation() {
   return +(Math.random() * 6 - 3).toFixed(2);
@@ -183,6 +185,19 @@ function formatDate(ts) {
   } catch {
     return "";
   }
+}
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+function wheelPolarToCartesian(cx, cy, r, angleDeg) {
+  const a = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+}
+function describeWheelSlice(cx, cy, r, startAngle, endAngle) {
+  const start = wheelPolarToCartesian(cx, cy, r, endAngle);
+  const end = wheelPolarToCartesian(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle <= 180 ? "0" : "1";
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
 }
 
 export default function GuestbookPage() {
@@ -238,9 +253,19 @@ export default function GuestbookPage() {
   const [wheelPlayerInput, setWheelPlayerInput] = useState("");
   const [wheelPlayers, setWheelPlayers] = useState([]);
   const [spinning, setSpinning] = useState(false);
-  const [wheelDisplay, setWheelDisplay] = useState(null);
+  const [wheelRotation, setWheelRotation] = useState(0);
   const [wheelResult, setWheelResult] = useState(null);
-  const wheelIntervalRef = useRef(null);
+  const wheelSpinTimeoutRef = useRef(null);
+
+  // --- Look du jour ---
+  const [dailyLooks, setDailyLooks] = useState([]);
+  const [lookName, setLookName] = useState("");
+  const [lookPhoto, setLookPhoto] = useState(null);
+  const [lookPhotoPreview, setLookPhotoPreview] = useState(null);
+  const [postingLook, setPostingLook] = useState(false);
+  const [votedLookIds, setVotedLookIds] = useState({});
+  const [votingLookId, setVotingLookId] = useState(null);
+  const [hasPostedLookToday, setHasPostedLookToday] = useState(false);
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
@@ -254,6 +279,9 @@ export default function GuestbookPage() {
     return eventDay.getTime() > today.getTime();
   })();
 
+  const todaysLooks = dailyLooks.filter((l) => (l.created_at || "").slice(0, 10) === todayKey());
+  const leaderLook = todaysLooks.length > 0 ? todaysLooks[0] : null;
+
   const [rsvpName, setRsvpName] = useState("");
   const [rsvpAttending, setRsvpAttending] = useState(null);
   const [rsvpGuests, setRsvpGuests] = useState(0);
@@ -261,7 +289,7 @@ export default function GuestbookPage() {
   const [rsvpSending, setRsvpSending] = useState(false);
   const [rsvpDone, setRsvpDone] = useState(false);
   const [rsvpError, setRsvpError] = useState("");
-  const styles = getStyles(theme);
+  const styles = getStyles(theme, isJournal);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -343,6 +371,22 @@ export default function GuestbookPage() {
       .order("event_date", { ascending: true });
     setEventDates(datesData || []);
 
+    const { data: looksData } = await supabase
+      .from("daily_looks")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("votes", { ascending: false });
+    setDailyLooks(looksData || []);
+    if (typeof window !== "undefined") {
+      setVotedLookIds((prev) => {
+        const next = { ...prev };
+        (looksData || []).forEach((l) => {
+          if (window.localStorage.getItem(`look-voted-${l.id}`) === "1") next[l.id] = true;
+        });
+        return next;
+      });
+    }
+
     setLoading(false);
   }, [slug]);
 
@@ -374,8 +418,16 @@ export default function GuestbookPage() {
   }, [event?.id]);
 
   useEffect(() => {
-    return () => clearInterval(wheelIntervalRef.current);
+    return () => clearTimeout(wheelSpinTimeoutRef.current);
   }, []);
+
+  // --- Look du jour : hydrate "déjà posté aujourd'hui" ---
+  useEffect(() => {
+    if (event?.id && typeof window !== "undefined") {
+      const key = `look-posted-${event.id}-${todayKey()}`;
+      if (window.localStorage.getItem(key) === "1") setHasPostedLookToday(true);
+    }
+  }, [event?.id]);
 
   async function handleAddWheelPlayer(e) {
     e.preventDefault();
@@ -398,24 +450,121 @@ export default function GuestbookPage() {
     if (spinning || wheelPlayers.length < 2 || !event?.wheel_pool?.length) return;
     setSpinning(true);
     setWheelResult(null);
-    let ticks = 0;
-    const maxTicks = 18;
-    wheelIntervalRef.current = setInterval(() => {
-      const randomQuestion = event.wheel_pool[Math.floor(Math.random() * event.wheel_pool.length)];
-      setWheelDisplay(randomQuestion);
-      ticks += 1;
-      if (ticks >= maxTicks) {
-        clearInterval(wheelIntervalRef.current);
-        const finalQuestion = event.wheel_pool[Math.floor(Math.random() * event.wheel_pool.length)];
-        setWheelDisplay(finalQuestion);
-        const result = { question: finalQuestion, timestamp: new Date().toISOString() };
-        setWheelResult(result);
-        setSpinning(false);
-        if (supabase) {
-          supabase.from("events").update({ wheel_last_result: result }).eq("id", event.id);
-        }
+
+    const n = wheelPlayers.length;
+    const winnerIndex = Math.floor(Math.random() * n);
+    const sliceAngle = 360 / n;
+    const targetCenter = sliceAngle * winnerIndex + sliceAngle / 2;
+    const currentMod = ((wheelRotation % 360) + 360) % 360;
+    const extraSpins = 5 * 360;
+    const finalRotation = wheelRotation - currentMod + extraSpins + (360 - targetCenter);
+
+    setWheelRotation(finalRotation);
+
+    wheelSpinTimeoutRef.current = setTimeout(() => {
+      const winnerName = wheelPlayers[winnerIndex];
+      const pool = event.wheel_pool;
+      const question = pool[Math.floor(Math.random() * pool.length)];
+      const result = { name: winnerName, question, timestamp: new Date().toISOString() };
+      setWheelResult(result);
+      setSpinning(false);
+      if (supabase) {
+        supabase.from("events").update({ wheel_last_result: result }).eq("id", event.id);
       }
-    }, 90);
+    }, 4600);
+  }
+
+  function renderWheelSlices() {
+    const n = wheelPlayers.length;
+    if (n === 0) return null;
+    const cx = 100, cy = 100, r = 98;
+    return wheelPlayers.map((p, i) => {
+      const startAngle = (360 / n) * i;
+      const endAngle = (360 / n) * (i + 1);
+      const path = describeWheelSlice(cx, cy, r, startAngle, endAngle);
+      const mid = (startAngle + endAngle) / 2;
+      const pos = wheelPolarToCartesian(cx, cy, r * 0.62, mid);
+      const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+      const label = p.length > 10 ? p.slice(0, 9) + "…" : p;
+      return (
+        <g key={i}>
+          <path d={path} fill={color} stroke="#ffffff" strokeWidth="2" />
+          <text
+            x={pos.x}
+            y={pos.y}
+            fill="#241a15"
+            fontSize="11"
+            fontWeight="700"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            transform={`rotate(${mid + 90}, ${pos.x}, ${pos.y})`}
+          >
+            {label}
+          </text>
+        </g>
+      );
+    });
+  }
+
+  // --- Look du jour handlers ---
+  function handleLookPhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setLookPhoto(null);
+      setLookPhotoPreview(null);
+      return;
+    }
+    setLookPhoto(file);
+    setLookPhotoPreview(URL.createObjectURL(file));
+  }
+
+  function removeLookPhoto() {
+    setLookPhoto(null);
+    setLookPhotoPreview(null);
+  }
+
+  async function handlePostLook(e) {
+    e.preventDefault();
+    if (!lookPhoto || !event || !supabase) return;
+    setPostingLook(true);
+
+    const ext = lookPhoto.name.split(".").pop() || "jpg";
+    const path = `${event.id}/looks/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("guestbook-photos").upload(path, lookPhoto);
+    let photoUrl = null;
+    if (!uploadError) {
+      const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
+      photoUrl = pub?.publicUrl || null;
+    }
+
+    const { error: insertError } = await supabase.from("daily_looks").insert({
+      event_id: event.id,
+      name: lookName.trim() || "Anonyme",
+      photo_url: photoUrl,
+    });
+
+    setPostingLook(false);
+    if (!insertError) {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(`look-posted-${event.id}-${todayKey()}`, "1");
+      }
+      setHasPostedLookToday(true);
+      setLookPhoto(null);
+      setLookPhotoPreview(null);
+      loadAll();
+    }
+  }
+
+  async function handleVoteLook(lookId) {
+    if (votedLookIds[lookId] || votingLookId || !supabase) return;
+    setVotingLookId(lookId);
+    const { error } = await supabase.rpc("increment_daily_look_votes", { p_look_id: lookId });
+    if (!error) {
+      window.localStorage.setItem(`look-voted-${lookId}`, "1");
+      setVotedLookIds((prev) => ({ ...prev, [lookId]: true }));
+      loadAll();
+    }
+    setVotingLookId(null);
   }
 
   async function handleVote(questionId, optionIndex) {
@@ -905,12 +1054,17 @@ export default function GuestbookPage() {
   return (
     <div style={styles.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         .ld-entry { transition: transform 0.15s ease, background 0.15s ease; animation: ldFadeIn 0.5s ease both; }
         .ld-entry:hover { transform: translateY(-2px); background: ${theme.surface2}; }
         @keyframes ldFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes ldBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes funPop { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes funWiggle { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+        .fun-spin-btn:active { transform: scale(0.94); }
+        .fun-spin-btn:not(:disabled):hover { transform: translateY(-2px) rotate(-1deg); }
+        .fun-card { animation: funPop 0.4s ease both; }
         textarea:focus, input:focus, button:focus-visible { outline: 2px solid ${theme.accent}; outline-offset: 2px; }
         ::placeholder { color: ${theme.muted}; }
       `}</style>
@@ -1166,9 +1320,9 @@ export default function GuestbookPage() {
         )}
 
         {isJournal && (
-          <div style={styles.wheelCard}>
-            <p style={styles.wheelTitle}>🎡 La Roue</p>
-            <p style={styles.wheelSub}>Ajoutez les joueurs présents, puis lancez la roue</p>
+          <div className="fun-card" style={styles.wheelCard}>
+            <p style={styles.wheelTitle}>🎡 La Roue Folle</p>
+            <p style={styles.wheelSub}>Ajoute les joueurs présents et lance la roue !</p>
 
             <form onSubmit={handleAddWheelPlayer} style={styles.wheelInputRow}>
               <input
@@ -1177,9 +1331,9 @@ export default function GuestbookPage() {
                 value={wheelPlayerInput}
                 onChange={(e) => setWheelPlayerInput(e.target.value)}
                 maxLength={20}
-                style={{ ...styles.input, flex: 1 }}
+                style={{ ...styles.input, flex: 1, borderRadius: "16px" }}
               />
-              <button type="submit" style={styles.wheelAddBtn}>Ajouter</button>
+              <button type="submit" style={styles.wheelAddBtn}>+ Ajouter</button>
             </form>
 
             <div style={styles.wheelPlayersList}>
@@ -1194,19 +1348,132 @@ export default function GuestbookPage() {
               )}
             </div>
 
+            {wheelPlayers.length >= 2 && (
+              <div style={styles.wheelStage}>
+                <div style={styles.wheelWrap}>
+                  <div style={styles.wheelPointer} />
+                  <svg
+                    viewBox="0 0 200 200"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "block",
+                      transform: `rotate(${wheelRotation}deg)`,
+                      transition: spinning ? "transform 4.5s cubic-bezier(0.17,0.89,0.32,1.13)" : "none",
+                    }}
+                  >
+                    {renderWheelSlices()}
+                  </svg>
+                  <div style={styles.wheelHub}>🎉</div>
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
+              className="fun-spin-btn"
               onClick={handleSpinWheel}
               disabled={spinning || wheelPlayers.length < 2}
-              style={{ ...styles.button, width: "100%", marginTop: "12px", opacity: wheelPlayers.length < 2 ? 0.4 : 1 }}
+              style={{ ...styles.wheelSpinBtn, opacity: wheelPlayers.length < 2 ? 0.4 : 1 }}
             >
-              {spinning ? "La roue tourne…" : "🎲 Lancer la roue"}
+              {spinning ? "🎡 Ça tourne…" : "🚀 GO, ON LANCE !"}
             </button>
 
-            {(spinning || wheelResult) && (
-              <div style={styles.wheelResultBox}>
-                <p style={styles.wheelResultLabel}>{spinning ? "…" : "La roue a désigné"}</p>
-                <p style={styles.wheelResultText}>{spinning ? wheelDisplay : wheelResult?.question}</p>
+            {wheelResult && !spinning && (
+              <div className="fun-card" style={styles.wheelResultBox}>
+                <p style={styles.wheelResultLabel}>🎯 La roue a parlé</p>
+                <p style={styles.wheelResultName}>{wheelResult.name} !</p>
+                <p style={styles.wheelResultText}>{wheelResult.question}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isJournal && (
+          <div className="fun-card" style={styles.lookCard}>
+            <p style={styles.lookTitle}>✨ Look du Jour ✨</p>
+            <p style={styles.lookSub}>Poste ta tenue et vote pour tes préférées !</p>
+
+            {leaderLook && (
+              <div style={styles.lookLeaderBanner}>
+                <span style={{ fontSize: "1.5rem" }}>👑</span>
+                <span>
+                  <span style={styles.lookLeaderLabel}>Le boss du jour</span>
+                  <span style={styles.lookLeaderName}>
+                    {leaderLook.name} — {leaderLook.votes || 0} vote{(leaderLook.votes || 0) > 1 ? "s" : ""}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {hasPostedLookToday ? (
+              <div style={styles.lookPostedBox}>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: theme.accent, fontWeight: 700 }}>
+                  ✅ Tu as déjà posté ton look aujourd'hui
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handlePostLook} style={styles.form}>
+                <input
+                  type="text"
+                  placeholder="Ton prénom"
+                  value={lookName}
+                  onChange={(e) => setLookName(e.target.value)}
+                  maxLength={40}
+                  style={styles.input}
+                />
+                {lookPhotoPreview ? (
+                  <div style={styles.photoPreviewWrap}>
+                    <img src={lookPhotoPreview} alt="Aperçu" style={styles.photoPreview} />
+                    <button type="button" onClick={removeLookPhoto} style={styles.removePhotoButton}>
+                      ✕ retirer la photo
+                    </button>
+                  </div>
+                ) : (
+                  <label style={styles.photoLabel}>
+                    📸 Ajouter une photo de ta tenue
+                    <input type="file" accept="image/*" onChange={handleLookPhotoChange} style={{ display: "none" }} />
+                  </label>
+                )}
+                <button type="submit" className="fun-spin-btn" disabled={postingLook || !lookPhoto} style={styles.lookPostBtn}>
+                  {postingLook ? "Envoi…" : "📸 Je poste ma tenue"}
+                </button>
+              </form>
+            )}
+
+            {todaysLooks.length > 0 && (
+              <div style={styles.lookGrid}>
+                {todaysLooks.map((l, i) => {
+                  const voted = !!votedLookIds[l.id];
+                  return (
+                    <div key={l.id} style={{ ...styles.lookItem, ...(i === 0 ? styles.lookItemTop : {}) }}>
+                      {i === 0 && <span style={styles.lookCrown}>👑</span>}
+                      {l.photo_url ? (
+                        <img src={l.photo_url} alt={l.name} style={styles.lookPhoto} />
+                      ) : (
+                        <div style={{ ...styles.lookPhoto, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", color: theme.ivory }}>
+                          {(l.name || "?")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div style={styles.lookItemInfo}>
+                        <p style={styles.lookItemName}>{l.name}</p>
+                        <div style={styles.lookVoteRow}>
+                          <span style={{ fontSize: "0.7rem", color: theme.muted }}>
+                            {l.votes || 0} vote{(l.votes || 0) > 1 ? "s" : ""}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleVoteLook(l.id)}
+                            disabled={voted || votingLookId === l.id}
+                            style={{ ...styles.lookVoteBtn, ...(voted ? styles.lookVoteBtnActive : {}) }}
+                          >
+                            {voted ? "✓" : "🤍"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1335,36 +1602,42 @@ export default function GuestbookPage() {
   );
 }
 
-function getStyles(t) {
+function getStyles(t, isFun) {
+  const headFont = isFun ? "'Fredoka', sans-serif" : "'Instrument Serif', serif";
+  const headWeight = isFun ? 700 : 400;
+  const headStyle = isFun ? "normal" : "italic";
   return {
     page: { minHeight: "100vh", background: t.ink, backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
-    content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
+    content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
     header: { borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "18px", marginBottom: "22px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0" },
-    title: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontWeight: 400, fontSize: "2.4rem", color: t.ivory, margin: 0, lineHeight: 1.1 },
+    title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.4rem", color: t.ivory, margin: 0, lineHeight: 1.1 },
     sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
     form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
-    input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", background: t.surface2, color: t.ivory },
-    textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", background: t.surface2, color: t.ivory, resize: "vertical" },
-    photoLabel: { fontFamily: "Inter, sans-serif", fontSize: "0.82rem", color: t.muted, border: `1.5px dashed ${t.accentSoft}`, borderRadius: "12px", padding: "12px 14px", textAlign: "center", cursor: "pointer", background: "transparent" },
+    input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: isFun ? "18px" : "12px", background: t.surface2, color: t.ivory },
+    textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: isFun ? "18px" : "12px", background: t.surface2, color: t.ivory, resize: "vertical" },
+    photoLabel: { fontFamily: "Inter, sans-serif", fontSize: "0.82rem", color: t.muted, border: `1.5px dashed ${t.accentSoft}`, borderRadius: isFun ? "18px" : "12px", padding: "12px 14px", textAlign: "center", cursor: "pointer", background: "transparent" },
     photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
     photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" },
     removePhotoButton: { alignSelf: "flex-start", fontFamily: "Inter, sans-serif", fontSize: "0.72rem", color: "#D98C7F", background: "none", border: "none", padding: 0, cursor: "pointer" },
     formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
     counter: { fontSize: "0.7rem", color: t.muted },
-    button: { fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "11px 20px", background: t.accent, color: t.accentText, border: "none", borderRadius: "12px" },
+    button: isFun
+      ? { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "0.9rem", padding: "13px 22px", background: t.accent, color: "#fff", border: "none", borderRadius: "999px", boxShadow: "0 5px 0 rgba(0,0,0,0.2)", cursor: "pointer" }
+      : { fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "11px 20px", background: t.accent, color: t.accentText, border: "none", borderRadius: "12px" },
     errorText: { color: "#D98C7F", fontSize: "0.8rem", margin: 0 },
     successText: { color: "#6FAE7F", fontSize: "0.8rem", margin: 0 },
     pollCard: {
       background: t.surface2,
       border: `1px dashed ${t.accentSoft}`,
-      borderRadius: "14px",
+      borderRadius: isFun ? "22px" : "14px",
       padding: "18px",
       marginBottom: "22px",
     },
     pollQuestion: {
-      fontFamily: "'Instrument Serif', serif",
-      fontStyle: "italic",
+      fontFamily: headFont,
+      fontStyle: headStyle,
+      fontWeight: isFun ? 700 : 400,
       fontSize: "1.3rem",
       color: t.ivory,
       margin: "0 0 14px 0",
@@ -1397,17 +1670,127 @@ function getStyles(t) {
       justifyContent: "space-between",
     },
     pollNote: { fontSize: "0.75rem", color: t.muted, textAlign: "center", margin: "10px 0 0 0" },
-    wheelCard: { background: t.surface2, border: `1px dashed ${t.accentSoft}`, borderRadius: "14px", padding: "18px", marginBottom: "22px" },
-    wheelTitle: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.3rem", color: t.ivory, margin: "0 0 4px" },
-    wheelSub: { fontSize: "0.78rem", color: t.muted, margin: "0 0 14px" },
+    wheelCard: {
+      background: "linear-gradient(150deg, #FF6B6B 0%, #A78BFA 55%, #4ECDC4 100%)",
+      border: "none",
+      borderRadius: "26px",
+      padding: "20px",
+      marginBottom: "22px",
+      boxShadow: "0 14px 30px -12px rgba(167,139,250,0.5)",
+    },
+    wheelTitle: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "1.5rem", color: "#fff", margin: "0 0 4px", textShadow: "0 2px 0 rgba(0,0,0,0.12)" },
+    wheelSub: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.82rem", color: "rgba(255,255,255,0.92)", margin: "0 0 14px", fontWeight: 500 },
     wheelInputRow: { display: "flex", gap: "8px", marginBottom: "10px" },
-    wheelAddBtn: { fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.8rem", padding: "0 16px", background: t.accent, color: t.accentText, border: "none", borderRadius: "10px" },
+    wheelAddBtn: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "0 18px", background: "#241a15", color: "#FFD93D", border: "none", borderRadius: "16px" },
     wheelPlayersList: { display: "flex", flexWrap: "wrap", gap: "8px" },
-    wheelChip: { display: "flex", alignItems: "center", gap: "6px", background: t.surface, border: `1px solid ${t.accentSoft}`, borderRadius: "999px", padding: "6px 6px 6px 12px", fontSize: "0.78rem", fontWeight: 600, color: t.accent },
-    wheelChipRemove: { background: "none", border: "none", color: t.accent, opacity: 0.6, fontSize: "0.8rem", cursor: "pointer", padding: "2px 4px" },
-    wheelResultBox: { marginTop: "14px", textAlign: "center", background: t.surface, border: `1px solid ${t.accentSoft}`, borderRadius: "12px", padding: "16px" },
-    wheelResultLabel: { fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.08em", color: t.muted, margin: "0 0 6px" },
-    wheelResultText: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.1rem", color: t.accent, margin: 0, lineHeight: 1.4 },
+    wheelChip: { display: "flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.94)", border: "none", borderRadius: "999px", padding: "7px 7px 7px 14px", fontSize: "0.8rem", fontWeight: 700, fontFamily: "'Fredoka', sans-serif", color: "#5B4636" },
+    wheelChipRemove: { background: "none", border: "none", color: "#B85A3A", opacity: 0.7, fontSize: "0.85rem", cursor: "pointer", padding: "2px 4px" },
+    wheelStage: { display: "flex", justifyContent: "center", padding: "14px 0 4px" },
+    wheelWrap: { position: "relative", width: "220px", height: "220px" },
+    wheelPointer: {
+      position: "absolute",
+      top: "-8px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: 0,
+      height: 0,
+      borderLeft: "11px solid transparent",
+      borderRight: "11px solid transparent",
+      borderTop: "18px solid #FFD93D",
+      zIndex: 3,
+      filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))",
+    },
+    wheelHub: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%,-50%)",
+      width: "46px",
+      height: "46px",
+      borderRadius: "50%",
+      background: "#fff",
+      border: "3px solid #FFD93D",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "18px",
+      zIndex: 2,
+      boxShadow: "0 3px 8px rgba(0,0,0,0.3)",
+    },
+    wheelSpinBtn: {
+      width: "100%",
+      marginTop: "12px",
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 700,
+      fontSize: "1rem",
+      padding: "15px 20px",
+      background: "#FFD93D",
+      color: "#241a15",
+      border: "none",
+      borderRadius: "999px",
+      cursor: "pointer",
+      boxShadow: "0 6px 0 #C9A22E, 0 10px 18px -6px rgba(0,0,0,0.35)",
+      transition: "transform 0.12s ease",
+      letterSpacing: "0.02em",
+    },
+    wheelResultBox: { marginTop: "14px", textAlign: "center", background: "rgba(255,255,255,0.96)", border: "none", borderRadius: "18px", padding: "18px" },
+    wheelResultLabel: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "#B85A3A", margin: "0 0 6px", fontWeight: 700 },
+    wheelResultName: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "1.5rem", color: "#5B4636", margin: "0 0 6px" },
+    wheelResultText: { fontSize: "0.88rem", color: "#5B4636", margin: 0, lineHeight: 1.4, fontWeight: 500 },
+    lookCard: {
+      background: "linear-gradient(150deg, #FF9F45 0%, #FF6FB5 55%, #A78BFA 100%)",
+      border: "none",
+      borderRadius: "26px",
+      padding: "20px",
+      marginBottom: "22px",
+      boxShadow: "0 14px 30px -12px rgba(255,111,181,0.5)",
+    },
+    lookTitle: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "1.5rem", color: "#fff", margin: "0 0 4px", textShadow: "0 2px 0 rgba(0,0,0,0.12)" },
+    lookSub: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.82rem", color: "rgba(255,255,255,0.92)", margin: "0 0 14px", fontWeight: 500 },
+    lookLeaderBanner: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      background: "rgba(255,255,255,0.94)",
+      border: "none",
+      borderRadius: "16px",
+      padding: "10px 14px",
+      marginBottom: "14px",
+    },
+    lookLeaderLabel: { display: "block", fontFamily: "'Fredoka', sans-serif", fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#B85A3A", fontWeight: 700 },
+    lookLeaderName: { display: "block", fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "1rem", color: "#5B4636", marginTop: "2px" },
+    lookPostedBox: { background: "rgba(255,255,255,0.94)", border: "none", borderRadius: "16px", padding: "14px", textAlign: "center", marginBottom: "14px" },
+    lookPostBtn: {
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 700,
+      fontSize: "0.95rem",
+      padding: "14px 20px",
+      background: "#241a15",
+      color: "#FFD93D",
+      border: "none",
+      borderRadius: "999px",
+      cursor: "pointer",
+      boxShadow: "0 5px 0 #000, 0 9px 16px -6px rgba(0,0,0,0.35)",
+      transition: "transform 0.12s ease",
+    },
+    lookGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "14px" },
+    lookItem: { background: "rgba(255,255,255,0.94)", border: "none", borderRadius: "18px", overflow: "hidden", position: "relative" },
+    lookItemTop: { boxShadow: "0 0 0 3px #FFD93D" },
+    lookCrown: { position: "absolute", top: "6px", left: "6px", background: "#FFD93D", color: "#241a15", fontSize: "0.68rem", fontWeight: 700, fontFamily: "'Fredoka', sans-serif", borderRadius: "999px", padding: "3px 9px", zIndex: 2 },
+    lookPhoto: { width: "100%", aspectRatio: "3/4", objectFit: "cover", display: "block", background: "#f0e9df" },
+    lookItemInfo: { padding: "8px 10px 10px" },
+    lookItemName: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.8rem", fontWeight: 700, color: "#5B4636", margin: "0 0 4px" },
+    lookVoteRow: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+    lookVoteBtn: {
+      background: "rgba(0,0,0,0.05)",
+      border: "none",
+      borderRadius: "999px",
+      padding: "4px 9px",
+      fontSize: "0.8rem",
+      cursor: "pointer",
+      color: "#5B4636",
+    },
+    lookVoteBtnActive: { background: "#FF6FB5", color: "#fff" },
     cagnotteCard: {
       display: "flex",
       alignItems: "center",
@@ -1426,11 +1809,11 @@ function getStyles(t) {
     giftCard: {
       background: t.surface2,
       border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: "16px",
+      borderRadius: isFun ? "22px" : "16px",
       padding: "18px",
       marginBottom: "22px",
     },
-    giftCardTitle: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.1rem", color: t.ivory, margin: "0 0 4px" },
+    giftCardTitle: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "1.1rem", color: t.ivory, margin: "0 0 4px" },
     giftCardSub: { fontSize: "0.76rem", color: t.muted, margin: "0 0 14px" },
     giftList: { display: "flex", flexDirection: "column", gap: "10px" },
     giftItem: {
@@ -1490,11 +1873,11 @@ function getStyles(t) {
     dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
     dividerRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", margin: "10px 0 18px 0" },
     liveDot: { width: "7px", height: "7px", borderRadius: "50%", background: "#6FAE7F", flex: "none", animation: "ldBlink 1.6s infinite" },
-    dividerLabel: { fontSize: "0.78rem", fontWeight: 700, color: t.ivory, fontFamily: "'Instrument Serif', serif", fontStyle: "italic" },
+    dividerLabel: { fontSize: "0.78rem", fontWeight: 700, color: t.ivory, fontFamily: headFont, fontStyle: headStyle },
     dividerCount: { fontSize: "0.72rem", color: t.muted },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },
-    empty: { textAlign: "center", color: t.muted, fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.2rem", padding: "20px 0" },
-    entry: { background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", padding: "14px 16px" },
+    empty: { textAlign: "center", color: t.muted, fontFamily: headFont, fontStyle: headStyle, fontSize: "1.2rem", padding: "20px 0" },
+    entry: { background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
     entryName: { fontSize: "0.85rem", fontWeight: 600, color: t.ivory, flex: 1 },

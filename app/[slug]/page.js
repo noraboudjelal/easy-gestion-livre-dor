@@ -244,6 +244,7 @@ export default function GuestbookPage() {
   const [newDateTitle, setNewDateTitle] = useState("");
   const [newDateValue, setNewDateValue] = useState("");
   const [addingDate, setAddingDate] = useState(false);
+  const [showNewDateForm, setShowNewDateForm] = useState(false);
   const [showNewPollForm, setShowNewPollForm] = useState(false);
   const [newPollQuestion, setNewPollQuestion] = useState("");
   const [newPollOptions, setNewPollOptions] = useState(["", ""]);
@@ -1073,11 +1074,9 @@ export default function GuestbookPage() {
         <header style={styles.header}>
           <p style={styles.eyebrow}>LE FIL</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
-          <p style={styles.sub}>
-            {isReview
-              ? "Partagez votre avis, ça nous aide à nous améliorer."
-              : "Laissez un petit mot qui restera gravé dans nos souvenirs."}
-          </p>
+          {isReview && (
+            <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>
+          )}
         </header>
 
         {isJournal && (
@@ -1328,18 +1327,32 @@ export default function GuestbookPage() {
         )}
 
         {isJournal && (
-          <form onSubmit={handleAddDate} style={{ ...styles.form, marginBottom: "22px" }}>
-            <div style={styles.dividerRow}>
-              <span style={styles.dividerLabel}>Ajouter une date</span>
-            </div>
-            <input style={styles.input} type="text" placeholder="ex. Anniv de Léa" value={newDateTitle} onChange={(e) => setNewDateTitle(e.target.value)} />
-            <div style={styles.formRow}>
-              <input style={{ ...styles.input, flex: 1, marginRight: "8px" }} type="date" value={newDateValue} onChange={(e) => setNewDateValue(e.target.value)} />
-              <button type="submit" style={styles.button} disabled={addingDate}>
-                {addingDate ? "…" : "Ajouter"}
-              </button>
-            </div>
-          </form>
+          <div style={{ marginBottom: "22px" }}>
+            <button
+              type="button"
+              onClick={() => setShowNewDateForm((v) => !v)}
+              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.accent, width: "100%" }}
+            >
+              + Ajouter une date
+            </button>
+            {showNewDateForm && (
+              <form
+                onSubmit={(e) => {
+                  handleAddDate(e);
+                  setShowNewDateForm(false);
+                }}
+                style={{ ...styles.form, marginTop: "10px" }}
+              >
+                <input style={styles.input} type="text" placeholder="ex. Anniv de Léa" value={newDateTitle} onChange={(e) => setNewDateTitle(e.target.value)} />
+                <div style={styles.formRow}>
+                  <input style={{ ...styles.input, flex: 1, marginRight: "8px" }} type="date" value={newDateValue} onChange={(e) => setNewDateValue(e.target.value)} />
+                  <button type="submit" style={styles.button} disabled={addingDate}>
+                    {addingDate ? "…" : "Ajouter"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
 
         {canAnyoneStartPoll && (
@@ -1384,6 +1397,13 @@ export default function GuestbookPage() {
             )}
           </div>
         )}
+
+        <div style={{ marginTop: "12px", marginBottom: "16px" }}>
+          <div style={styles.dividerRow}>
+            <span style={styles.liveDot} />
+            <span style={styles.dividerLabel}>Partagez vos réponses ou vos souvenirs ici</span>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <input

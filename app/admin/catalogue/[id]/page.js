@@ -88,7 +88,10 @@ export default function ManageCatalogPage() {
       setQuizQuestions(
         questions.map((q) => ({
           ...q,
-          quiz_options: (q.quiz_options || []).sort((a, b) => a.option_order - b.option_order),
+          answer_type: q.answer_type || "product",
+          quiz_options: (q.quiz_options || [])
+            .sort((a, b) => a.option_order - b.option_order)
+            .map((o) => ({ ...o, category: o.category || "", product_ids: o.product_ids || [] })),
         }))
       );
     }
@@ -242,12 +245,32 @@ export default function ManageCatalogPage() {
         id: null,
         question: "",
         step_order: prev.length,
+        answer_type: "product",
         quiz_options: [
-          { id: null, label: "", product_ids: [] },
-          { id: null, label: "", product_ids: [] },
+          { id: null, label: "", product_ids: [], category: "" },
+          { id: null, label: "", product_ids: [], category: "" },
         ],
       },
     ]);
+  }
+
+  function updateQuestionType(qIndex, value) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) => (i === qIndex ? { ...q, answer_type: value } : q))
+    );
+  }
+
+  function updateOptionCategory(qIndex, oIndex, value) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIndex
+          ? {
+              ...q,
+              quiz_options: q.quiz_options.map((o, j) => (j === oIndex ? { ...o, category: value } : o)),
+            }
+          : q
+      )
+    );
   }
 
   function updateQuestionText(qIndex, value) {
@@ -260,7 +283,7 @@ export default function ManageCatalogPage() {
     setQuizQuestions((prev) =>
       prev.map((q, i) =>
         i === qIndex
-          ? { ...q, quiz_options: [...q.quiz_options, { id: null, label: "", product_ids: [] }] }
+          ? { ...q, quiz_options: [...q.quiz_options, { id: null, label: "", product_ids: [], category: "" }] }
           : q
       )
     );
@@ -313,21 +336,36 @@ export default function ManageCatalogPage() {
     if (!supabase || !catalogId) return;
     const q = quizQuestions[qIndex];
     if (!q.question.trim()) return;
-    const cleanOptions = q.quiz_options.filter((o) => o.label.trim());
+    const isCategory = q.answer_type === "category";
+    const cleanOptions = q.quiz_options.filter((o) =>
+      isCategory ? o.label.trim() && o.category.trim() : o.label.trim()
+    );
     if (cleanOptions.length < 2) {
-      setLoadError("Il faut au moins 2 options de réponse par question.");
+      setLoadError(
+        isCategory
+          ? "Il faut au moins 2 réponses, chacune avec une catégorie choisie."
+          : "Il faut au moins 2 options de réponse par question."
+      );
       return;
     }
     setSavingQuestionId(qIndex);
 
     let questionId = q.id;
     if (questionId) {
-      await supabase.from("quiz_questions").update({ question: q.question.trim() }).eq("id", questionId);
+      await supabase
+        .from("quiz_questions")
+        .update({ question: q.question.trim(), answer_type: q.answer_type })
+        .eq("id", questionId);
       await supabase.from("quiz_options").delete().eq("question_id", questionId);
     } else {
       const { data: inserted, error } = await supabase
         .from("quiz_questions")
-        .insert({ catalog_id: catalogId, question: q.question.trim(), step_order: qIndex })
+        .insert({
+          catalog_id: catalogId,
+          question: q.question.trim(),
+          answer_type: q.answer_type,
+          step_order: qIndex,
+        })
         .select()
         .single();
       if (error || !inserted) {
@@ -342,7 +380,8 @@ export default function ManageCatalogPage() {
       cleanOptions.map((o, idx) => ({
         question_id: questionId,
         label: o.label.trim(),
-        product_ids: o.product_ids,
+        product_ids: isCategory ? [] : o.product_ids,
+        category: isCategory ? o.category.trim() : null,
         option_order: idx,
       }))
     );
@@ -505,6 +544,18 @@ export default function ManageCatalogPage() {
                   onChange={(e) => updateQuestionText(qIndex, e.target.value)}
                 />
 
+                <label style={styles.label}>
+                  Les réponses pointent vers…
+                  <select
+                    style={styles.input}
+                    value={q.answer_type || "product"}
+                    onChange={(e) => updateQuestionType(qIndex, e.target.value)}
+                  >
+                    <option value="product">Des produits précis</option>
+                    <option value="category">Une catégorie du catalogue</option>
+                  </select>
+                </label>
+
                 {q.quiz_options.map((o, oIndex) => (
                   <div key={o.id || `new-o-${oIndex}`} style={styles.optionBlock}>
                     <input
@@ -513,26 +564,43 @@ export default function ManageCatalogPage() {
                       value={o.label}
                       onChange={(e) => updateOptionLabel(qIndex, oIndex, e.target.value)}
                     />
-                    <div style={styles.productPicker}>
-                      {products.length === 0 && (
-                        <span style={{ fontSize: "0.72rem", color: "#8A7F66" }}>
-                          Ajoute d'abord des produits au catalogue.
-                        </span>
-                      )}
-                      {products.map((p) => (
-                        <button
-                          type="button"
-                          key={p.id}
-                          onClick={() => toggleOptionProduct(qIndex, oIndex, p.id)}
-                          style={{
-                            ...styles.productChip,
-                            ...(o.product_ids.includes(p.id) ? styles.productChipActive : {}),
-                          }}
-                        >
-                          {p.name}
-                        </button>
-                      ))}
-                    </div>
+
+                    {q.answer_type === "category" ? (
+                      <select
+                        style={styles.input}
+                        value={o.category || ""}
+                        onChange={(e) => updateOptionCategory(qIndex, oIndex, e.target.value)}
+                      >
+                        <option value="">— choisir une catégorie —</option>
+                        {[...new Set(products.map((p) => p.category).filter(Boolean))].map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div style={styles.productPicker}>
+                        {products.length === 0 && (
+                          <span style={{ fontSize: "0.72rem", color: "#8A7F66" }}>
+                            Ajoute d'abord des produits au catalogue.
+                          </span>
+                        )}
+                        {products.map((p) => (
+                          <button
+                            type="button"
+                            key={p.id}
+                            onClick={() => toggleOptionProduct(qIndex, oIndex, p.id)}
+                            style={{
+                              ...styles.productChip,
+                              ...(o.product_ids.includes(p.id) ? styles.productChipActive : {}),
+                            }}
+                          >
+                            {p.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       style={styles.removeOptionButton}

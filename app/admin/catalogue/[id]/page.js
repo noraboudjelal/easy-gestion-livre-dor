@@ -33,6 +33,7 @@ export default function ManageCatalogPage() {
 
   const [accentColor, setAccentColor] = useState("#B5402D");
   const [fontStyle, setFontStyle] = useState("manuscrite");
+  const [catalogTitle, setCatalogTitle] = useState("");
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleSaved, setStyleSaved] = useState(false);
 
@@ -63,6 +64,7 @@ export default function ManageCatalogPage() {
     }
     setCatalog(cat);
     setAccentColor(cat.accent_color || "#B5402D");
+    setCatalogTitle(cat.catalog_title || "");
     setFontStyle(cat.font_style || "manuscrite");
     setQuizEnabled(!!cat.quiz_enabled);
 
@@ -215,7 +217,7 @@ export default function ManageCatalogPage() {
     setSavingStyle(true);
     const { error } = await supabase
       .from("catalogs")
-      .update({ accent_color: accentColor, font_style: fontStyle })
+      .update({ accent_color: accentColor, font_style: fontStyle, catalog_title: catalogTitle.trim() })
       .eq("id", catalogId);
     setSavingStyle(false);
     if (error) {
@@ -538,6 +540,15 @@ export default function ManageCatalogPage() {
         {catalog && (
           <div style={styles.styleBox}>
             <h2 style={styles.formTitle}>Apparence du catalogue</h2>
+            <label style={styles.label}>
+              Titre du catalogue
+              <input
+                style={styles.input}
+                value={catalogTitle}
+                onChange={(e) => setCatalogTitle(e.target.value)}
+                placeholder="ex. Nos soins, Notre carte, Nos prestations…"
+              />
+            </label>
             <div style={styles.formRow2}>
               <label style={styles.label}>
                 Couleur principale

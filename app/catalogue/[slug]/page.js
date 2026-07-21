@@ -352,7 +352,7 @@ export default function CatalogPage() {
     if (cat.quiz_enabled) {
       const { data: questions, error: quizErr } = await supabase
         .from("quiz_questions")
-        .select("*, quiz_options(*)")
+        .select("*, quiz_options!question_id(*)")
         .eq("catalog_id", cat.id)
         .order("step_order", { ascending: true });
 

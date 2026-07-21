@@ -89,6 +89,7 @@ export default function ManageCatalogPage() {
         questions.map((q) => ({
           ...q,
           answer_type: q.answer_type || "product",
+          parent_option_id: q.parent_option_id || "",
           quiz_options: (q.quiz_options || [])
             .sort((a, b) => a.option_order - b.option_order)
             .map((o) => ({ ...o, category: o.category || "", product_ids: o.product_ids || [] })),
@@ -246,12 +247,19 @@ export default function ManageCatalogPage() {
         question: "",
         step_order: prev.length,
         answer_type: "product",
+        parent_option_id: "",
         quiz_options: [
           { id: null, label: "", product_ids: [], category: "" },
           { id: null, label: "", product_ids: [], category: "" },
         ],
       },
     ]);
+  }
+
+  function updateQuestionParent(qIndex, value) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) => (i === qIndex ? { ...q, parent_option_id: value } : q))
+    );
   }
 
   function updateQuestionType(qIndex, value) {
@@ -354,7 +362,11 @@ export default function ManageCatalogPage() {
     if (questionId) {
       await supabase
         .from("quiz_questions")
-        .update({ question: q.question.trim(), answer_type: q.answer_type })
+        .update({
+          question: q.question.trim(),
+          answer_type: q.answer_type,
+          parent_option_id: q.parent_option_id || null,
+        })
         .eq("id", questionId);
       await supabase.from("quiz_options").delete().eq("question_id", questionId);
     } else {
@@ -364,6 +376,7 @@ export default function ManageCatalogPage() {
           catalog_id: catalogId,
           question: q.question.trim(),
           answer_type: q.answer_type,
+          parent_option_id: q.parent_option_id || null,
           step_order: qIndex,
         })
         .select()
@@ -529,7 +542,16 @@ export default function ManageCatalogPage() {
               recommande directement les bons produits.
             </p>
 
-            {quizQuestions.map((q, qIndex) => (
+            {quizQuestions.map((q, qIndex) => {
+              const triggerOptions = quizQuestions.flatMap((otherQ, otherIndex) =>
+                otherIndex === qIndex
+                  ? []
+                  : (otherQ.quiz_options || [])
+                      .filter((o) => o.id)
+                      .map((o) => ({ id: o.id, label: `Q${otherIndex + 1} — ${o.label}` }))
+              );
+
+              return (
               <div style={styles.pollBlock} key={q.id || `new-q-${qIndex}`}>
                 <div style={styles.pollBlockHead}>
                   <span style={styles.pollBlockLabel}>Question {qIndex + 1}</span>
@@ -543,6 +565,27 @@ export default function ManageCatalogPage() {
                   value={q.question}
                   onChange={(e) => updateQuestionText(qIndex, e.target.value)}
                 />
+
+                <label style={styles.label}>
+                  N'afficher cette question que si le visiteur a répondu…
+                  <select
+                    style={styles.input}
+                    value={q.parent_option_id || ""}
+                    onChange={(e) => updateQuestionParent(qIndex, e.target.value)}
+                  >
+                    <option value="">Aucune condition — affichée à tout le monde</option>
+                    {triggerOptions.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  {triggerOptions.length === 0 && (
+                    <span style={{ fontSize: "0.7rem", color: "#8A7F66", fontWeight: 400 }}>
+                      Enregistre d'abord une autre question pour pouvoir la conditionner à une réponse.
+                    </span>
+                  )}
+                </label>
 
                 <label style={styles.label}>
                   Les réponses pointent vers…
@@ -626,7 +669,8 @@ export default function ManageCatalogPage() {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             <div style={styles.formActions}>
               <button type="button" style={styles.newButton} onClick={addLocalQuestion}>

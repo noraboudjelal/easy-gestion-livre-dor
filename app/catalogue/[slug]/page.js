@@ -198,6 +198,107 @@ function Card({ product, accent }) {
   );
 }
 
+function QuizWidget({ questions, products, accent, onDone }) {
+  const [step, setStep] = useState(0);
+  const [answerSets, setAnswerSets] = useState([]); // array of product_id arrays, one per answered question
+  const [finished, setFinished] = useState(false);
+
+  function choose(option, question) {
+    const setForThisAnswer =
+      question.answer_type === "category"
+        ? products.filter((p) => (p.category || "") === (option.category || "")).map((p) => p.id)
+        : option.product_ids || [];
+    const nextSets = [...answerSets, setForThisAnswer];
+    setAnswerSets(nextSets);
+    if (step + 1 < questions.length) {
+      setStep(step + 1);
+    } else {
+      setFinished(true);
+    }
+  }
+
+  function restart() {
+    setStep(0);
+    setAnswerSets([]);
+    setFinished(false);
+  }
+
+  const recommended = (() => {
+    if (answerSets.length === 0) return [];
+    let ids = answerSets[0];
+    for (let i = 1; i < answerSets.length; i++) {
+      const intersection = ids.filter((id) => answerSets[i].includes(id));
+      ids = intersection.length > 0 ? intersection : ids;
+    }
+    if (ids.length === 0) {
+      ids = [...new Set(answerSets.flat())];
+    }
+    return products.filter((p) => ids.includes(p.id));
+  })();
+
+  if (finished) {
+    return (
+      <div style={styles.quizBox}>
+        <p style={{ ...styles.quizTag, color: accent }}>NOS RECOMMANDATIONS POUR VOUS</p>
+        {recommended.length === 0 ? (
+          <p style={{ color: "#8A7F66", fontSize: "0.85rem" }}>
+            On n'a pas trouvé de correspondance exacte — jetez un œil au catalogue complet ci-dessous.
+          </p>
+        ) : (
+          <div style={styles.quizResultsGrid}>
+            {recommended.map((p) => (
+              <Card product={p} accent={accent} key={p.id} />
+            ))}
+          </div>
+        )}
+        <div style={styles.quizActions}>
+          <button type="button" style={{ ...styles.quizGhostButton, borderColor: accent, color: accent }} onClick={restart}>
+            Refaire le questionnaire
+          </button>
+          <button type="button" style={{ ...styles.quizSkipButton, color: accent }} onClick={onDone}>
+            Voir tout le catalogue ↓
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const q = questions[step];
+
+  return (
+    <div style={styles.quizBox}>
+      <p style={{ ...styles.quizTag, color: accent }}>TROUVEZ VOTRE PRODUIT</p>
+      <div style={styles.quizProgress}>
+        {questions.map((_, i) => (
+          <div
+            key={i}
+            style={{
+              ...styles.quizDot,
+              background: i <= step ? accent : "rgba(0,0,0,0.1)",
+            }}
+          />
+        ))}
+      </div>
+      <h3 style={styles.quizQuestion}>{q.question}</h3>
+      <div style={styles.quizOptions}>
+        {q.quiz_options.map((o) => (
+          <button
+            type="button"
+            key={o.id}
+            style={styles.quizOptionButton}
+            onClick={() => choose(o, q)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <button type="button" style={styles.quizSkipButton} onClick={onDone}>
+        Passer, voir tout le catalogue
+      </button>
+    </div>
+  );
+}
+
 export default function CatalogPage() {
   const params = useParams();
   const slug = params?.slug;
@@ -207,6 +308,9 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showTop, setShowTop] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState([]);
+  const [showQuiz, setShowQuiz] = useState(true);
+  const mainRef = useRef(null);
 
   const load = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -230,6 +334,17 @@ export default function CatalogPage() {
       .order("position", { ascending: true });
 
     setProducts(prods || []);
+
+    if (cat.quiz_enabled) {
+      const { data: questions } = await supabase
+        .from("quiz_questions")
+        .select("*, quiz_options(*)")
+        .eq("catalog_id", cat.id)
+        .order("step_order", { ascending: true });
+      const withOptions = (questions || []).filter((q) => (q.quiz_options || []).length >= 2);
+      setQuizQuestions(withOptions);
+    }
+
     setLoading(false);
   }, [slug]);
 
@@ -285,8 +400,17 @@ export default function CatalogPage() {
         </h1>
       </header>
 
-      <main style={styles.main}>
+      <main style={styles.main} ref={mainRef}>
         {loading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
+
+        {!loading && showQuiz && quizQuestions.length > 0 && (
+          <QuizWidget
+            questions={quizQuestions}
+            products={products}
+            accent={accent}
+            onDone={() => setShowQuiz(false)}
+          />
+        )}
 
         {!loading && products.length === 0 && (
           <div style={styles.empty}>
@@ -480,5 +604,54 @@ const styles = {
     fontSize: "1.2rem",
     boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
     cursor: "pointer",
+  },
+  quizBox: {
+    background: "#FCFAF2",
+    border: "1px solid #E6DCC2",
+    borderRadius: "14px",
+    padding: "22px 20px",
+    marginBottom: "32px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px",
+  },
+  quizTag: { fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", margin: 0 },
+  quizProgress: { display: "flex", gap: "6px" },
+  quizDot: { flex: 1, height: "3px", borderRadius: "2px" },
+  quizQuestion: { fontSize: "1.15rem", fontWeight: 700, color: "#1E2A3A", margin: 0 },
+  quizOptions: { display: "flex", flexDirection: "column", gap: "8px" },
+  quizOptionButton: {
+    textAlign: "left",
+    background: "#F1EAD6",
+    border: "1px solid #E6DCC2",
+    borderRadius: "8px",
+    padding: "12px 14px",
+    fontSize: "0.88rem",
+    color: "#2A241D",
+    cursor: "pointer",
+  },
+  quizResultsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+    gap: "16px",
+  },
+  quizActions: { display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "space-between", alignItems: "center" },
+  quizGhostButton: {
+    background: "none",
+    border: "1px solid",
+    borderRadius: "8px",
+    padding: "9px 14px",
+    fontSize: "0.8rem",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  quizSkipButton: {
+    background: "none",
+    border: "none",
+    fontSize: "0.78rem",
+    fontWeight: 600,
+    textDecoration: "underline",
+    cursor: "pointer",
+    alignSelf: "flex-start",
   },
 };

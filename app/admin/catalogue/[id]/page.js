@@ -40,6 +40,7 @@ export default function ManageCatalogPage() {
   const [savingQuizToggle, setSavingQuizToggle] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState([]); // [{id, question, step_order, options:[{id,label,product_ids}]}]
   const [savingQuestionId, setSavingQuestionId] = useState(null);
+  const [savedQuestionFlash, setSavedQuestionFlash] = useState(null);
 
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem("ld-admin-ok") === "1") {
@@ -457,6 +458,8 @@ export default function ManageCatalogPage() {
       }
 
       setSavingQuestionId(null);
+      setSavedQuestionFlash(qIndex);
+      setTimeout(() => setSavedQuestionFlash(null), 1800);
       load();
     } catch (err) {
       setSavingQuestionId(null);
@@ -733,7 +736,13 @@ export default function ManageCatalogPage() {
                     onClick={() => saveQuestion(qIndex)}
                     disabled={savingQuestionId === qIndex}
                   >
-                    {savingQuestionId === qIndex ? "Enregistrement…" : q.id ? "Mettre à jour" : "Ajouter la question"}
+                    {savingQuestionId === qIndex
+                      ? "Enregistrement…"
+                      : savedQuestionFlash === qIndex
+                      ? "✓ Enregistré"
+                      : q.id
+                      ? "Mettre à jour"
+                      : "Ajouter la question"}
                   </button>
                 </div>
               </div>

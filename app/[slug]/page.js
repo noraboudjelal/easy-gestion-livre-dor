@@ -268,6 +268,9 @@ export default function GuestbookPage() {
   const [postingLook, setPostingLook] = useState(false);
   const [votedLookIds, setVotedLookIds] = useState({});
   const [votingLookId, setVotingLookId] = useState(null);
+  const [ownedLookIds, setOwnedLookIds] = useState({});
+  const [deletingLookId, setDeletingLookId] = useState(null);
+  const [lightboxLookPhoto, setLightboxLookPhoto] = useState(null);
   const [hasPostedLookToday, setHasPostedLookToday] = useState(false);
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
@@ -392,6 +395,13 @@ export default function GuestbookPage() {
         const next = { ...prev };
         (looksData || []).forEach((l) => {
           if (window.localStorage.getItem(`look-voted-${l.id}`) === "1") next[l.id] = true;
+        });
+        return next;
+      });
+      setOwnedLookIds((prev) => {
+        const next = { ...prev };
+        (looksData || []).forEach((l) => {
+          if (window.localStorage.getItem(`look-owned-${l.id}`) === "1") next[l.id] = true;
         });
         return next;
       });
@@ -547,22 +557,41 @@ export default function GuestbookPage() {
       photoUrl = pub?.publicUrl || null;
     }
 
-    const { error: insertError } = await supabase.from("daily_looks").insert({
-      event_id: event.id,
-      name: lookName.trim() || "Anonyme",
-      photo_url: photoUrl,
-    });
+    const { data: insertedLook, error: insertError } = await supabase
+      .from("daily_looks")
+      .insert({
+        event_id: event.id,
+        name: lookName.trim() || "Anonyme",
+        photo_url: photoUrl,
+      })
+      .select()
+      .single();
 
     setPostingLook(false);
     if (!insertError) {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(`look-posted-${event.id}-${todayKey()}`, "1");
+        if (insertedLook?.id) {
+          window.localStorage.setItem(`look-owned-${insertedLook.id}`, "1");
+          setOwnedLookIds((prev) => ({ ...prev, [insertedLook.id]: true }));
+        }
       }
       setHasPostedLookToday(true);
       setLookPhoto(null);
       setLookPhotoPreview(null);
       loadAll();
     }
+  }
+
+  async function handleDeleteLook(lookId) {
+    if (!supabase || deletingLookId) return;
+    setDeletingLookId(lookId);
+    const { error } = await supabase.from("daily_looks").delete().eq("id", lookId);
+    if (!error) {
+      window.localStorage.removeItem(`look-owned-${lookId}`);
+      setDailyLooks((prev) => prev.filter((l) => l.id !== lookId));
+    }
+    setDeletingLookId(null);
   }
 
   async function handleVoteLook(lookId) {
@@ -1233,11 +1262,28 @@ export default function GuestbookPage() {
               <div style={styles.lookGrid}>
                 {todaysLooks.map((l, i) => {
                   const voted = !!votedLookIds[l.id];
+                  const owned = !!ownedLookIds[l.id];
                   return (
                     <div key={l.id} style={{ ...styles.lookItem, ...(i === 0 ? styles.lookItemTop : {}) }}>
                       {i === 0 && <span style={styles.lookCrown}>👑</span>}
+                      {owned && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLook(l.id)}
+                          disabled={deletingLookId === l.id}
+                          style={styles.lookDeleteBtn}
+                          aria-label="Supprimer ce look"
+                        >
+                          {deletingLookId === l.id ? "…" : "🗑️"}
+                        </button>
+                      )}
                       {l.photo_url ? (
-                        <img src={l.photo_url} alt={l.name} style={styles.lookPhoto} />
+                        <img
+                          src={l.photo_url}
+                          alt={l.name}
+                          style={{ ...styles.lookPhoto, cursor: "pointer" }}
+                          onClick={() => setLightboxLookPhoto(l.photo_url)}
+                        />
                       ) : (
                         <div style={{ ...styles.lookPhoto, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", color: theme.ivory }}>
                           {(l.name || "?")[0].toUpperCase()}
@@ -1264,6 +1310,48 @@ export default function GuestbookPage() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {lightboxLookPhoto && (
+          <div
+            onClick={() => setLightboxLookPhoto(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(20,15,10,0.92)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 100,
+              padding: "16px",
+            }}
+          >
+            <button
+              onClick={() => setLightboxLookPhoto(null)}
+              aria-label="Fermer"
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                background: "rgba(255,255,255,0.15)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "50%",
+                width: "36px",
+                height: "36px",
+                fontSize: "1rem",
+                cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
+            <img
+              src={lightboxLookPhoto}
+              alt=""
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain", borderRadius: "10px" }}
+            />
           </div>
         )}
 
@@ -1799,6 +1887,23 @@ function getStyles(t, isFun) {
     lookItem: { background: "rgba(255,255,255,0.94)", border: "none", borderRadius: "18px", overflow: "hidden", position: "relative" },
     lookItemTop: { boxShadow: "0 0 0 3px #FFD93D" },
     lookCrown: { position: "absolute", top: "6px", left: "6px", background: "#FFD93D", color: "#241a15", fontSize: "0.68rem", fontWeight: 700, fontFamily: "'Fredoka', sans-serif", borderRadius: "999px", padding: "3px 9px", zIndex: 2 },
+    lookDeleteBtn: {
+      position: "absolute",
+      top: "6px",
+      right: "6px",
+      background: "rgba(0,0,0,0.5)",
+      color: "#fff",
+      border: "none",
+      borderRadius: "50%",
+      width: "26px",
+      height: "26px",
+      fontSize: "0.75rem",
+      cursor: "pointer",
+      zIndex: 2,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     lookPhoto: { width: "100%", aspectRatio: "3/4", objectFit: "cover", display: "block", background: "#f0e9df" },
     lookItemInfo: { padding: "8px 10px 10px" },
     lookItemName: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.8rem", fontWeight: 700, color: "#5B4636", margin: "0 0 4px" },

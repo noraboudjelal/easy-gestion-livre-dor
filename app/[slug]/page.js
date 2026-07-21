@@ -238,6 +238,8 @@ export default function GuestbookPage() {
   const [wallRefs, setWallRefs] = useState([]);
   const [eventDates, setEventDates] = useState([]);
   const [likedIds, setLikedIds] = useState({});
+  const [ownedMessageIds, setOwnedMessageIds] = useState({});
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
   const [newRefText, setNewRefText] = useState("");
   const [newRefAuthor, setNewRefAuthor] = useState("");
   const [addingRef, setAddingRef] = useState(false);
@@ -319,6 +321,13 @@ export default function GuestbookPage() {
         const next = { ...prev };
         (msgs || []).forEach((m) => {
           if (window.localStorage.getItem(`msg-liked-${m.id}`) === "1") next[m.id] = true;
+        });
+        return next;
+      });
+      setOwnedMessageIds((prev) => {
+        const next = { ...prev };
+        (msgs || []).forEach((m) => {
+          if (window.localStorage.getItem(`msg-owned-${m.id}`) === "1") next[m.id] = true;
         });
         return next;
       });
@@ -593,6 +602,17 @@ export default function GuestbookPage() {
     }
   }
 
+  async function handleDeleteMessage(messageId) {
+    if (!supabase || deletingMessageId) return;
+    setDeletingMessageId(messageId);
+    const { error } = await supabase.from("messages").delete().eq("id", messageId);
+    if (!error) {
+      window.localStorage.removeItem(`msg-owned-${messageId}`);
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    }
+    setDeletingMessageId(null);
+  }
+
   async function handleAddRef(e) {
     e.preventDefault();
     if (!newRefText.trim() || !supabase || !event) return;
@@ -837,20 +857,28 @@ export default function GuestbookPage() {
     setJustSent(true);
     setTimeout(() => setJustSent(false), 2500);
 
-    const { error: insertError } = await supabase.from("messages").insert({
-      event_id: event.id,
-      name: optimisticEntry.name,
-      message: optimisticEntry.message,
-      photo_url: photoUrl,
-      video_url: videoUrl,
-      audio_url: audioUrl,
-      ink: optimisticEntry.ink,
-      rotation: optimisticEntry.rotation,
-    });
+    const { data: insertedMsg, error: insertError } = await supabase
+      .from("messages")
+      .insert({
+        event_id: event.id,
+        name: optimisticEntry.name,
+        message: optimisticEntry.message,
+        photo_url: photoUrl,
+        video_url: videoUrl,
+        audio_url: audioUrl,
+        ink: optimisticEntry.ink,
+        rotation: optimisticEntry.rotation,
+      })
+      .select()
+      .single();
 
     if (insertError) {
       setError("Le message est affiché ici mais n'a pas pu être sauvegardé : " + insertError.message);
     } else {
+      if (insertedMsg?.id && typeof window !== "undefined") {
+        window.localStorage.setItem(`msg-owned-${insertedMsg.id}`, "1");
+        setOwnedMessageIds((prev) => ({ ...prev, [insertedMsg.id]: true }));
+      }
       loadAll();
     }
     setSending(false);
@@ -1544,28 +1572,50 @@ export default function GuestbookPage() {
                 {m.audio_url && (
                   <audio src={m.audio_url} controls style={styles.entryAudio} />
                 )}
-                {isJournal && (
-                  <button
-                    onClick={() => handleLikeMessage(m.id)}
-                    disabled={!!likedIds[m.id]}
-                    style={{
-                      marginTop: "8px",
-                      background: "none",
-                      border: "none",
-                      cursor: likedIds[m.id] ? "default" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "0.8rem",
-                      fontWeight: 700,
-                      color: likedIds[m.id] ? theme.accent : theme.muted,
-                    }}
-                  >
-                    <span style={{ fontSize: "1.1rem" }}>{likedIds[m.id] ? "♥" : "♡"}</span>
-                    {m.likes_count || 0}
-                  </button>
-                )}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
+                  {isJournal ? (
+                    <button
+                      onClick={() => handleLikeMessage(m.id)}
+                      disabled={!!likedIds[m.id]}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: likedIds[m.id] ? "default" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        color: likedIds[m.id] ? theme.accent : theme.muted,
+                        padding: 0,
+                      }}
+                    >
+                      <span style={{ fontSize: "1.1rem" }}>{likedIds[m.id] ? "♥" : "♡"}</span>
+                      {m.likes_count || 0}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  {ownedMessageIds[m.id] && (
+                    <button
+                      onClick={() => handleDeleteMessage(m.id)}
+                      disabled={deletingMessageId === m.id}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontFamily: "Inter, sans-serif",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: "#D98C7F",
+                        padding: 0,
+                      }}
+                    >
+                      {deletingMessageId === m.id ? "…" : "🗑️ Supprimer"}
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
         </div>

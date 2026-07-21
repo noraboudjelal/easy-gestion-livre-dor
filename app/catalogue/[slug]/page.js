@@ -290,8 +290,7 @@ function QuizWidget({ questions, products, accent, onDone }) {
 
   return (
     <div style={styles.quizBox}>
-      <p style={{ ...styles.quizTag, color: accent }}>TROUVEZ VOTRE PRODUIT</p>
-      <p style={{ fontSize: "0.7rem", color: "#8A7F66", margin: 0 }}>Question {answeredCount + 1}</p>
+      <p style={{ ...styles.quizTag, color: accent }}>✨ ON VOUS AIDE À CHOISIR</p>
       <h3 style={styles.quizQuestion}>{q.question}</h3>
       <div style={styles.quizOptions}>
         {q.quiz_options.map((o) => (

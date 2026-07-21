@@ -81,7 +81,7 @@ export default function ManageCatalogPage() {
 
     const { data: questions, error: quizErr } = await supabase
       .from("quiz_questions")
-      .select("*, quiz_options(*)")
+      .select("*, quiz_options!question_id(*)")
       .eq("catalog_id", catalogId)
       .order("step_order", { ascending: true });
 

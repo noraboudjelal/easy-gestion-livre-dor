@@ -36,6 +36,11 @@ export default function ManageCatalogPage() {
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleSaved, setStyleSaved] = useState(false);
 
+  const [quizEnabled, setQuizEnabled] = useState(false);
+  const [savingQuizToggle, setSavingQuizToggle] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState([]); // [{id, question, step_order, options:[{id,label,product_ids}]}]
+  const [savingQuestionId, setSavingQuestionId] = useState(null);
+
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem("ld-admin-ok") === "1") {
       setAuthed(true);
@@ -58,6 +63,7 @@ export default function ManageCatalogPage() {
     setCatalog(cat);
     setAccentColor(cat.accent_color || "#B5402D");
     setFontStyle(cat.font_style || "manuscrite");
+    setQuizEnabled(!!cat.quiz_enabled);
 
     const { data: prods, error: prodErr } = await supabase
       .from("catalog_products")
@@ -71,6 +77,22 @@ export default function ManageCatalogPage() {
       setLoadError("");
       setProducts(prods || []);
     }
+
+    const { data: questions, error: quizErr } = await supabase
+      .from("quiz_questions")
+      .select("*, quiz_options(*)")
+      .eq("catalog_id", catalogId)
+      .order("step_order", { ascending: true });
+
+    if (!quizErr && questions) {
+      setQuizQuestions(
+        questions.map((q) => ({
+          ...q,
+          quiz_options: (q.quiz_options || []).sort((a, b) => a.option_order - b.option_order),
+        }))
+      );
+    }
+
     setLoading(false);
   }, [catalogId]);
 
@@ -197,6 +219,150 @@ export default function ManageCatalogPage() {
     }
   }
 
+  async function handleToggleQuiz() {
+    if (!supabase || !catalogId) return;
+    setSavingQuizToggle(true);
+    const nextValue = !quizEnabled;
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ quiz_enabled: nextValue })
+      .eq("id", catalogId);
+    setSavingQuizToggle(false);
+    if (error) {
+      setLoadError("Impossible de changer le statut du quiz : " + error.message);
+    } else {
+      setQuizEnabled(nextValue);
+    }
+  }
+
+  function addLocalQuestion() {
+    setQuizQuestions((prev) => [
+      ...prev,
+      {
+        id: null,
+        question: "",
+        step_order: prev.length,
+        quiz_options: [
+          { id: null, label: "", product_ids: [] },
+          { id: null, label: "", product_ids: [] },
+        ],
+      },
+    ]);
+  }
+
+  function updateQuestionText(qIndex, value) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) => (i === qIndex ? { ...q, question: value } : q))
+    );
+  }
+
+  function addOption(qIndex) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIndex
+          ? { ...q, quiz_options: [...q.quiz_options, { id: null, label: "", product_ids: [] }] }
+          : q
+      )
+    );
+  }
+
+  function updateOptionLabel(qIndex, oIndex, value) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIndex
+          ? {
+              ...q,
+              quiz_options: q.quiz_options.map((o, j) => (j === oIndex ? { ...o, label: value } : o)),
+            }
+          : q
+      )
+    );
+  }
+
+  function toggleOptionProduct(qIndex, oIndex, productId) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIndex
+          ? {
+              ...q,
+              quiz_options: q.quiz_options.map((o, j) => {
+                if (j !== oIndex) return o;
+                const has = o.product_ids.includes(productId);
+                return {
+                  ...o,
+                  product_ids: has
+                    ? o.product_ids.filter((id) => id !== productId)
+                    : [...o.product_ids, productId],
+                };
+              }),
+            }
+          : q
+      )
+    );
+  }
+
+  function removeOption(qIndex, oIndex) {
+    setQuizQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIndex ? { ...q, quiz_options: q.quiz_options.filter((_, j) => j !== oIndex) } : q
+      )
+    );
+  }
+
+  async function saveQuestion(qIndex) {
+    if (!supabase || !catalogId) return;
+    const q = quizQuestions[qIndex];
+    if (!q.question.trim()) return;
+    const cleanOptions = q.quiz_options.filter((o) => o.label.trim());
+    if (cleanOptions.length < 2) {
+      setLoadError("Il faut au moins 2 options de réponse par question.");
+      return;
+    }
+    setSavingQuestionId(qIndex);
+
+    let questionId = q.id;
+    if (questionId) {
+      await supabase.from("quiz_questions").update({ question: q.question.trim() }).eq("id", questionId);
+      await supabase.from("quiz_options").delete().eq("question_id", questionId);
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("quiz_questions")
+        .insert({ catalog_id: catalogId, question: q.question.trim(), step_order: qIndex })
+        .select()
+        .single();
+      if (error || !inserted) {
+        setLoadError("Impossible d'enregistrer la question : " + (error?.message || ""));
+        setSavingQuestionId(null);
+        return;
+      }
+      questionId = inserted.id;
+    }
+
+    await supabase.from("quiz_options").insert(
+      cleanOptions.map((o, idx) => ({
+        question_id: questionId,
+        label: o.label.trim(),
+        product_ids: o.product_ids,
+        option_order: idx,
+      }))
+    );
+
+    setSavingQuestionId(null);
+    load();
+  }
+
+  async function deleteQuestion(qIndex) {
+    const q = quizQuestions[qIndex];
+    if (q.id) {
+      if (!window.confirm("Supprimer cette question du quiz ?")) return;
+      if (!supabase) return;
+      await supabase.from("quiz_questions").delete().eq("id", q.id);
+      load();
+    } else {
+      setQuizQuestions((prev) => prev.filter((_, i) => i !== qIndex));
+    }
+  }
+
   function linkFor() {
     if (typeof window === "undefined" || !catalog) return "";
     return `${window.location.origin}/catalogue/${catalog.slug}`;
@@ -297,6 +463,106 @@ export default function ManageCatalogPage() {
             <div style={styles.formActions}>
               <button type="button" style={styles.newButton} onClick={handleSaveStyle} disabled={savingStyle}>
                 {savingStyle ? "Enregistrement…" : styleSaved ? "✓ Enregistré" : "Enregistrer l'apparence"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {catalog && (
+          <div style={styles.styleBox}>
+            <div style={styles.quizHeader}>
+              <h2 style={styles.formTitle}>Quiz produit</h2>
+              <button
+                type="button"
+                onClick={handleToggleQuiz}
+                disabled={savingQuizToggle}
+                style={{
+                  ...styles.toggleButton,
+                  background: quizEnabled ? "#3B7A4A" : "#D8CCAB",
+                  color: quizEnabled ? "#FCFAF2" : "#5B4636",
+                }}
+              >
+                {savingQuizToggle ? "…" : quizEnabled ? "Activé" : "Désactivé"}
+              </button>
+            </div>
+            <p style={{ fontSize: "0.78rem", color: "#8A7F66", margin: 0 }}>
+              Quand c'est activé, tes visiteurs répondent à quelques questions et le catalogue leur
+              recommande directement les bons produits.
+            </p>
+
+            {quizQuestions.map((q, qIndex) => (
+              <div style={styles.pollBlock} key={q.id || `new-q-${qIndex}`}>
+                <div style={styles.pollBlockHead}>
+                  <span style={styles.pollBlockLabel}>Question {qIndex + 1}</span>
+                  <button type="button" style={styles.iconButtonDanger} onClick={() => deleteQuestion(qIndex)}>
+                    supprimer
+                  </button>
+                </div>
+                <input
+                  style={styles.input}
+                  placeholder="ex. Quel type de soin recherchez-vous ?"
+                  value={q.question}
+                  onChange={(e) => updateQuestionText(qIndex, e.target.value)}
+                />
+
+                {q.quiz_options.map((o, oIndex) => (
+                  <div key={o.id || `new-o-${oIndex}`} style={styles.optionBlock}>
+                    <input
+                      style={styles.input}
+                      placeholder={`Réponse ${oIndex + 1}`}
+                      value={o.label}
+                      onChange={(e) => updateOptionLabel(qIndex, oIndex, e.target.value)}
+                    />
+                    <div style={styles.productPicker}>
+                      {products.length === 0 && (
+                        <span style={{ fontSize: "0.72rem", color: "#8A7F66" }}>
+                          Ajoute d'abord des produits au catalogue.
+                        </span>
+                      )}
+                      {products.map((p) => (
+                        <button
+                          type="button"
+                          key={p.id}
+                          onClick={() => toggleOptionProduct(qIndex, oIndex, p.id)}
+                          style={{
+                            ...styles.productChip,
+                            ...(o.product_ids.includes(p.id) ? styles.productChipActive : {}),
+                          }}
+                        >
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      style={styles.removeOptionButton}
+                      onClick={() => removeOption(qIndex, oIndex)}
+                    >
+                      ✕ retirer cette réponse
+                    </button>
+                  </div>
+                ))}
+
+                <button type="button" style={styles.addOptionLink} onClick={() => addOption(qIndex)}>
+                  + Ajouter une réponse
+                </button>
+
+                <div style={styles.formActions}>
+                  <button
+                    type="button"
+                    style={styles.newButton}
+                    onClick={() => saveQuestion(qIndex)}
+                    disabled={savingQuestionId === qIndex}
+                  >
+                    {savingQuestionId === qIndex ? "Enregistrement…" : q.id ? "Mettre à jour" : "Ajouter la question"}
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div style={styles.formActions}>
+              <button type="button" style={styles.newButton} onClick={addLocalQuestion}>
+                + Ajouter une question de quiz
               </button>
             </div>
           </div>
@@ -476,4 +742,15 @@ const styles = {
   productActions: { display: "flex", gap: "6px", flexShrink: 0 },
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
   iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
+  quizHeader: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  toggleButton: { border: "none", borderRadius: "999px", padding: "6px 14px", fontSize: "0.75rem", fontWeight: 700 },
+  pollBlock: { display: "flex", flexDirection: "column", gap: "8px", background: "#FBF8F3", border: "1px solid #EAE3D6", borderRadius: "12px", padding: "12px" },
+  pollBlockHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" },
+  pollBlockLabel: { fontSize: "0.72rem", fontWeight: 700, color: "#8A7F66", textTransform: "uppercase", letterSpacing: "0.04em" },
+  optionBlock: { display: "flex", flexDirection: "column", gap: "6px", background: "#fff", border: "1px solid #E6DCC2", borderRadius: "8px", padding: "10px" },
+  productPicker: { display: "flex", flexWrap: "wrap", gap: "6px" },
+  productChip: { background: "#F1EAD6", border: "1px solid #D8CCAB", borderRadius: "999px", padding: "4px 10px", fontSize: "0.72rem", color: "#5B4636" },
+  productChipActive: { background: "#B5402D", color: "#FCFAF2", borderColor: "#B5402D" },
+  removeOptionButton: { background: "none", border: "none", color: "#8B3A2B", fontSize: "0.7rem", alignSelf: "flex-start", padding: 0 },
+  addOptionLink: { background: "none", border: "none", color: "#A6792B", fontSize: "0.78rem", fontWeight: 600, alignSelf: "flex-start", padding: 0 },
 };

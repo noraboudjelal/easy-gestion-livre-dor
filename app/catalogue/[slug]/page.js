@@ -199,9 +199,21 @@ function Card({ product, accent }) {
 }
 
 function QuizWidget({ questions, products, accent, onDone }) {
-  const [step, setStep] = useState(0);
-  const [answerSets, setAnswerSets] = useState([]); // array of product_id arrays, one per answered question
+  const topLevel = [...questions]
+    .filter((q) => !q.parent_option_id)
+    .sort((a, b) => a.step_order - b.step_order);
+
+  const childByOptionId = {};
+  questions.forEach((q) => {
+    if (q.parent_option_id) childByOptionId[q.parent_option_id] = q;
+  });
+
+  const [currentId, setCurrentId] = useState(topLevel[0]?.id || null);
+  const [answerSets, setAnswerSets] = useState([]);
+  const [answeredCount, setAnsweredCount] = useState(0);
   const [finished, setFinished] = useState(false);
+
+  const currentQuestion = questions.find((q) => q.id === currentId) || null;
 
   function choose(option, question) {
     const setForThisAnswer =
@@ -210,16 +222,27 @@ function QuizWidget({ questions, products, accent, onDone }) {
         : option.product_ids || [];
     const nextSets = [...answerSets, setForThisAnswer];
     setAnswerSets(nextSets);
-    if (step + 1 < questions.length) {
-      setStep(step + 1);
+    setAnsweredCount((c) => c + 1);
+
+    const child = childByOptionId[option.id];
+    if (child) {
+      setCurrentId(child.id);
+      return;
+    }
+
+    const currentTopIndex = topLevel.findIndex((tq) => tq.id === question.id);
+    const nextTop = currentTopIndex >= 0 ? topLevel[currentTopIndex + 1] : null;
+    if (nextTop) {
+      setCurrentId(nextTop.id);
     } else {
       setFinished(true);
     }
   }
 
   function restart() {
-    setStep(0);
+    setCurrentId(topLevel[0]?.id || null);
     setAnswerSets([]);
+    setAnsweredCount(0);
     setFinished(false);
   }
 
@@ -236,7 +259,7 @@ function QuizWidget({ questions, products, accent, onDone }) {
     return products.filter((p) => ids.includes(p.id));
   })();
 
-  if (finished) {
+  if (finished || !currentQuestion) {
     return (
       <div style={styles.quizBox}>
         <p style={{ ...styles.quizTag, color: accent }}>NOS RECOMMANDATIONS POUR VOUS</p>
@@ -263,22 +286,12 @@ function QuizWidget({ questions, products, accent, onDone }) {
     );
   }
 
-  const q = questions[step];
+  const q = currentQuestion;
 
   return (
     <div style={styles.quizBox}>
       <p style={{ ...styles.quizTag, color: accent }}>TROUVEZ VOTRE PRODUIT</p>
-      <div style={styles.quizProgress}>
-        {questions.map((_, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.quizDot,
-              background: i <= step ? accent : "rgba(0,0,0,0.1)",
-            }}
-          />
-        ))}
-      </div>
+      <p style={{ fontSize: "0.7rem", color: "#8A7F66", margin: 0 }}>Question {answeredCount + 1}</p>
       <h3 style={styles.quizQuestion}>{q.question}</h3>
       <div style={styles.quizOptions}>
         {q.quiz_options.map((o) => (

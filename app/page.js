@@ -21,7 +21,7 @@ const eventTypes = [
   "Circoncision",
   "Anniversaire",
   "Baby Shower",
-  "Notre Journal",
+  "Entre Nous",
   "Vos avis",
 ];
 
@@ -33,13 +33,13 @@ const otherProducts = [
       "Des présentoirs en plexiglas sur-mesure pour afficher fièrement votre QR code en boutique ou lors de vos événements.",
   },
   {
-    name: "Catalogue Numérique",
+    name: "Ma Vitrine Numérique",
     tag: "Vitrine produits pour commerces",
     desc:
       "Un catalogue accessible par QR code, avec un quiz de recommandation pour guider vos clients vers les bons produits.",
   },
   {
-    name: "Ma Vitrine",
+    name: "Ma Page",
     tag: "Portfolio pour artisans",
     desc:
       "Une vitrine numérique élégante pour présenter votre savoir-faire, vos réalisations avant/après et vos prestations.",
@@ -260,7 +260,7 @@ export default function Home() {
             maxWidth: "680px",
           }}
         >
-          <strong style={{ color: "#D98098" }}>Notre Journal</strong>, notre
+          <strong style={{ color: "#D98098" }}>Entre Nous</strong>, notre
           format le plus complet, transforme Le Fil en espace privé durable
           pour un groupe : sondages, mur de souvenirs, et le jeu{" "}
           <strong style={{ color: "#D98098" }}>La Roue Folle</strong> pour

@@ -153,6 +153,11 @@ const THEMES = {
     accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
     ivory: "#FBF6FF", muted: "#C7B8E8",
   },
+  "Entre Nous": {
+    ink: "#241B3D", surface: "#32245A", surface2: "#3D2C6E",
+    accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
+    ivory: "#FBF6FF", muted: "#C7B8E8",
+  },
   "Autre": {
     ink: "#14131C",
     surface: "#1F1E2B",
@@ -234,7 +239,7 @@ export default function GuestbookPage() {
   const [giftNamePrompt, setGiftNamePrompt] = useState(null);
   const [giftNameInput, setGiftNameInput] = useState("");
 
-  // --- Notre Journal ---
+  // --- Entre Nous ---
   const [wallRefs, setWallRefs] = useState([]);
   const [eventDates, setEventDates] = useState([]);
   const [likedIds, setLikedIds] = useState({});
@@ -275,7 +280,7 @@ export default function GuestbookPage() {
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
-  const isJournal = event?.event_type === "Notre Journal";
+  const isJournal = event?.event_type === "Entre Nous" || event?.event_type === "Notre Journal";
   const canAnyoneStartPoll = isJournal && event?.polls_open_to_all;
   const isBeforeEvent = (() => {
     if (!event?.event_date) return false;

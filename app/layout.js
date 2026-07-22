@@ -1,16 +1,16 @@
 export const metadata = {
-  title: "Easy Gestion Toulouse",
-  description: "Livres d'or et catalogues numériques pour vos événements et commerces",
+  title: "Lehnova — Supports connectés",
+  description: "Supports numériques et physiques connectés, pour vos commerces et événements à Toulouse.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Easy Gestion",
+    title: "Lehnova",
   },
 };
 
 export const viewport = {
-  themeColor: "#B5402D",
+  themeColor: "#1C1B33",
 };
 
 export default function RootLayout({ children }) {

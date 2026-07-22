@@ -27,6 +27,7 @@ const TYPE_BADGE = {
   "Baptême": { background: "#EAF1F7", color: "#4A6A85" },
   "Baby Shower": { background: "#FBE7EF", color: "#B5567F" },
   "Notre Journal": { background: "#FDEFD8", color: "#B5762E" },
+  "Entre Nous": { background: "#FDEFD8", color: "#B5762E" },
   "Pot de départ": { background: "#E3F1F0", color: "#2E6E68" },
   "Départ en retraite": { background: "#E9F3EA", color: "#3F7A52" },
   "Henné": { background: "#E9F3EA", color: "#4E7A3F" },
@@ -205,7 +206,7 @@ export default function AdminPage() {
         cagnotte_url: cagnotteUrl.trim() || null,
         client_password: clientAccessCode(),
         event_date: eventDate || null,
-        polls_open_to_all: eventType === "Notre Journal",
+        polls_open_to_all: eventType === "Entre Nous" || eventType === "Notre Journal",
       })
       .select()
       .single();
@@ -698,7 +699,7 @@ export default function AdminPage() {
             <div>
               <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
               <h1 style={styles.brandTitle}>
-                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : "Ma Vitrine"}
+                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : "Ma Page"}
               </h1>
             </div>
           </div>
@@ -714,7 +715,7 @@ export default function AdminPage() {
           )}
           {view === "vitrine" && (
             <button style={styles.newButton} onClick={() => setShowShowcaseForm(true)}>
-              + Nouvelle vitrine
+              + Nouvelle page
             </button>
           )}
         </header>
@@ -738,7 +739,7 @@ export default function AdminPage() {
           </div>
           <div style={styles.statCard}>
             <span style={styles.statNumber}>{showcases.length}</span>
-            <span style={styles.statLabel}>Ma Vitrine</span>
+            <span style={styles.statLabel}>Ma Page</span>
           </div>
         </div>
 
@@ -759,7 +760,7 @@ export default function AdminPage() {
             style={{ ...styles.tab, ...(view === "vitrine" ? styles.tabActive : {}) }}
             onClick={() => setView("vitrine")}
           >
-            Ma Vitrine
+            Ma Page
           </button>
         </div>
 
@@ -808,11 +809,11 @@ export default function AdminPage() {
                       <option>Lancement de produit</option>
                       <option>Fête d'entreprise</option>
                       <option>Vos avis</option>
-                      <option>Notre Journal</option>
+                      <option>Entre Nous</option>
                       <option>Autre</option>
                     </select>
                   </label>
-                  {eventType === "Notre Journal" ? (
+                  {(eventType === "Entre Nous" || eventType === "Notre Journal") ? (
                     <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: 0 }}>
                       Pas de date de fin — c'est un espace qui vit dans la durée. Les sondages seront ouverts à tout le
                       groupe (pas juste toi).
@@ -1503,7 +1504,7 @@ export default function AdminPage() {
             {showShowcaseForm && (
               <div style={styles.modalOverlay} onClick={() => setShowShowcaseForm(false)}>
                 <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateShowcase}>
-                  <h2 style={styles.modalTitle}>Créer une vitrine</h2>
+                  <h2 style={styles.modalTitle}>Créer une page</h2>
                   <label style={styles.label}>
                     Nom du client / commerce
                     <input
@@ -1556,10 +1557,10 @@ export default function AdminPage() {
             {!showcasesLoading && showcases.length === 0 && !showcasesError && (
               <div style={styles.emptyState}>
                 <p style={{ fontSize: "1.4rem", fontFamily: "'Caveat', cursive", margin: 0 }}>
-                  Aucune vitrine créée pour l'instant
+                  Aucune page créée pour l'instant
                 </p>
                 <p style={{ color: "#8A7F66", marginTop: "6px" }}>
-                  Clique sur "Nouvelle vitrine" pour ton premier client
+                  Clique sur "Nouvelle page" pour ton premier client
                 </p>
               </div>
             )}

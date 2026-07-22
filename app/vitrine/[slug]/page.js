@@ -58,7 +58,7 @@ export default function PublicVitrinePage() {
     load();
   }, [load]);
 
-  if (notFound) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Cette vitrine n'existe pas.</p>;
+  if (notFound) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Cette page n'existe pas.</p>;
   if (loading || !showcase) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Chargement…</p>;
 
   const theme = VITRINE_THEMES[showcase.theme] || VITRINE_THEMES[DEFAULT_THEME];
@@ -101,7 +101,7 @@ export default function PublicVitrinePage() {
           }}
         >
           <p style={{ fontSize: "11px", letterSpacing: ".2em", fontWeight: 600, color: v["--accent"], textTransform: "uppercase", margin: "0 0 14px" }}>
-            {showcase.tagline || "Ma vitrine"}
+            {showcase.tagline || "Ma page"}
           </p>
           <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "38px", fontWeight: 700, lineHeight: 1.08, margin: 0 }}>
             {showcase.business_name}

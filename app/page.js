@@ -131,19 +131,16 @@ export default function Home() {
           zIndex: 2,
         }}
       >
-        <p
+        <img
+          src="/loho.png"
+          alt="Lehnova — Supports connectés"
           style={{
-            fontFamily: "var(--font-display), serif",
-            fontWeight: 600,
-            fontSize: "0.95rem",
-            letterSpacing: "0.15em",
-            color: "#E7A94C",
-            textTransform: "uppercase",
-            marginBottom: "10px",
+            width: "min(240px, 60vw)",
+            height: "auto",
+            margin: "0 auto 10px",
+            display: "block",
           }}
-        >
-          Lehnova — Supports connectés
-        </p>
+        />
         <p
           style={{
             letterSpacing: "0.35em",

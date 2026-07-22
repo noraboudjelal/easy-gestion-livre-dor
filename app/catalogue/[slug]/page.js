@@ -406,7 +406,7 @@ export default function CatalogPage() {
       `}</style>
 
       <header style={{ ...styles.header, borderBottomColor: accent }}>
-        <p style={{ ...styles.eyebrow, color: accent }}>CATALOGUE NUMÉRIQUE</p>
+        <p style={{ ...styles.eyebrow, color: accent }}>MA VITRINE NUMÉRIQUE</p>
         <h1
           style={{
             ...styles.title,

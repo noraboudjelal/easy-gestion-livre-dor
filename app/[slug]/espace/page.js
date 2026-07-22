@@ -75,6 +75,11 @@ const THEMES = {
     accent: "#E07856", accentSoft: "rgba(224,120,86,0.3)", accentText: "#2A1A10",
     ivory: "#FBF3EA", muted: "#C9B49C",
   },
+  "Entre Nous": {
+    ink: "#332A22", surface: "#3D3226", surface2: "#4A3C2C",
+    accent: "#E07856", accentSoft: "rgba(224,120,86,0.3)", accentText: "#2A1A10",
+    ivory: "#FBF3EA", muted: "#C9B49C",
+  },
   "Autre": {
     ink: "#14131C", surface: "#1F1E2B", surface2: "#2A2836",
     accent: "#C9A24B", accentSoft: "rgba(201,162,75,0.3)", accentText: "#20180A",
@@ -113,7 +118,7 @@ export default function EspaceMariesPage() {
   const [giftFormError, setGiftFormError] = useState("");
   const [tab, setTab] = useState("tout");
 
-  // --- Notre Journal ---
+  // --- Entre Nous ---
   const [wallRefs, setWallRefs] = useState([]);
   const [eventDates, setEventDates] = useState([]);
   const [newRefText, setNewRefText] = useState("");
@@ -129,7 +134,7 @@ export default function EspaceMariesPage() {
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
-  const isJournal = event?.event_type === "Notre Journal";
+  const isJournal = event?.event_type === "Entre Nous" || event?.event_type === "Notre Journal";
   const canAnyoneStartPoll = isJournal && event?.polls_open_to_all;
 
   const loadEvent = useCallback(async () => {

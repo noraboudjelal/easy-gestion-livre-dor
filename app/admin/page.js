@@ -695,7 +695,7 @@ export default function AdminPage() {
       <div style={styles.shell}>
         <header style={styles.header}>
           <div style={styles.brandRow}>
-            <span style={styles.logoMark}>EG</span>
+            <span style={styles.logoMark}>LN</span>
             <div>
               <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
               <h1 style={styles.brandTitle}>

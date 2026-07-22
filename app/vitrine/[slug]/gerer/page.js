@@ -118,7 +118,7 @@ export default function ClientManageVitrinePage() {
   function handleLogin(e) {
     e.preventDefault();
     if (!showcase?.client_password) {
-      setAuthError("L'accès n'est pas encore configuré pour cette vitrine. Contacte Easy Gestion Toulouse.");
+      setAuthError("L'accès n'est pas encore configuré pour cette page. Contacte Easy Gestion Toulouse.");
       return;
     }
     if (pwd === showcase.client_password) {
@@ -298,7 +298,7 @@ export default function ClientManageVitrinePage() {
     return `${window.location.origin}/vitrine/${showcase.slug}`;
   }
 
-  if (notFound) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Cette vitrine n'existe pas.</p>;
+  if (notFound) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Cette page n'existe pas.</p>;
   if (loading) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Chargement…</p>;
 
   if (!authed) {
@@ -307,7 +307,7 @@ export default function ClientManageVitrinePage() {
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Work+Sans:wght@400;500;600&display=swap'); * { box-sizing: border-box; }`}</style>
         <form style={styles.loginBox} onSubmit={handleLogin}>
           <p style={styles.loginKicker}>{showcase?.business_name}</p>
-          <h1 style={styles.loginTitle}>Gérer ma vitrine</h1>
+          <h1 style={styles.loginTitle}>Gérer ma page</h1>
           <input type="password" placeholder="Code d'accès" value={pwd} onChange={(e) => setPwd(e.target.value)} style={styles.input} autoFocus />
           <button type="submit" style={styles.primaryButton}>
             Entrer
@@ -332,11 +332,11 @@ export default function ClientManageVitrinePage() {
       <div style={styles.shell}>
         <header style={styles.header}>
           <div>
-            <p style={styles.kicker}>MA VITRINE</p>
+            <p style={styles.kicker}>MA PAGE</p>
             <h1 style={styles.title}>{showcase?.business_name}</h1>
           </div>
           <a href={vitrineLink()} target="_blank" rel="noreferrer" style={styles.viewLink}>
-            Voir ma vitrine ↗
+            Voir ma page ↗
           </a>
         </header>
 
@@ -350,7 +350,7 @@ export default function ClientManageVitrinePage() {
         <section style={styles.themeBlock}>
           <h2 style={styles.blockTitle}>À propos</h2>
           <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: "6px 0 0" }}>
-            Ton expérience, tes diplômes, ce qui te définit — ça apparaît sur ta vitrine juste sous le titre.
+            Ton expérience, tes diplômes, ce qui te définit — ça apparaît sur ta page juste sous le titre.
           </p>
           <form style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }} onSubmit={handleSaveAbout}>
             <textarea
@@ -369,7 +369,7 @@ export default function ClientManageVitrinePage() {
         </section>
 
         <section style={styles.themeBlock}>
-          <h2 style={styles.blockTitle}>Couleur de ma vitrine</h2>
+          <h2 style={styles.blockTitle}>Couleur de ma page</h2>
           <div style={styles.themeRow}>
             {Object.entries(VITRINE_THEMES).map(([key, theme]) => (
               <button

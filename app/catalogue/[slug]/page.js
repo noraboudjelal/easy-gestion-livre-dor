@@ -45,6 +45,16 @@ function formatPrice(raw) {
   return out + " €";
 }
 
+function getVideoEmbedUrl(url) {
+  if (!url) return null;
+  const trimmed = url.trim();
+  const yt = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = trimmed.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return null;
+}
+
 function PhotoCarousel({ photos, alt, onOpen }) {
   const scrollerRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -323,6 +333,8 @@ export default function CatalogPage() {
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [quizLoadError, setQuizLoadError] = useState("");
   const [showQuiz, setShowQuiz] = useState(true);
+  const [transformations, setTransformations] = useState([]);
+  const [avapValues, setAvapValues] = useState({});
   const mainRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -347,6 +359,15 @@ export default function CatalogPage() {
       .order("position", { ascending: true });
 
     setProducts(prods || []);
+
+    if (cat.avant_apres_enabled) {
+      const { data: transfos } = await supabase
+        .from("catalog_transformations")
+        .select("*")
+        .eq("catalog_id", cat.id)
+        .order("position", { ascending: true });
+      setTransformations(transfos || []);
+    }
 
     if (cat.quiz_enabled) {
       const { data: questions, error: quizErr } = await supabase
@@ -419,6 +440,14 @@ export default function CatalogPage() {
         </h1>
       </header>
 
+      {!loading && catalog?.offer_enabled && catalog?.offer_title && (
+        <div style={{ ...styles.offerBanner, borderColor: accent }}>
+          <p style={{ ...styles.offerEyebrow, color: accent }}>Offre du moment</p>
+          <p style={styles.offerTitle}>{catalog.offer_title}</p>
+          {catalog.offer_text && <p style={styles.offerText}>{catalog.offer_text}</p>}
+        </div>
+      )}
+
       <main style={styles.main} ref={mainRef}>
         {loading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
 
@@ -460,7 +489,100 @@ export default function CatalogPage() {
           ))}
       </main>
 
-      <footer style={{ ...styles.footer, color: accent }}>Catalogue réalisé par Easy Gestion Toulouse</footer>
+      {!loading && catalog?.portfolio_photo_urls?.length > 0 && (
+        <section style={styles.realisationsSection}>
+          <h2 style={{ ...styles.realisationsTitle, color: accent }}>À découvrir</h2>
+          <div style={styles.realisationsScroller}>
+            {catalog.portfolio_photo_urls.map((url, i) => (
+              <img key={i} src={url} alt="Réalisation" style={styles.realisationsPhoto} loading="lazy" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!loading && transformations.length > 0 && (
+        <section style={styles.realisationsSection}>
+          <h2 style={{ ...styles.realisationsTitle, color: accent }}>Avant / après</h2>
+          <div style={styles.realisationsScroller}>
+            {transformations.map((t) => {
+              const value = avapValues[t.id] ?? 50;
+              return (
+                <div key={t.id} style={styles.avapCard}>
+                  <div style={styles.avapImageWrap}>
+                    {t.before_url && <img src={t.before_url} alt="avant" style={styles.avapImage} />}
+                    {t.after_url && (
+                      <img
+                        src={t.after_url}
+                        alt="après"
+                        style={{ ...styles.avapImage, position: "absolute", inset: 0, clipPath: `inset(0 0 0 ${value}%)` }}
+                      />
+                    )}
+                    <span style={{ ...styles.avapTag, left: "8px" }}>Avant</span>
+                    <span style={{ ...styles.avapTag, right: "8px" }}>Après</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={value}
+                    onChange={(e) => setAvapValues((prev) => ({ ...prev, [t.id]: Number(e.target.value) }))}
+                    style={styles.avapSlider}
+                  />
+                  {t.label && <p style={styles.avapLabel}>{t.label}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {!loading && catalog?.video_enabled && catalog?.video_url && (
+        <section style={styles.videoSection}>
+          <h2 style={{ ...styles.realisationsTitle, color: accent }}>En vidéo</h2>
+          {getVideoEmbedUrl(catalog.video_url) ? (
+            <div style={styles.videoWrap}>
+              <iframe
+                src={getVideoEmbedUrl(catalog.video_url)}
+                title="Vidéo de présentation"
+                style={styles.videoFrame}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <video src={catalog.video_url} controls style={styles.videoFrame} />
+          )}
+        </section>
+      )}
+
+      {!loading && (catalog?.instagram_url || catalog?.facebook_url || catalog?.google_review_url) && (
+        <div style={styles.linksRow}>
+          {catalog?.google_review_url && (
+            <a
+              href={catalog.google_review_url}
+              target="_blank"
+              rel="noreferrer"
+              style={{ ...styles.googleLink, borderColor: accent, color: accent }}
+            >
+              ★ Voir nos avis Google
+            </a>
+          )}
+          <div style={styles.socialRow}>
+            {catalog?.instagram_url && (
+              <a href={catalog.instagram_url} target="_blank" rel="noreferrer" style={{ ...styles.socialButton, background: accent }}>
+                IG
+              </a>
+            )}
+            {catalog?.facebook_url && (
+              <a href={catalog.facebook_url} target="_blank" rel="noreferrer" style={{ ...styles.socialButton, background: accent }}>
+                FB
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      <footer style={{ ...styles.footer, color: accent }}>Vitrine réalisée par Lehnova</footer>
 
       {showTop && (
         <button onClick={scrollToTop} style={{ ...styles.topButton, background: accent }} aria-label="Retour en haut">
@@ -616,6 +738,95 @@ const styles = {
     borderRadius: "999px",
   },
   description: { fontSize: "0.82rem", color: "#6B5D4C", margin: 0, lineHeight: 1.5 },
+  realisationsSection: { width: "100%", maxWidth: "900px", marginBottom: "8px" },
+  realisationsTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.1rem", fontWeight: 700, margin: "0 0 12px 4px" },
+  realisationsScroller: {
+    display: "flex",
+    gap: "12px",
+    overflowX: "auto",
+    padding: "4px 4px 16px",
+    scrollSnapType: "x mandatory",
+  },
+  realisationsPhoto: {
+    flex: "0 0 auto",
+    width: "160px",
+    height: "200px",
+    objectFit: "cover",
+    borderRadius: "12px",
+    scrollSnapAlign: "start",
+    boxShadow: "0 8px 20px rgba(30,20,10,0.1)",
+  },
+  linksRow: {
+    width: "100%",
+    maxWidth: "900px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "14px",
+    marginTop: "32px",
+  },
+  googleLink: {
+    border: "1.5px solid",
+    borderRadius: "999px",
+    padding: "9px 18px",
+    fontSize: "0.85rem",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
+  socialRow: { display: "flex", gap: "10px" },
+  socialButton: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#FCFAF2",
+    fontSize: "0.78rem",
+    fontWeight: 700,
+    textDecoration: "none",
+  },
+  offerBanner: {
+    width: "100%",
+    maxWidth: "900px",
+    border: "1.5px solid",
+    borderRadius: "14px",
+    padding: "18px 22px",
+    marginBottom: "28px",
+    textAlign: "center",
+    background: "rgba(255,255,255,0.5)",
+  },
+  offerEyebrow: { fontSize: "0.68rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, margin: "0 0 6px" },
+  offerTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", fontWeight: 700, color: "#1E2A3A", margin: "0 0 4px" },
+  offerText: { fontSize: "0.85rem", color: "#6B5D4C", margin: 0 },
+  videoSection: { width: "100%", maxWidth: "900px", marginTop: "8px" },
+  videoWrap: { position: "relative", width: "100%", paddingTop: "56.25%", borderRadius: "14px", overflow: "hidden" },
+  videoFrame: { position: "absolute", inset: 0, width: "100%", height: "100%", border: "none", borderRadius: "14px" },
+  avapCard: { flex: "0 0 auto", width: "220px" },
+  avapImageWrap: {
+    position: "relative",
+    width: "220px",
+    height: "260px",
+    borderRadius: "12px",
+    overflow: "hidden",
+    background: "#222",
+    marginBottom: "10px",
+  },
+  avapImage: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+  avapTag: {
+    position: "absolute",
+    top: "10px",
+    fontSize: "0.65rem",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    background: "rgba(0,0,0,0.55)",
+    color: "#fff",
+    padding: "4px 9px",
+    borderRadius: "4px",
+  },
+  avapSlider: { width: "100%" },
+  avapLabel: { fontSize: "0.78rem", opacity: 0.7, textAlign: "center", margin: "6px 0 0" },
   footer: { marginTop: "40px", fontSize: "0.68rem", letterSpacing: "0.06em", color: "#A6947A", opacity: 0.8 },
   topButton: {
     position: "fixed",

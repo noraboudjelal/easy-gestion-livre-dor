@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Lehnova — Supports connectés",
-  description: "Supports numériques et physiques connectés, pour vos commerces et événements à Toulouse.",
+  title: "Lehnova — Supports numériques personnalisés",
+  description: "Solutions numériques accessibles par QR code pour les événements, les commerces et les artisans.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: "#1C1B33",
+  themeColor: "#071522",
 };
 
 export default function RootLayout({ children }) {

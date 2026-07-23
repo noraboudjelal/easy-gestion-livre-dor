@@ -205,6 +205,170 @@ function describeWheelSlice(cx, cy, r, startAngle, endAngle) {
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
 }
 
+function EggReveal({ revealAt, revealGender, theme }) {
+  const target = new Date(revealAt).getTime();
+  const [now, setNow] = useState(Date.now());
+  const [shake, setShake] = useState(false);
+  const [showPatience, setShowPatience] = useState(false);
+  const [cracks, setCracks] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [confetti, setConfetti] = useState([]);
+  const maxCracks = 5;
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(`egg-revealed-${revealAt}`) === "1") setRevealed(true);
+    } catch {}
+  }, [revealAt]);
+
+  useEffect(() => {
+    if (revealed) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [revealed]);
+
+  const isReady = now >= target;
+  const diff = Math.max(target - now, 0);
+  const hh = String(Math.floor(diff / 3600000)).padStart(2, "0");
+  const mm = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+  const ss = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+
+  function handleLockedTap() {
+    setShake(true);
+    setShowPatience(true);
+    setTimeout(() => setShake(false), 400);
+    setTimeout(() => setShowPatience(false), 1600);
+  }
+
+  function handleCrackTap() {
+    const next = cracks + 1;
+    if (next >= maxCracks) {
+      launchConfetti();
+      setTimeout(() => {
+        setRevealed(true);
+        try {
+          sessionStorage.setItem(`egg-revealed-${revealAt}`, "1");
+        } catch {}
+      }, 400);
+    } else {
+      setCracks(next);
+    }
+  }
+
+  function launchConfetti() {
+    const colors =
+      revealGender === "garcon" ? ["#7EB8E8", "#A8D0F0", "#F4EEF6"] : ["#E8A3C0", "#F5C6DA", "#F4EEF6"];
+    const pieces = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      duration: 2 + Math.random() * 1.5,
+      delay: Math.random() * 0.4,
+    }));
+    setConfetti(pieces);
+    setTimeout(() => setConfetti([]), 4000);
+  }
+
+  const genderLabel = revealGender === "garcon" ? "C'est un garçon !" : "C'est une fille !";
+  const genderColor = revealGender === "garcon" ? "#7EB8E8" : theme.accent;
+
+  return (
+    <div style={{ textAlign: "center", padding: "20px 0 28px" }}>
+      {confetti.map((c) => (
+        <span
+          key={c.id}
+          style={{
+            position: "fixed",
+            top: "-10px",
+            left: `${c.left}vw`,
+            width: "8px",
+            height: "14px",
+            background: c.color,
+            opacity: 0.9,
+            pointerEvents: "none",
+            animation: `confettiFall ${c.duration}s linear forwards`,
+            animationDelay: `${c.delay}s`,
+            zIndex: 999,
+          }}
+        />
+      ))}
+
+      {revealed ? (
+        <div>
+          <div style={{ fontSize: "2.6rem", marginBottom: "6px" }}>🎈</div>
+          <p
+            style={{
+              fontFamily: "'Instrument Serif', serif",
+              fontSize: "2rem",
+              color: genderColor,
+              margin: 0,
+            }}
+          >
+            {genderLabel}
+          </p>
+        </div>
+      ) : !isReady ? (
+        <div>
+          <p style={{ fontSize: "0.9rem", color: theme.muted, marginBottom: "18px" }}>
+            Révélation dans{" "}
+            <strong style={{ color: theme.accent, fontVariantNumeric: "tabular-nums" }}>
+              {hh}:{mm}:{ss}
+            </strong>
+          </p>
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <div
+              onClick={handleLockedTap}
+              style={{
+                fontSize: "100px",
+                cursor: "pointer",
+                userSelect: "none",
+                animation: shake ? "eggShake 0.4s ease" : "none",
+              }}
+            >
+              🥚
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                bottom: "-22px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                fontSize: "0.82rem",
+                color: theme.accent,
+                opacity: showPatience ? 1 : 0,
+                transition: "opacity 0.25s ease",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Encore un peu de patience… 🥚
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p style={{ fontSize: "0.85rem", color: theme.muted, marginBottom: "10px" }}>
+            Tape sur l'œuf pour le faire éclore
+          </p>
+          <div
+            onClick={handleCrackTap}
+            style={{
+              fontSize: "100px",
+              cursor: "pointer",
+              userSelect: "none",
+              display: "inline-block",
+              transform: cracks > 0 ? `scale(${1 + cracks * 0.02}) rotate(${cracks % 2 === 0 ? 1 : -1}deg)` : "none",
+              filter: cracks > 0 ? `drop-shadow(0 10px ${16 + cracks * 4}px ${theme.accentSoft}) brightness(${1 + cracks * 0.03})` : "none",
+              transition: "transform 0.15s ease, filter 0.3s ease",
+            }}
+          >
+            🥚
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GuestbookPage() {
   const params = useParams();
   const slug = params?.slug;
@@ -1125,6 +1289,8 @@ export default function GuestbookPage() {
         @keyframes ldBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes funPop { 0% { transform: scale(0.9); opacity: 0; } 60% { transform: scale(1.03); } 100% { transform: scale(1); opacity: 1; } }
         @keyframes funWiggle { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+        @keyframes eggShake { 0%, 100% { transform: translateX(0) rotate(0); } 20% { transform: translateX(-6px) rotate(-4deg); } 40% { transform: translateX(6px) rotate(4deg); } 60% { transform: translateX(-5px) rotate(-3deg); } 80% { transform: translateX(5px) rotate(3deg); } }
+        @keyframes confettiFall { to { transform: translateY(110vh) rotate(400deg); opacity: 0.3; } }
         .fun-spin-btn:active { transform: scale(0.94); }
         .fun-spin-btn:not(:disabled):hover { transform: translateY(-2px) rotate(-1deg); }
         .fun-card { animation: funPop 0.4s ease both; }
@@ -1394,6 +1560,10 @@ export default function GuestbookPage() {
             </div>
           );
         })}
+
+        {event?.event_type === "Baby Shower" && event?.reveal_at && (
+          <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
+        )}
 
         {event?.cagnotte_url && (
           <a

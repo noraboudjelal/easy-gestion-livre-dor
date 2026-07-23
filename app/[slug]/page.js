@@ -1019,7 +1019,7 @@ export default function GuestbookPage() {
         `}</style>
         <div style={styles.content}>
           <header style={styles.header}>
-            <p style={styles.eyebrow}>LE FIL</p>
+            <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
             <h1 style={styles.title}>{event?.event_title}</h1>
             <p style={styles.sub}>On a hâte de vous voir !</p>
           </header>
@@ -1134,7 +1134,7 @@ export default function GuestbookPage() {
 
       <div style={styles.content}>
         <header style={styles.header}>
-          <p style={styles.eyebrow}>LE FIL</p>
+          <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
           {isReview && (
             <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>

@@ -37,8 +37,36 @@ export default function ManageCatalogPage() {
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleSaved, setStyleSaved] = useState(false);
 
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
+  const [portfolioFiles, setPortfolioFiles] = useState([]); // nouveaux fichiers à uploader
+  const [portfolioPreviews, setPortfolioPreviews] = useState([]);
+  const [existingPortfolioUrls, setExistingPortfolioUrls] = useState([]);
+  const [savingLinks, setSavingLinks] = useState(false);
+  const [linksSaved, setLinksSaved] = useState(false);
+
   const [quizEnabled, setQuizEnabled] = useState(false);
   const [savingQuizToggle, setSavingQuizToggle] = useState(false);
+
+  const [avantApresEnabled, setAvantApresEnabled] = useState(false);
+  const [savingAvantApresToggle, setSavingAvantApresToggle] = useState(false);
+  const [transformations, setTransformations] = useState([]);
+  const [taLabel, setTaLabel] = useState("");
+  const [taBeforeFile, setTaBeforeFile] = useState(null);
+  const [taAfterFile, setTaAfterFile] = useState(null);
+  const [taSaving, setTaSaving] = useState(false);
+
+  const [offerEnabled, setOfferEnabled] = useState(false);
+  const [offerTitle, setOfferTitle] = useState("");
+  const [offerText, setOfferText] = useState("");
+  const [savingOffer, setSavingOffer] = useState(false);
+  const [offerSaved, setOfferSaved] = useState(false);
+
+  const [videoEnabled, setVideoEnabled] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
+  const [savingVideo, setSavingVideo] = useState(false);
+  const [videoSaved, setVideoSaved] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState([]); // [{id, question, step_order, options:[{id,label,product_ids}]}]
   const [savingQuestionId, setSavingQuestionId] = useState(null);
   const [savedQuestionFlash, setSavedQuestionFlash] = useState(null);
@@ -67,6 +95,16 @@ export default function ManageCatalogPage() {
     setCatalogTitle(cat.catalog_title || "");
     setFontStyle(cat.font_style || "manuscrite");
     setQuizEnabled(!!cat.quiz_enabled);
+    setAvantApresEnabled(!!cat.avant_apres_enabled);
+    setOfferEnabled(!!cat.offer_enabled);
+    setOfferTitle(cat.offer_title || "");
+    setOfferText(cat.offer_text || "");
+    setVideoEnabled(!!cat.video_enabled);
+    setVideoUrl(cat.video_url || "");
+    setInstagramUrl(cat.instagram_url || "");
+    setFacebookUrl(cat.facebook_url || "");
+    setGoogleReviewUrl(cat.google_review_url || "");
+    setExistingPortfolioUrls(cat.portfolio_photo_urls || []);
 
     const { data: prods, error: prodErr } = await supabase
       .from("catalog_products")
@@ -80,6 +118,13 @@ export default function ManageCatalogPage() {
       setLoadError("");
       setProducts(prods || []);
     }
+
+    const { data: transfos, error: transfoErr } = await supabase
+      .from("catalog_transformations")
+      .select("*")
+      .eq("catalog_id", catalogId)
+      .order("position", { ascending: true });
+    if (!transfoErr) setTransformations(transfos || []);
 
     const { data: questions, error: quizErr } = await supabase
       .from("quiz_questions")
@@ -229,6 +274,59 @@ export default function ManageCatalogPage() {
     }
   }
 
+  function handlePortfolioFilesChange(e) {
+    const files = Array.from(e.target.files || []);
+    setPortfolioFiles((prev) => [...prev, ...files]);
+    setPortfolioPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+  }
+
+  function removeExistingPortfolioPhoto(url) {
+    setExistingPortfolioUrls((prev) => prev.filter((u) => u !== url));
+  }
+
+  function removeNewPortfolioPhoto(index) {
+    setPortfolioFiles((prev) => prev.filter((_, i) => i !== index));
+    setPortfolioPreviews((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSaveLinks() {
+    if (!supabase || !catalogId) return;
+    setSavingLinks(true);
+
+    const uploadedUrls = [];
+    for (const file of portfolioFiles) {
+      const path = `portfolio/${catalogId}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("catalog-photos").upload(path, file);
+      if (!uploadError) {
+        const { data: pub } = supabase.storage.from("catalog-photos").getPublicUrl(path);
+        if (pub?.publicUrl) uploadedUrls.push(pub.publicUrl);
+      }
+    }
+    const finalPortfolioUrls = [...existingPortfolioUrls, ...uploadedUrls];
+
+    const { error } = await supabase
+      .from("catalogs")
+      .update({
+        instagram_url: instagramUrl.trim() || null,
+        facebook_url: facebookUrl.trim() || null,
+        google_review_url: googleReviewUrl.trim() || null,
+        portfolio_photo_urls: finalPortfolioUrls,
+      })
+      .eq("id", catalogId);
+
+    setSavingLinks(false);
+    if (error) {
+      setLoadError("Impossible d'enregistrer les réalisations/liens : " + error.message);
+    } else {
+      setPortfolioFiles([]);
+      setPortfolioPreviews([]);
+      setExistingPortfolioUrls(finalPortfolioUrls);
+      setLinksSaved(true);
+      setTimeout(() => setLinksSaved(false), 1800);
+      load();
+    }
+  }
+
   async function handleToggleQuiz() {
     if (!supabase || !catalogId) return;
     setSavingQuizToggle(true);
@@ -243,6 +341,112 @@ export default function ManageCatalogPage() {
     } else {
       setQuizEnabled(nextValue);
     }
+  }
+
+  async function handleToggleAvantApres() {
+    if (!supabase || !catalogId) return;
+    setSavingAvantApresToggle(true);
+    const nextValue = !avantApresEnabled;
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ avant_apres_enabled: nextValue })
+      .eq("id", catalogId);
+    setSavingAvantApresToggle(false);
+    if (error) {
+      setLoadError("Impossible de changer le statut avant/après : " + error.message);
+    } else {
+      setAvantApresEnabled(nextValue);
+    }
+  }
+
+  async function handleSaveOffer() {
+    if (!supabase || !catalogId) return;
+    setSavingOffer(true);
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ offer_title: offerTitle.trim() || null, offer_text: offerText.trim() || null })
+      .eq("id", catalogId);
+    setSavingOffer(false);
+    if (error) {
+      setLoadError("Impossible d'enregistrer l'offre : " + error.message);
+    } else {
+      setOfferSaved(true);
+      setTimeout(() => setOfferSaved(false), 1800);
+    }
+  }
+
+  async function handleToggleOffer() {
+    if (!supabase || !catalogId) return;
+    const nextValue = !offerEnabled;
+    const { error } = await supabase.from("catalogs").update({ offer_enabled: nextValue }).eq("id", catalogId);
+    if (!error) setOfferEnabled(nextValue);
+  }
+
+  async function handleSaveVideo() {
+    if (!supabase || !catalogId) return;
+    setSavingVideo(true);
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ video_url: videoUrl.trim() || null })
+      .eq("id", catalogId);
+    setSavingVideo(false);
+    if (error) {
+      setLoadError("Impossible d'enregistrer la vidéo : " + error.message);
+    } else {
+      setVideoSaved(true);
+      setTimeout(() => setVideoSaved(false), 1800);
+    }
+  }
+
+  async function handleToggleVideo() {
+    if (!supabase || !catalogId) return;
+    const nextValue = !videoEnabled;
+    const { error } = await supabase.from("catalogs").update({ video_enabled: nextValue }).eq("id", catalogId);
+    if (!error) setVideoEnabled(nextValue);
+  }
+
+  async function handleAddTransformation(e) {
+    e.preventDefault();
+    if (!supabase || !catalogId || (!taBeforeFile && !taAfterFile)) return;
+    setTaSaving(true);
+
+    async function uploadOne(file) {
+      if (!file) return null;
+      const path = `avant-apres/${catalogId}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("catalog-photos").upload(path, file);
+      if (uploadError) return null;
+      const { data: pub } = supabase.storage.from("catalog-photos").getPublicUrl(path);
+      return pub?.publicUrl || null;
+    }
+
+    const beforeUrl = await uploadOne(taBeforeFile);
+    const afterUrl = await uploadOne(taAfterFile);
+
+    const { error } = await supabase.from("catalog_transformations").insert({
+      catalog_id: catalogId,
+      label: taLabel.trim(),
+      before_url: beforeUrl,
+      after_url: afterUrl,
+      position: transformations.length,
+    });
+
+    setTaSaving(false);
+    if (error) {
+      setLoadError("Ajout impossible : " + error.message);
+      return;
+    }
+    setTaLabel("");
+    setTaBeforeFile(null);
+    setTaAfterFile(null);
+    load();
+  }
+
+  async function handleDeleteTransformation(id) {
+    if (!supabase) return;
+    if (!window.confirm("Supprimer cette transformation ?")) return;
+    const { error } = await supabase.from("catalog_transformations").delete().eq("id", id);
+    if (error) setLoadError("Suppression impossible : " + error.message);
+    else load();
   }
 
   function addLocalQuestion() {
@@ -596,6 +800,241 @@ export default function ManageCatalogPage() {
                 {savingStyle ? "Enregistrement…" : styleSaved ? "✓ Enregistré" : "Enregistrer l'apparence"}
               </button>
             </div>
+          </div>
+        )}
+
+        {catalog && (
+          <div style={styles.styleBox}>
+            <h2 style={styles.formTitle}>Réalisations & liens</h2>
+            <p style={{ fontSize: "0.78rem", color: "#8A7F66", margin: 0 }}>
+              Des photos de vos réalisations à faire défiler en haut de la vitrine, et des liens vers vos
+              réseaux et vos avis Google.
+            </p>
+
+            <label style={styles.label}>
+              Ajouter des photos de réalisations
+              <input type="file" accept="image/*" multiple onChange={handlePortfolioFilesChange} />
+            </label>
+
+            {(existingPortfolioUrls.length > 0 || portfolioPreviews.length > 0) && (
+              <div style={styles.portfolioGrid}>
+                {existingPortfolioUrls.map((url) => (
+                  <div key={url} style={styles.portfolioThumbWrap}>
+                    <img src={url} alt="" style={styles.portfolioThumb} />
+                    <button
+                      type="button"
+                      style={styles.portfolioRemoveButton}
+                      onClick={() => removeExistingPortfolioPhoto(url)}
+                      aria-label="Retirer cette photo"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {portfolioPreviews.map((src, i) => (
+                  <div key={`new-${i}`} style={styles.portfolioThumbWrap}>
+                    <img src={src} alt="" style={styles.portfolioThumb} />
+                    <button
+                      type="button"
+                      style={styles.portfolioRemoveButton}
+                      onClick={() => removeNewPortfolioPhoto(i)}
+                      aria-label="Retirer cette photo"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label style={styles.label}>
+              Lien Instagram
+              <input
+                style={styles.input}
+                value={instagramUrl}
+                onChange={(e) => setInstagramUrl(e.target.value)}
+                placeholder="https://instagram.com/..."
+              />
+            </label>
+            <label style={styles.label}>
+              Lien Facebook
+              <input
+                style={styles.input}
+                value={facebookUrl}
+                onChange={(e) => setFacebookUrl(e.target.value)}
+                placeholder="https://facebook.com/..."
+              />
+            </label>
+            <label style={styles.label}>
+              Lien avis Google
+              <input
+                style={styles.input}
+                value={googleReviewUrl}
+                onChange={(e) => setGoogleReviewUrl(e.target.value)}
+                placeholder="https://g.page/r/..."
+              />
+            </label>
+
+            <div style={styles.formActions}>
+              <button type="button" style={styles.newButton} onClick={handleSaveLinks} disabled={savingLinks}>
+                {savingLinks ? "Enregistrement…" : linksSaved ? "✓ Enregistré" : "Enregistrer les réalisations & liens"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {catalog && (
+          <div style={styles.styleBox}>
+            <div style={styles.quizHeader}>
+              <h2 style={styles.formTitle}>Avant / Après</h2>
+              <button
+                type="button"
+                onClick={handleToggleAvantApres}
+                disabled={savingAvantApresToggle}
+                style={{
+                  ...styles.toggleButton,
+                  background: avantApresEnabled ? "#3B7A4A" : "#D8CCAB",
+                  color: avantApresEnabled ? "#FCFAF2" : "#5B4636",
+                }}
+              >
+                {savingAvantApresToggle ? "…" : avantApresEnabled ? "Activé" : "Désactivé"}
+              </button>
+            </div>
+            <p style={{ fontSize: "0.78rem", color: "#8A7F66", margin: 0 }}>
+              Utile pour un institut de beauté ou un coiffeur, moins pertinent pour un restaurant ou une
+              boulangerie — à toi de l'activer ou non selon ton activité.
+            </p>
+
+            {avantApresEnabled && (
+              <>
+                <form onSubmit={handleAddTransformation} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <label style={styles.label}>
+                    Légende <span style={{ fontWeight: 400, color: "#8A7F66" }}>(optionnel)</span>
+                    <input
+                      style={styles.input}
+                      value={taLabel}
+                      onChange={(e) => setTaLabel(e.target.value)}
+                      placeholder="ex. Soin éclat en 3 séances"
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Photo "avant"
+                    <input type="file" accept="image/*" onChange={(e) => setTaBeforeFile(e.target.files?.[0] || null)} />
+                  </label>
+                  <label style={styles.label}>
+                    Photo "après"
+                    <input type="file" accept="image/*" onChange={(e) => setTaAfterFile(e.target.files?.[0] || null)} />
+                  </label>
+                  <div style={styles.formActions}>
+                    <button type="submit" style={styles.newButton} disabled={taSaving}>
+                      {taSaving ? "Ajout…" : "Ajouter cette transformation"}
+                    </button>
+                  </div>
+                </form>
+
+                {transformations.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {transformations.map((t) => (
+                      <div key={t.id} style={styles.pollBlock}>
+                        <div style={styles.pollBlockHead}>
+                          <span style={styles.pollBlockLabel}>{t.label || "Sans légende"}</span>
+                          <button type="button" style={styles.iconButtonDanger} onClick={() => handleDeleteTransformation(t.id)}>
+                            Supprimer
+                          </button>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          {t.before_url && <img src={t.before_url} alt="avant" style={styles.portfolioThumb} />}
+                          {t.after_url && <img src={t.after_url} alt="après" style={styles.portfolioThumb} />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {catalog && (
+          <div style={styles.styleBox}>
+            <div style={styles.quizHeader}>
+              <h2 style={styles.formTitle}>Offre du moment</h2>
+              <button
+                type="button"
+                onClick={handleToggleOffer}
+                style={{
+                  ...styles.toggleButton,
+                  background: offerEnabled ? "#3B7A4A" : "#D8CCAB",
+                  color: offerEnabled ? "#FCFAF2" : "#5B4636",
+                }}
+              >
+                {offerEnabled ? "Activé" : "Désactivé"}
+              </button>
+            </div>
+            {offerEnabled && (
+              <>
+                <label style={styles.label}>
+                  Titre de l'offre
+                  <input
+                    style={styles.input}
+                    value={offerTitle}
+                    onChange={(e) => setOfferTitle(e.target.value)}
+                    placeholder="ex. -20% sur les soins du visage en janvier"
+                  />
+                </label>
+                <label style={styles.label}>
+                  Détails <span style={{ fontWeight: 400, color: "#8A7F66" }}>(optionnel)</span>
+                  <input
+                    style={styles.input}
+                    value={offerText}
+                    onChange={(e) => setOfferText(e.target.value)}
+                    placeholder="ex. Valable jusqu'au 31 janvier, sur présentation de ce lien"
+                  />
+                </label>
+                <div style={styles.formActions}>
+                  <button type="button" style={styles.newButton} onClick={handleSaveOffer} disabled={savingOffer}>
+                    {savingOffer ? "Enregistrement…" : offerSaved ? "✓ Enregistré" : "Enregistrer l'offre"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {catalog && (
+          <div style={styles.styleBox}>
+            <div style={styles.quizHeader}>
+              <h2 style={styles.formTitle}>Vidéo</h2>
+              <button
+                type="button"
+                onClick={handleToggleVideo}
+                style={{
+                  ...styles.toggleButton,
+                  background: videoEnabled ? "#3B7A4A" : "#D8CCAB",
+                  color: videoEnabled ? "#FCFAF2" : "#5B4636",
+                }}
+              >
+                {videoEnabled ? "Activé" : "Désactivé"}
+              </button>
+            </div>
+            {videoEnabled && (
+              <>
+                <label style={styles.label}>
+                  Lien de la vidéo
+                  <input
+                    style={styles.input}
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="Lien YouTube, Vimeo, ou vers un fichier .mp4"
+                  />
+                </label>
+                <div style={styles.formActions}>
+                  <button type="button" style={styles.newButton} onClick={handleSaveVideo} disabled={savingVideo}>
+                    {savingVideo ? "Enregistrement…" : videoSaved ? "✓ Enregistré" : "Enregistrer la vidéo"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -956,4 +1395,21 @@ const styles = {
   productChipActive: { background: "#B5402D", color: "#FCFAF2", borderColor: "#B5402D" },
   removeOptionButton: { background: "none", border: "none", color: "#8B3A2B", fontSize: "0.7rem", alignSelf: "flex-start", padding: 0 },
   addOptionLink: { background: "none", border: "none", color: "#A6792B", fontSize: "0.78rem", fontWeight: 600, alignSelf: "flex-start", padding: 0 },
+  portfolioGrid: { display: "flex", flexWrap: "wrap", gap: "10px" },
+  portfolioThumbWrap: { position: "relative", width: "84px", height: "84px" },
+  portfolioThumb: { width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: "1px solid #E6DCC2" },
+  portfolioRemoveButton: {
+    position: "absolute",
+    top: "-6px",
+    right: "-6px",
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    border: "none",
+    background: "#1E2A3A",
+    color: "#fff",
+    fontSize: "0.65rem",
+    cursor: "pointer",
+    lineHeight: 1,
+  },
 };

@@ -73,6 +73,10 @@ export default function AdminPage() {
   const [editingDateFor, setEditingDateFor] = useState(null);
   const [editEventDate, setEditEventDate] = useState("");
   const [savingDate, setSavingDate] = useState(false);
+  const [editingRevealFor, setEditingRevealFor] = useState(null);
+  const [revealAt, setRevealAt] = useState("");
+  const [revealGender, setRevealGender] = useState("fille");
+  const [savingReveal, setSavingReveal] = useState(false);
   const [editingGiftsFor, setEditingGiftsFor] = useState(null);
   const [editingGifts, setEditingGifts] = useState([]);
   const [loadingGifts, setLoadingGifts] = useState(false);
@@ -456,6 +460,39 @@ export default function AdminPage() {
   function openDateEditor(ev) {
     setEditingDateFor(ev);
     setEditEventDate(ev.event_date || "");
+  }
+
+  function toDatetimeLocal(value) {
+    if (!value) return "";
+    const d = new Date(value);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function openRevealEditor(ev) {
+    setEditingRevealFor(ev);
+    setRevealAt(toDatetimeLocal(ev.reveal_at));
+    setRevealGender(ev.reveal_gender || "fille");
+  }
+
+  async function handleSaveReveal(e) {
+    e.preventDefault();
+    if (!editingRevealFor || !supabase) return;
+    setSavingReveal(true);
+    const { error } = await supabase
+      .from("events")
+      .update({
+        reveal_at: revealAt ? new Date(revealAt).toISOString() : null,
+        reveal_gender: revealGender,
+      })
+      .eq("id", editingRevealFor.id);
+    setSavingReveal(false);
+    if (error) {
+      setLoadError("Enregistrement de la révélation impossible : " + error.message);
+      return;
+    }
+    setEditingRevealFor(null);
+    loadEvents();
   }
 
   async function handleSaveDate(e) {
@@ -1007,6 +1044,43 @@ export default function AdminPage() {
               </div>
             )}
 
+            {editingRevealFor && (
+              <div style={styles.modalOverlay} onClick={() => setEditingRevealFor(null)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleSaveReveal}>
+                  <h2 style={styles.modalTitle}>Révélation — {editingRevealFor.client}</h2>
+                  <label style={styles.label}>
+                    Date et heure de la révélation
+                    <input
+                      type="datetime-local"
+                      style={styles.input}
+                      value={revealAt}
+                      onChange={(e) => setRevealAt(e.target.value)}
+                      autoFocus
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Le vrai résultat
+                    <select style={styles.input} value={revealGender} onChange={(e) => setRevealGender(e.target.value)}>
+                      <option value="fille">Une fille</option>
+                      <option value="garcon">Un garçon</option>
+                    </select>
+                  </label>
+                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
+                    Les invités voient un œuf avec un compte à rebours ; une fois l'heure passée, ils tapent dessus
+                    pour le faire éclore et découvrir le résultat. Laisse la date vide pour désactiver.
+                  </p>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setEditingRevealFor(null)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={savingReveal}>
+                      {savingReveal ? "Enregistrement…" : "Enregistrer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {editingGiftsFor && (
               <div style={styles.modalOverlay} onClick={() => setEditingGiftsFor(null)}>
                 <div style={{ ...styles.modal, maxHeight: "82vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
@@ -1175,6 +1249,11 @@ export default function AdminPage() {
                             <button style={styles.iconButton} onClick={() => openDateEditor(ev)}>
                               date
                             </button>
+                            {ev.event_type === "Baby Shower" && (
+                              <button style={styles.iconButton} onClick={() => openRevealEditor(ev)}>
+                                révélation
+                              </button>
+                            )}
                             <button style={styles.iconButton} onClick={() => openGiftEditor(ev)}>
                               cadeaux
                             </button>
@@ -1249,6 +1328,11 @@ export default function AdminPage() {
                         <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openDateEditor(ev)}>
                           date
                         </button>
+                        {ev.event_type === "Baby Shower" && (
+                          <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openRevealEditor(ev)}>
+                            révélation
+                          </button>
+                        )}
                       </div>
                       <div style={{ display: "flex", gap: "6px" }}>
                         <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openGiftEditor(ev)}>

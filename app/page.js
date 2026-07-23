@@ -258,7 +258,7 @@ export default function Home() {
             <a href="#fonctionnement">Fonctionnement</a>
             <a href="#professionnels">Professionnels</a>
           </div>
-          <a className="button button-primary" href="mailto:easygestionn@gmail.com">Parler de mon projet</a>
+          <a className="button button-primary" href="https://wa.me/33769215578" target="_blank" rel="noreferrer">Parler de mon projet</a>
         </div>
       </nav>
 
@@ -326,7 +326,7 @@ export default function Home() {
               <div className="chips">
                 {eventTypes.map((type) => <span className="chip" key={type}>{type}</span>)}
               </div>
-              <a className="button button-primary" href="mailto:easygestionn@gmail.com?subject=Démonstration%20Le%20Fil">Demander une démonstration</a>
+              <a className="button button-primary" href="https://wa.me/33769215578?text=Bonjour%2C%20je%20souhaite%20une%20d%C3%A9monstration%20de%20Le%20Fil" target="_blank" rel="noreferrer">Demander une démonstration</a>
             </div>
             <div className="gallery">
               <Phone className="gallery-one" src="/le-fil-mariage.png" alt="Sondage de mariage dans Le Fil" />
@@ -391,7 +391,7 @@ export default function Home() {
           <div className="eyebrow">Votre projet</div>
           <h2>Une idée ? Transformons-la en support concret.</h2>
           <p>Expliquez simplement votre besoin. Vous serez accompagné dans la création, sans avoir à gérer la partie technique.</p>
-          <a className="button button-primary" href="mailto:easygestionn@gmail.com">Discuter de mon projet</a>
+          <a className="button button-primary" href="https://wa.me/33769215578" target="_blank" rel="noreferrer">Discuter de mon projet</a>
         </div>
       </section>
 
@@ -400,6 +400,7 @@ export default function Home() {
           <div className="footer-brand"><img src="/lehnova-logo.png" alt="Logo Lehnova" /><span>LEHNOVA</span></div>
           <div className="footer-links">
             <a href="mailto:easygestionn@gmail.com">E-mail</a>
+            <a href="https://wa.me/33769215578" target="_blank" rel="noreferrer">WhatsApp</a>
             <a href="#solutions">Solutions</a>
             <a href="#le-fil">Le Fil</a>
             <a href="#professionnels">Professionnels</a>

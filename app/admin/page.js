@@ -1974,7 +1974,7 @@ export default function AdminPage() {
                 Aucun suivi d'intervention créé pour l'instant. Clique sur "+ Nouveau suivi" pour ton premier pro.
               </p>
             ) : (
-              <div style={styles.mobileCards}>
+              <div style={{ ...styles.mobileCards, display: "flex" }}>
                 {interventionPros.map((ip) => (
                   <div key={ip.id} style={styles.card}>
                     <div style={styles.cardHeader}>

@@ -44,6 +44,44 @@ export default function DjPage() {
     await supabase.from("playlist_requests").update({ played: nextValue }).eq("id", request.id);
   }
 
+  async function toggleGroupPlayed(group) {
+    if (!supabase) return;
+    const nextValue = !group.played;
+    const ids = group.items.map((r) => r.id);
+    setRequests((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, played: nextValue } : r)));
+    await supabase.from("playlist_requests").update({ played: nextValue }).in("id", ids);
+  }
+
+  function normalize(str) {
+    return (str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // retire les accents
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "") // retire la ponctuation
+      .replace(/\s+/g, " ") // espaces multiples -> un seul
+      .trim();
+  }
+
+  function groupRequests(list) {
+    const groups = [];
+    const map = new Map();
+    for (const r of list) {
+      const key = `${normalize(r.song_title)}__${normalize(r.artist)}`;
+      if (!map.has(key)) {
+        const group = {
+          song_title: r.song_title,
+          artist: r.artist,
+          items: [],
+          played: r.played,
+        };
+        map.set(key, group);
+        groups.push(group);
+      }
+      map.get(key).items.push(r);
+    }
+    return groups;
+  }
+
   if (loading) {
     return <div style={{ ...styles.page, alignItems: "center", justifyContent: "center" }}>Chargement…</div>;
   }
@@ -70,39 +108,49 @@ export default function DjPage() {
         ) : (
           <>
             <div style={styles.list}>
-              {requests
-                .filter((r) => !r.played)
-                .map((r) => (
-                  <div key={r.id} style={styles.row}>
+              {groupRequests(requests)
+                .filter((g) => !g.played)
+                .map((g, i) => (
+                  <div key={i} style={styles.row}>
                     <div>
-                      <p style={styles.songTitle}>{r.song_title}</p>
-                      {r.artist && <p style={styles.songArtist}>{r.artist}</p>}
-                      <span style={styles.songBy}>{r.requester_name || "Anonyme"}</span>
+                      <p style={styles.songTitle}>
+                        {g.song_title}
+                        {g.items.length > 1 && <span style={styles.countBadge}> ×{g.items.length}</span>}
+                      </p>
+                      {g.artist && <p style={styles.songArtist}>{g.artist}</p>}
+                      <span style={styles.songBy}>
+                        {g.items.map((r) => r.requester_name || "Anonyme").join(", ")}
+                      </span>
                     </div>
-                    <button style={styles.playedButton} onClick={() => togglePlayed(r)}>
+                    <button style={styles.playedButton} onClick={() => toggleGroupPlayed(g)}>
                       ✓ Joué
                     </button>
                   </div>
                 ))}
-              {requests.every((r) => r.played) && (
+              {groupRequests(requests).every((g) => g.played) && (
                 <p style={styles.hint}>Toutes les demandes ont été jouées 🎉</p>
               )}
             </div>
 
-            {requests.some((r) => r.played) && (
+            {groupRequests(requests).some((g) => g.played) && (
               <>
                 <p style={styles.playedTitle}>Déjà jouées</p>
                 <div style={styles.list}>
-                  {requests
-                    .filter((r) => r.played)
-                    .map((r) => (
-                      <div key={r.id} style={{ ...styles.row, ...styles.rowPlayed }}>
+                  {groupRequests(requests)
+                    .filter((g) => g.played)
+                    .map((g, i) => (
+                      <div key={i} style={{ ...styles.row, ...styles.rowPlayed }}>
                         <div>
-                          <p style={{ ...styles.songTitle, textDecoration: "line-through" }}>{r.song_title}</p>
-                          {r.artist && <p style={styles.songArtist}>{r.artist}</p>}
-                          <span style={styles.songBy}>{r.requester_name || "Anonyme"}</span>
+                          <p style={{ ...styles.songTitle, textDecoration: "line-through" }}>
+                            {g.song_title}
+                            {g.items.length > 1 && <span style={styles.countBadge}> ×{g.items.length}</span>}
+                          </p>
+                          {g.artist && <p style={styles.songArtist}>{g.artist}</p>}
+                          <span style={styles.songBy}>
+                            {g.items.map((r) => r.requester_name || "Anonyme").join(", ")}
+                          </span>
                         </div>
-                        <button style={styles.undoButton} onClick={() => togglePlayed(r)}>
+                        <button style={styles.undoButton} onClick={() => toggleGroupPlayed(g)}>
                           annuler
                         </button>
                       </div>
@@ -134,6 +182,7 @@ const styles = {
     padding: "12px 14px",
   },
   songTitle: { fontWeight: 600, fontSize: "0.92rem", margin: "0 0 2px" },
+  countBadge: { color: "#E7A94C", fontWeight: 700 },
   songArtist: { fontSize: "0.76rem", color: "#B7AF9A", margin: 0 },
   songBy: { fontSize: "0.7rem", color: "#E7A94C" },
   playedButton: {

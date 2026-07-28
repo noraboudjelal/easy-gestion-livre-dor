@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import jsPDF from "jspdf";
 
 function todayISO() {
   const d = new Date();
@@ -30,7 +31,6 @@ export default function InterventionPage() {
   const [selectedServiceNames, setSelectedServiceNames] = useState([""]);
   const [saving, setSaving] = useState(false);
 
-  const [showPdf, setShowPdf] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(todayISO().slice(0, 7)); // "2026-07"
 
   const load = useCallback(async () => {
@@ -103,6 +103,13 @@ export default function InterventionPage() {
     }
   }
 
+  async function handleDeleteEntry(id) {
+    if (!supabase) return;
+    if (!window.confirm("Supprimer cette intervention ?")) return;
+    const { error } = await supabase.from("intervention_entries").delete().eq("id", id);
+    if (!error) load();
+  }
+
   if (loading) {
     return <div style={{ ...styles.page, alignItems: "center", justifyContent: "center" }}>Chargement…</div>;
   }
@@ -130,6 +137,58 @@ export default function InterventionPage() {
   }
   const formTotal = selectedServiceNames.reduce((sum, name) => sum + (priceFor(name) || 0), 0);
 
+  function handleExportPdf() {
+    const doc = new jsPDF();
+    const grandTotal = sortedForExport.reduce((sum, e) => sum + entryTotal(e), 0);
+
+    doc.setFontSize(16);
+    doc.text("Récapitulatif d'interventions", 14, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(120);
+    doc.text(pro?.name || "", 14, 25);
+    if (sortedForExport.length > 0) {
+      doc.text(
+        `Du ${sortedForExport[0].entry_date} au ${sortedForExport[sortedForExport.length - 1].entry_date}`,
+        14,
+        31
+      );
+    }
+
+    let y = 42;
+    doc.setTextColor(20);
+    doc.setFontSize(9);
+    doc.setFont(undefined, "bold");
+    doc.text("Date", 14, y);
+    doc.text("Client", 44, y);
+    doc.text("Services", 84, y);
+    doc.text("Total", 180, y);
+    doc.setFont(undefined, "normal");
+    y += 4;
+    doc.line(14, y, 196, y);
+    y += 6;
+
+    sortedForExport.forEach((e) => {
+      if (y > 275) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(e.entry_date, 14, y);
+      doc.text(e.client_name || "", 44, y, { maxWidth: 38 });
+      doc.text((e.services || []).map((s) => s.name).join(", "), 84, y, { maxWidth: 90 });
+      const total = entryTotal(e);
+      doc.text(total > 0 ? `${total}€` : "—", 180, y);
+      y += 8;
+    });
+
+    y += 4;
+    doc.line(14, y, 196, y);
+    y += 8;
+    doc.setFont(undefined, "bold");
+    doc.text(`Total général : ${grandTotal}€`, 14, y);
+
+    doc.save(`interventions-${(pro?.name || "pro").replace(/\s+/g, "-").toLowerCase()}.pdf`);
+  }
+
   return (
     <div style={styles.page}>
       <style>{`
@@ -150,7 +209,7 @@ export default function InterventionPage() {
             <label style={styles.label}>Date</label>
             <input
               type="date"
-              style={styles.input}
+              style={{ ...styles.input, maxWidth: "100%", minWidth: 0 }}
               value={entryDate}
               onChange={(e) => setEntryDate(e.target.value)}
             />
@@ -175,7 +234,6 @@ export default function InterventionPage() {
                   {(pro.services || []).map((s) => (
                     <option key={s.name} value={s.name}>
                       {s.name}
-                      {s.price != null ? ` — ${s.price}€` : ""}
                     </option>
                   ))}
                 </select>
@@ -222,12 +280,13 @@ export default function InterventionPage() {
                         {(e.services || []).map((s) => (
                           <span key={s.name} style={styles.ticketServiceTag}>
                             {s.name}
-                            {s.price != null ? ` — ${s.price}€` : ""}
                           </span>
                         ))}
                       </div>
                     </div>
-                    {entryTotal(e) > 0 && <div style={styles.ticketTotal}>{entryTotal(e)}€</div>}
+                    <button style={styles.deleteButton} onClick={() => handleDeleteEntry(e.id)} aria-label="Supprimer">
+                      supprimer
+                    </button>
                   </div>
                 );
               })}
@@ -261,58 +320,9 @@ export default function InterventionPage() {
         </div>
       </div>
 
-      <button style={styles.exportButton} onClick={() => setShowPdf(true)}>
+      <button style={styles.exportButton} onClick={handleExportPdf}>
         Exporter en PDF
       </button>
-
-      {showPdf && (
-        <div style={styles.pdfOverlay} onClick={() => setShowPdf(false)}>
-          <div style={styles.pdfPage} onClick={(e) => e.stopPropagation()}>
-            <h3 style={styles.pdfTitle}>Récapitulatif d'interventions</h3>
-            <p style={styles.pdfSub}>
-              {sortedForExport.length > 0
-                ? `Du ${sortedForExport[0].entry_date} au ${sortedForExport[sortedForExport.length - 1].entry_date}`
-                : "Aucune intervention enregistrée"}
-            </p>
-            <table style={styles.pdfTable}>
-              <thead>
-                <tr>
-                  <th style={styles.pdfTh}>Date</th>
-                  <th style={styles.pdfTh}>Client</th>
-                  <th style={styles.pdfTh}>Services</th>
-                  <th style={styles.pdfTh}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedForExport.map((e) => (
-                  <tr key={e.id}>
-                    <td style={styles.pdfTd}>{e.entry_date}</td>
-                    <td style={styles.pdfTd}>{e.client_name}</td>
-                    <td style={styles.pdfTd}>{(e.services || []).map((s) => s.name).join(", ")}</td>
-                    <td style={styles.pdfTd}>{entryTotal(e) > 0 ? `${entryTotal(e)}€` : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td style={styles.pdfTd}></td>
-                  <td style={styles.pdfTd}></td>
-                  <td style={{ ...styles.pdfTd, fontWeight: 700 }}>Total général</td>
-                  <td style={{ ...styles.pdfTd, fontWeight: 700 }}>
-                    {sortedForExport.reduce((sum, e) => sum + entryTotal(e), 0)}€
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-            <p style={styles.pdfNote}>
-              Astuce : utilise "Imprimer" ou "Imprimer en PDF" de ton navigateur pour garder ce récapitulatif.
-            </p>
-            <button style={styles.pdfClose} onClick={() => setShowPdf(false)}>
-              Fermer l'aperçu
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -351,6 +361,17 @@ const styles = {
   ticketServices: { display: "flex", flexWrap: "wrap", gap: "6px" },
   ticketServiceTag: { fontSize: "0.72rem", background: "rgba(201,184,150,0.15)", color: "#C9B896", padding: "3px 9px", borderRadius: "999px" },
   ticketTotal: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, color: "#E2621B", fontSize: "1rem", flexShrink: 0 },
+  deleteButton: {
+    background: "none",
+    border: "1px solid #6B4A42",
+    color: "#C9756A",
+    borderRadius: "8px",
+    padding: "7px 10px",
+    fontSize: "0.72rem",
+    cursor: "pointer",
+    flexShrink: 0,
+    alignSelf: "flex-start",
+  },
   dayTotal: { textAlign: "right", fontSize: "0.85rem", color: "#C9B896", marginTop: "10px" },
   monthBox: {
     background: "#333C2E",

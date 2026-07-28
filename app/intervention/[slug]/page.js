@@ -186,6 +186,47 @@ export default function InterventionPage() {
     doc.setFont(undefined, "bold");
     doc.text(`Total général : ${grandTotal}€`, 14, y);
 
+    // Récapitulatif par service, avec quantité
+    const serviceSummary = {};
+    sortedForExport.forEach((e) => {
+      (e.services || []).forEach((s) => {
+        if (!serviceSummary[s.name]) serviceSummary[s.name] = { count: 0, total: 0 };
+        serviceSummary[s.name].count += 1;
+        serviceSummary[s.name].total += s.price || 0;
+      });
+    });
+    const summaryEntries = Object.entries(serviceSummary);
+
+    if (summaryEntries.length > 0) {
+      y += 14;
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(12);
+      doc.text("Récapitulatif par service", 14, y);
+      y += 8;
+      doc.setFontSize(9);
+      doc.setFont(undefined, "bold");
+      doc.text("Service", 14, y);
+      doc.text("Quantité", 130, y);
+      doc.text("Total", 170, y);
+      doc.setFont(undefined, "normal");
+      y += 4;
+      doc.line(14, y, 196, y);
+      y += 6;
+      summaryEntries.forEach(([name, info]) => {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(name, 14, y, { maxWidth: 110 });
+        doc.text(`×${info.count}`, 130, y);
+        doc.text(info.total > 0 ? `${info.total}€` : "—", 170, y);
+        y += 8;
+      });
+    }
+
     doc.save(`interventions-${(pro?.name || "pro").replace(/\s+/g, "-").toLowerCase()}.pdf`);
   }
 

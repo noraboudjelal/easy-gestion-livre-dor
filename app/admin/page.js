@@ -96,6 +96,13 @@ export default function AdminPage() {
 
   // --- Ma Vitrine ---
   const [showcases, setShowcases] = useState([]);
+  const [interventionPros, setInterventionPros] = useState([]);
+  const [interventionsLoading, setInterventionsLoading] = useState(true);
+  const [interventionsError, setInterventionsError] = useState("");
+  const [showInterventionForm, setShowInterventionForm] = useState(false);
+  const [creatingIntervention, setCreatingIntervention] = useState(false);
+  const [interventionName, setInterventionName] = useState("");
+  const [interventionServicesInput, setInterventionServicesInput] = useState("");
   const [showcasesLoading, setShowcasesLoading] = useState(true);
   const [showcasesError, setShowcasesError] = useState("");
   const [showShowcaseForm, setShowShowcaseForm] = useState(false);
@@ -187,13 +194,68 @@ export default function AdminPage() {
     setShowcasesLoading(false);
   }, []);
 
+  const loadInterventionPros = useCallback(async () => {
+    if (!supabase) {
+      setInterventionsError("Connexion à Supabase non configurée.");
+      setInterventionsLoading(false);
+      return;
+    }
+    setInterventionsLoading(true);
+    const { data, error } = await supabase
+      .from("intervention_pros")
+      .select("*, intervention_entries(count)")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setInterventionsError("Impossible de charger le suivi d'intervention : " + error.message);
+    } else {
+      setInterventionsError("");
+      setInterventionPros(data || []);
+    }
+    setInterventionsLoading(false);
+  }, []);
+
   useEffect(() => {
     if (authed) {
       loadEvents();
       loadCatalogs();
       loadShowcases();
+      loadInterventionPros();
     }
-  }, [authed, loadEvents, loadCatalogs, loadShowcases]);
+  }, [authed, loadEvents, loadCatalogs, loadShowcases, loadInterventionPros]);
+
+  async function handleCreateInterventionPro(e) {
+    e.preventDefault();
+    if (!interventionName.trim() || !supabase) return;
+    setCreatingIntervention(true);
+    const slug = `${slugify(interventionName)}-${shortCode()}`;
+    const services = interventionServicesInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const { error } = await supabase.from("intervention_pros").insert({
+      name: interventionName.trim(),
+      slug,
+      access_code: clientAccessCode(),
+      services,
+    });
+    setCreatingIntervention(false);
+    if (error) {
+      setInterventionsError("Création impossible : " + error.message);
+      return;
+    }
+    setInterventionName("");
+    setInterventionServicesInput("");
+    setShowInterventionForm(false);
+    loadInterventionPros();
+  }
+
+  async function handleDeleteInterventionPro(id) {
+    if (!supabase) return;
+    if (!window.confirm("Supprimer ce suivi d'intervention et toutes ses entrées ?")) return;
+    const { error } = await supabase.from("intervention_pros").delete().eq("id", id);
+    if (error) setInterventionsError("Suppression impossible : " + error.message);
+    else loadInterventionPros();
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -736,7 +798,7 @@ export default function AdminPage() {
             <div>
               <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
               <h1 style={styles.brandTitle}>
-                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : "Ma Page"}
+                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : view === "vitrine" ? "Ma Page" : "Suivi d'intervention"}
               </h1>
             </div>
           </div>
@@ -753,6 +815,11 @@ export default function AdminPage() {
           {view === "vitrine" && (
             <button style={styles.newButton} onClick={() => setShowShowcaseForm(true)}>
               + Nouvelle page
+            </button>
+          )}
+          {view === "intervention" && (
+            <button style={styles.newButton} onClick={() => setShowInterventionForm(true)}>
+              + Nouveau suivi
             </button>
           )}
         </header>
@@ -778,6 +845,10 @@ export default function AdminPage() {
             <span style={styles.statNumber}>{showcases.length}</span>
             <span style={styles.statLabel}>Ma Page</span>
           </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{interventionPros.length}</span>
+            <span style={styles.statLabel}>Suivis d'intervention</span>
+          </div>
         </div>
 
         <div style={styles.tabs}>
@@ -798,6 +869,12 @@ export default function AdminPage() {
             onClick={() => setView("vitrine")}
           >
             Ma Page
+          </button>
+          <button
+            style={{ ...styles.tab, ...(view === "intervention" ? styles.tabActive : {}) }}
+            onClick={() => setView("intervention")}
+          >
+            Suivi d'intervention
           </button>
         </div>
 
@@ -1780,6 +1857,109 @@ export default function AdminPage() {
                   ))}
                 </div>
               </>
+            )}
+          </>
+        )}
+
+        {view === "intervention" && (
+          <>
+            {interventionsError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{interventionsError}</p>}
+
+            {showInterventionForm && (
+              <div style={styles.modalOverlay} onClick={() => setShowInterventionForm(false)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateInterventionPro}>
+                  <h2 style={styles.modalTitle}>Nouveau suivi d'intervention</h2>
+                  <label style={styles.label}>
+                    Nom du pro
+                    <input
+                      style={styles.input}
+                      value={interventionName}
+                      onChange={(e) => setInterventionName(e.target.value)}
+                      placeholder="ex. Karim — Aide à domicile"
+                      required
+                      autoFocus
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Liste des services <span style={{ fontWeight: 400, color: "#8A7F66" }}>(séparés par des virgules)</span>
+                    <input
+                      style={styles.input}
+                      value={interventionServicesInput}
+                      onChange={(e) => setInterventionServicesInput(e.target.value)}
+                      placeholder="ex. Ménage complet, Repassage, Garde d'enfant"
+                    />
+                  </label>
+                  <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
+                    Tu pourras modifier cette liste de services à tout moment depuis la page de gestion.
+                  </p>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setShowInterventionForm(false)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={creatingIntervention}>
+                      {creatingIntervention ? "Création…" : "Créer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {interventionsLoading ? (
+              <p style={{ fontSize: "0.85rem", color: "#8A7F66" }}>Chargement…</p>
+            ) : interventionPros.length === 0 ? (
+              <p style={{ fontSize: "0.85rem", color: "#8A7F66" }}>
+                Aucun suivi d'intervention créé pour l'instant. Clique sur "+ Nouveau suivi" pour ton premier pro.
+              </p>
+            ) : (
+              <div className="mobile-cards" style={styles.mobileCards}>
+                {interventionPros.map((ip) => (
+                  <div key={ip.id} style={styles.card}>
+                    <div style={styles.cardHeader}>
+                      <div>
+                        <strong>{ip.name}</strong>
+                        <div style={styles.subText}>
+                          {ip.intervention_entries?.[0]?.count ?? 0} intervention(s) enregistrée(s)
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
+                      {(ip.services || []).map((s) => (
+                        <span
+                          key={s}
+                          style={{
+                            fontSize: "0.72rem",
+                            background: "#F1EAD6",
+                            color: "#5B4636",
+                            padding: "3px 9px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: "0.72rem", color: "#8A7F66", marginBottom: "10px" }}>
+                      Code d'accès client : <strong>{ip.access_code}</strong>
+                    </p>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <a href={`/admin/intervention/${ip.id}`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
+                        gérer
+                      </a>
+                      <a
+                        href={`/intervention/${ip.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}
+                      >
+                        voir
+                      </a>
+                      <button style={styles.iconButtonDanger} onClick={() => handleDeleteInterventionPro(ip.id)}>
+                        supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </>
         )}

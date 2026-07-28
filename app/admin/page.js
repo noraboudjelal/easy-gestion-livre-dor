@@ -102,7 +102,9 @@ export default function AdminPage() {
   const [showInterventionForm, setShowInterventionForm] = useState(false);
   const [creatingIntervention, setCreatingIntervention] = useState(false);
   const [interventionName, setInterventionName] = useState("");
-  const [interventionServicesInput, setInterventionServicesInput] = useState("");
+  const [interventionServicesDraft, setInterventionServicesDraft] = useState([]);
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServicePrice, setNewServicePrice] = useState("");
   const [showcasesLoading, setShowcasesLoading] = useState(true);
   const [showcasesError, setShowcasesError] = useState("");
   const [showShowcaseForm, setShowShowcaseForm] = useState(false);
@@ -223,20 +225,29 @@ export default function AdminPage() {
     }
   }, [authed, loadEvents, loadCatalogs, loadShowcases, loadInterventionPros]);
 
+  function addServiceToDraft() {
+    const name = newServiceName.trim();
+    if (!name) return;
+    const price = newServicePrice.trim() ? Number(newServicePrice.trim()) : null;
+    setInterventionServicesDraft((prev) => [...prev, { name, price }]);
+    setNewServiceName("");
+    setNewServicePrice("");
+  }
+
+  function removeServiceFromDraft(name) {
+    setInterventionServicesDraft((prev) => prev.filter((s) => s.name !== name));
+  }
+
   async function handleCreateInterventionPro(e) {
     e.preventDefault();
     if (!interventionName.trim() || !supabase) return;
     setCreatingIntervention(true);
     const slug = `${slugify(interventionName)}-${shortCode()}`;
-    const services = interventionServicesInput
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
     const { error } = await supabase.from("intervention_pros").insert({
       name: interventionName.trim(),
       slug,
       access_code: clientAccessCode(),
-      services,
+      services: interventionServicesDraft,
     });
     setCreatingIntervention(false);
     if (error) {
@@ -244,7 +255,7 @@ export default function AdminPage() {
       return;
     }
     setInterventionName("");
-    setInterventionServicesInput("");
+    setInterventionServicesDraft([]);
     setShowInterventionForm(false);
     loadInterventionPros();
   }
@@ -1881,14 +1892,66 @@ export default function AdminPage() {
                     />
                   </label>
                   <label style={styles.label}>
-                    Liste des services <span style={{ fontWeight: 400, color: "#8A7F66" }}>(séparés par des virgules)</span>
-                    <input
-                      style={styles.input}
-                      value={interventionServicesInput}
-                      onChange={(e) => setInterventionServicesInput(e.target.value)}
-                      placeholder="ex. Ménage complet, Repassage, Garde d'enfant"
-                    />
+                    Services proposés
+                    <span style={{ fontWeight: 400, color: "#8A7F66", display: "block", fontSize: "0.75rem", marginTop: "2px" }}>
+                      Nom + prix (optionnel, sert à calculer le total plus tard)
+                    </span>
                   </label>
+                  {interventionServicesDraft.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "4px" }}>
+                      {interventionServicesDraft.map((s) => (
+                        <span
+                          key={s.name}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            fontSize: "0.8rem",
+                            background: "#F1EAD6",
+                            color: "#5B4636",
+                            padding: "5px 6px 5px 12px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          {s.name}
+                          {s.price != null && ` — ${s.price}€`}
+                          <button
+                            type="button"
+                            onClick={() => removeServiceFromDraft(s.name)}
+                            style={{
+                              background: "#1E2A3A",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: "50%",
+                              width: "18px",
+                              height: "18px",
+                              fontSize: "0.6rem",
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      style={{ ...styles.input, flex: 2 }}
+                      value={newServiceName}
+                      onChange={(e) => setNewServiceName(e.target.value)}
+                      placeholder="ex. Ménage complet"
+                    />
+                    <input
+                      style={{ ...styles.input, flex: 1 }}
+                      value={newServicePrice}
+                      onChange={(e) => setNewServicePrice(e.target.value)}
+                      placeholder="Prix €"
+                      inputMode="decimal"
+                    />
+                    <button type="button" style={styles.iconButton} onClick={addServiceToDraft}>
+                      + Ajouter
+                    </button>
+                  </div>
                   <p style={{ fontSize: "0.72rem", color: "#8A7F66", margin: 0 }}>
                     Tu pourras modifier cette liste de services à tout moment depuis la page de gestion.
                   </p>
@@ -1925,7 +1988,7 @@ export default function AdminPage() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
                       {(ip.services || []).map((s) => (
                         <span
-                          key={s}
+                          key={s.name}
                           style={{
                             fontSize: "0.72rem",
                             background: "#F1EAD6",
@@ -1934,7 +1997,8 @@ export default function AdminPage() {
                             borderRadius: "999px",
                           }}
                         >
-                          {s}
+                          {s.name}
+                          {s.price != null && ` — ${s.price}€`}
                         </span>
                       ))}
                     </div>

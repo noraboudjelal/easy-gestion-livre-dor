@@ -14,7 +14,8 @@ export default function ManageInterventionPage() {
   const [loadError, setLoadError] = useState("");
 
   const [servicesList, setServicesList] = useState([]);
-  const [newService, setNewService] = useState("");
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServicePrice, setNewServicePrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -56,14 +57,16 @@ export default function ManageInterventionPage() {
   }
 
   function addService() {
-    const value = newService.trim();
-    if (!value || servicesList.includes(value)) return;
-    setServicesList((prev) => [...prev, value]);
-    setNewService("");
+    const name = newServiceName.trim();
+    if (!name || servicesList.some((s) => s.name === name)) return;
+    const price = newServicePrice.trim() ? Number(newServicePrice.trim()) : null;
+    setServicesList((prev) => [...prev, { name, price }]);
+    setNewServiceName("");
+    setNewServicePrice("");
   }
 
-  function removeService(service) {
-    setServicesList((prev) => prev.filter((s) => s !== service));
+  function removeService(name) {
+    setServicesList((prev) => prev.filter((s) => s.name !== name));
   }
 
   async function handleSaveServices() {
@@ -134,9 +137,10 @@ export default function ManageInterventionPage() {
 
               <div style={styles.serviceTags}>
                 {servicesList.map((s) => (
-                  <span key={s} style={styles.serviceTag}>
-                    {s}
-                    <button style={styles.tagRemove} onClick={() => removeService(s)} aria-label={`Retirer ${s}`}>
+                  <span key={s.name} style={styles.serviceTag}>
+                    {s.name}
+                    {s.price != null && ` — ${s.price}€`}
+                    <button style={styles.tagRemove} onClick={() => removeService(s.name)} aria-label={`Retirer ${s.name}`}>
                       ✕
                     </button>
                   </span>
@@ -146,11 +150,19 @@ export default function ManageInterventionPage() {
 
               <div style={styles.addRow}>
                 <input
-                  style={styles.input}
-                  value={newService}
-                  onChange={(e) => setNewService(e.target.value)}
+                  style={{ ...styles.input, flex: 2 }}
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addService())}
                   placeholder="ex. Débouchage évier"
+                />
+                <input
+                  style={{ ...styles.input, flex: 1 }}
+                  value={newServicePrice}
+                  onChange={(e) => setNewServicePrice(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addService())}
+                  placeholder="Prix €"
+                  inputMode="decimal"
                 />
                 <button style={styles.addButton} onClick={addService}>
                   Ajouter

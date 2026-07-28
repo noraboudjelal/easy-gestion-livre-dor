@@ -77,6 +77,7 @@ export default function AdminPage() {
   const [revealAt, setRevealAt] = useState("");
   const [revealGender, setRevealGender] = useState("fille");
   const [savingReveal, setSavingReveal] = useState(false);
+  const [copiedDjFor, setCopiedDjFor] = useState(null);
   const [editingGiftsFor, setEditingGiftsFor] = useState(null);
   const [editingGifts, setEditingGifts] = useState([]);
   const [loadingGifts, setLoadingGifts] = useState(false);
@@ -566,6 +567,21 @@ export default function AdminPage() {
     }
     setEditingRevealFor(null);
     loadEvents();
+  }
+
+  async function handleTogglePlaylist(ev) {
+    if (!supabase) return;
+    const nextValue = !ev.playlist_enabled;
+    const { error } = await supabase.from("events").update({ playlist_enabled: nextValue }).eq("id", ev.id);
+    if (!error) loadEvents();
+  }
+
+  function handleCopyDjLink(ev) {
+    if (typeof window === "undefined") return;
+    const link = `${window.location.origin}/${ev.slug}/dj`;
+    if (navigator.clipboard) navigator.clipboard.writeText(link).catch(() => {});
+    setCopiedDjFor(ev.id);
+    setTimeout(() => setCopiedDjFor(null), 1800);
   }
 
   async function handleSaveDate(e) {
@@ -1342,6 +1358,14 @@ export default function AdminPage() {
                                 révélation
                               </button>
                             )}
+                            <button style={styles.iconButton} onClick={() => handleTogglePlaylist(ev)}>
+                              playlist {ev.playlist_enabled ? "✓" : ""}
+                            </button>
+                            {ev.playlist_enabled && (
+                              <button style={styles.iconButton} onClick={() => handleCopyDjLink(ev)}>
+                                {copiedDjFor === ev.id ? "✓ copié" : "lien DJ"}
+                              </button>
+                            )}
                             <button style={styles.iconButton} onClick={() => openGiftEditor(ev)}>
                               cadeaux
                             </button>
@@ -1419,6 +1443,14 @@ export default function AdminPage() {
                         {ev.event_type === "Baby Shower" && (
                           <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => openRevealEditor(ev)}>
                             révélation
+                          </button>
+                        )}
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleTogglePlaylist(ev)}>
+                          playlist {ev.playlist_enabled ? "✓" : ""}
+                        </button>
+                        {ev.playlist_enabled && (
+                          <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleCopyDjLink(ev)}>
+                            {copiedDjFor === ev.id ? "✓ copié" : "lien DJ"}
                           </button>
                         )}
                       </div>

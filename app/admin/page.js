@@ -1967,11 +1967,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            <p style={{ background: "red", color: "white", fontSize: "1.2rem", padding: "12px" }}>
-              TEST123 — si tu vois ce texte rouge, le code se déploie bien. interventionPros.length ={" "}
-              {interventionPros.length}, interventionsLoading = {String(interventionsLoading)}
-            </p>
-
             {interventionsLoading ? (
               <p style={{ fontSize: "0.85rem", color: "#8A7F66" }}>Chargement…</p>
             ) : interventionPros.length === 0 ? (

@@ -369,6 +369,114 @@ function EggReveal({ revealAt, revealGender, theme }) {
   );
 }
 
+function PlaylistRequest({ eventId, theme }) {
+  const [songTitle, setSongTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [requesterName, setRequesterName] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function handleSend() {
+    if (!supabase || !songTitle.trim()) return;
+    setSending(true);
+    const { error } = await supabase.from("playlist_requests").insert({
+      event_id: eventId,
+      song_title: songTitle.trim(),
+      artist: artist.trim() || null,
+      requester_name: requesterName.trim() || null,
+    });
+    setSending(false);
+    if (!error) {
+      setSongTitle("");
+      setArtist("");
+      setRequesterName("");
+      setSent(true);
+      setTimeout(() => setSent(false), 2200);
+    }
+  }
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "560px",
+        background: theme.surface2,
+        border: `1px solid ${theme.accentSoft}`,
+        borderRadius: "16px",
+        padding: "20px",
+        margin: "0 auto 24px",
+      }}
+    >
+      <p style={{ fontSize: "1rem", fontWeight: 700, color: theme.ivory, margin: "0 0 4px" }}>🎵 Demande une chanson</p>
+      <p style={{ fontSize: "0.82rem", color: theme.muted, margin: "0 0 14px" }}>
+        Le DJ verra toutes les demandes en direct !
+      </p>
+      <input
+        value={songTitle}
+        onChange={(e) => setSongTitle(e.target.value)}
+        placeholder="Titre de la chanson"
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: `1px solid ${theme.accentSoft}`,
+          marginBottom: "8px",
+          fontSize: "0.88rem",
+          background: theme.surface,
+          color: theme.ivory,
+        }}
+      />
+      <input
+        value={artist}
+        onChange={(e) => setArtist(e.target.value)}
+        placeholder="Artiste"
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: `1px solid ${theme.accentSoft}`,
+          marginBottom: "8px",
+          fontSize: "0.88rem",
+          background: theme.surface,
+          color: theme.ivory,
+        }}
+      />
+      <input
+        value={requesterName}
+        onChange={(e) => setRequesterName(e.target.value)}
+        placeholder="Ton prénom (optionnel)"
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: "8px",
+          border: `1px solid ${theme.accentSoft}`,
+          marginBottom: "12px",
+          fontSize: "0.88rem",
+          background: theme.surface,
+          color: theme.ivory,
+        }}
+      />
+      <button
+        onClick={handleSend}
+        disabled={sending || !songTitle.trim()}
+        style={{
+          width: "100%",
+          background: theme.accent,
+          color: theme.ink,
+          border: "none",
+          borderRadius: "8px",
+          padding: "11px",
+          fontWeight: 700,
+          fontSize: "0.88rem",
+          cursor: "pointer",
+        }}
+      >
+        {sending ? "Envoi…" : sent ? "✓ Envoyée !" : "Envoyer ma demande"}
+      </button>
+    </div>
+  );
+}
+
 export default function GuestbookPage() {
   const params = useParams();
   const slug = params?.slug;
@@ -1564,6 +1672,8 @@ export default function GuestbookPage() {
         {event?.event_type === "Baby Shower" && event?.reveal_at && (
           <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
         )}
+
+        {event?.playlist_enabled && <PlaylistRequest eventId={event.id} theme={theme} />}
 
         {event?.cagnotte_url && (
           <a

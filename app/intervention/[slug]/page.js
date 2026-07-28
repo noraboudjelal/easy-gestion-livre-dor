@@ -27,10 +27,11 @@ export default function InterventionPage() {
 
   const [entryDate, setEntryDate] = useState(todayISO());
   const [clientName, setClientName] = useState("");
-  const [selectedServices, setSelectedServices] = useState([""]);
+  const [selectedServiceNames, setSelectedServiceNames] = useState([""]);
   const [saving, setSaving] = useState(false);
 
   const [showPdf, setShowPdf] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(todayISO().slice(0, 7)); // "2026-07"
 
   const load = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -46,7 +47,7 @@ export default function InterventionPage() {
       return;
     }
     setPro(proData);
-    setSelectedServices([proData.services?.[0] || ""]);
+    setSelectedServiceNames([proData.services?.[0]?.name || ""]);
 
     const { data: entriesData } = await supabase
       .from("intervention_entries")
@@ -62,20 +63,30 @@ export default function InterventionPage() {
   }, [load]);
 
   function addServiceRow() {
-    setSelectedServices((prev) => [...prev, pro?.services?.[0] || ""]);
+    setSelectedServiceNames((prev) => [...prev, pro?.services?.[0]?.name || ""]);
   }
 
   function updateServiceRow(index, value) {
-    setSelectedServices((prev) => prev.map((s, i) => (i === index ? value : s)));
+    setSelectedServiceNames((prev) => prev.map((s, i) => (i === index ? value : s)));
   }
 
   function removeServiceRow(index) {
-    setSelectedServices((prev) => prev.filter((_, i) => i !== index));
+    setSelectedServiceNames((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function priceFor(name) {
+    return pro?.services?.find((s) => s.name === name)?.price ?? null;
+  }
+
+  function entryTotal(entry) {
+    return (entry.services || []).reduce((sum, s) => sum + (s.price || 0), 0);
   }
 
   async function handleSaveEntry() {
     if (!supabase || !pro || !clientName.trim() || !entryDate) return;
-    const services = selectedServices.filter(Boolean);
+    const services = selectedServiceNames
+      .filter(Boolean)
+      .map((name) => ({ name, price: priceFor(name) }));
     if (services.length === 0) return;
     setSaving(true);
     const { error } = await supabase.from("intervention_entries").insert({
@@ -87,7 +98,7 @@ export default function InterventionPage() {
     setSaving(false);
     if (!error) {
       setClientName("");
-      setSelectedServices([pro?.services?.[0] || ""]);
+      setSelectedServiceNames([pro?.services?.[0]?.name || ""]);
       load();
     }
   }
@@ -106,6 +117,18 @@ export default function InterventionPage() {
   const today = todayISO();
   const todaysEntries = entries.filter((e) => e.entry_date === today);
   const sortedForExport = [...entries].sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+
+  const availableMonths = [...new Set(entries.map((e) => e.entry_date.slice(0, 7)))].sort().reverse();
+  if (!availableMonths.includes(selectedMonth)) availableMonths.unshift(selectedMonth);
+  const monthEntries = entries.filter((e) => e.entry_date.slice(0, 7) === selectedMonth);
+  const monthTotal = monthEntries.reduce((sum, e) => sum + entryTotal(e), 0);
+
+  function monthLabel(monthStr) {
+    const [y, m] = monthStr.split("-").map(Number);
+    const names = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+    return `${names[m - 1]} ${y}`;
+  }
+  const formTotal = selectedServiceNames.reduce((sum, name) => sum + (priceFor(name) || 0), 0);
 
   return (
     <div style={styles.page}>
@@ -146,16 +169,17 @@ export default function InterventionPage() {
 
           <div style={styles.field}>
             <label style={styles.label}>Services</label>
-            {selectedServices.map((val, i) => (
+            {selectedServiceNames.map((val, i) => (
               <div key={i} style={styles.serviceRow}>
                 <select style={{ ...styles.input, flex: 1 }} value={val} onChange={(e) => updateServiceRow(i, e.target.value)}>
                   {(pro.services || []).map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+                    <option key={s.name} value={s.name}>
+                      {s.name}
+                      {s.price != null ? ` — ${s.price}€` : ""}
                     </option>
                   ))}
                 </select>
-                {selectedServices.length > 1 && (
+                {selectedServiceNames.length > 1 && (
                   <button style={styles.serviceRemove} onClick={() => removeServiceRow(i)}>
                     ✕
                   </button>
@@ -167,6 +191,12 @@ export default function InterventionPage() {
             </button>
           </div>
 
+          {formTotal > 0 && (
+            <p style={styles.formTotal}>
+              Total de cette intervention : <strong>{formTotal}€</strong>
+            </p>
+          )}
+
           <button style={styles.primaryButton} onClick={handleSaveEntry} disabled={saving}>
             {saving ? "Enregistrement…" : "Enregistrer l'intervention"}
           </button>
@@ -176,30 +206,59 @@ export default function InterventionPage() {
         {todaysEntries.length === 0 ? (
           <p style={styles.hint}>Aucune intervention enregistrée aujourd'hui.</p>
         ) : (
-          <div style={styles.ticketList}>
-            {todaysEntries.map((e) => {
-              const badge = formatDateBadge(e.entry_date);
-              return (
-                <div key={e.id} style={styles.ticket}>
-                  <div style={styles.ticketDate}>
-                    <div style={styles.ticketDay}>{badge.day}</div>
-                    <div style={styles.ticketMonth}>{badge.month}</div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={styles.ticketClient}>{e.client_name}</p>
-                    <div style={styles.ticketServices}>
-                      {(e.services || []).map((s) => (
-                        <span key={s} style={styles.ticketServiceTag}>
-                          {s}
-                        </span>
-                      ))}
+          <>
+            <div style={styles.ticketList}>
+              {todaysEntries.map((e) => {
+                const badge = formatDateBadge(e.entry_date);
+                return (
+                  <div key={e.id} style={styles.ticket}>
+                    <div style={styles.ticketDate}>
+                      <div style={styles.ticketDay}>{badge.day}</div>
+                      <div style={styles.ticketMonth}>{badge.month}</div>
                     </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={styles.ticketClient}>{e.client_name}</p>
+                      <div style={styles.ticketServices}>
+                        {(e.services || []).map((s) => (
+                          <span key={s.name} style={styles.ticketServiceTag}>
+                            {s.name}
+                            {s.price != null ? ` — ${s.price}€` : ""}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {entryTotal(e) > 0 && <div style={styles.ticketTotal}>{entryTotal(e)}€</div>}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+            <p style={styles.dayTotal}>
+              Total du jour : <strong>{todaysEntries.reduce((sum, e) => sum + entryTotal(e), 0)}€</strong>
+            </p>
+          </>
         )}
+
+        <div style={styles.monthBox}>
+          <div style={styles.monthHeader}>
+            <p style={styles.sectionTitleInline}>Total du mois</p>
+            <select
+              style={styles.monthSelect}
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              {availableMonths.map((m) => (
+                <option key={m} value={m}>
+                  {monthLabel(m)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p style={styles.monthTotal}>{monthTotal}€</p>
+          <p style={styles.hint}>
+            {monthEntries.length} intervention(s) sur {monthLabel(selectedMonth)} — chaque mois est compté
+            indépendamment, sans report d'un mois sur l'autre.
+          </p>
+        </div>
       </div>
 
       <button style={styles.exportButton} onClick={() => setShowPdf(true)}>
@@ -221,6 +280,7 @@ export default function InterventionPage() {
                   <th style={styles.pdfTh}>Date</th>
                   <th style={styles.pdfTh}>Client</th>
                   <th style={styles.pdfTh}>Services</th>
+                  <th style={styles.pdfTh}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,10 +288,21 @@ export default function InterventionPage() {
                   <tr key={e.id}>
                     <td style={styles.pdfTd}>{e.entry_date}</td>
                     <td style={styles.pdfTd}>{e.client_name}</td>
-                    <td style={styles.pdfTd}>{(e.services || []).join(", ")}</td>
+                    <td style={styles.pdfTd}>{(e.services || []).map((s) => s.name).join(", ")}</td>
+                    <td style={styles.pdfTd}>{entryTotal(e) > 0 ? `${entryTotal(e)}€` : "—"}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td style={styles.pdfTd}></td>
+                  <td style={styles.pdfTd}></td>
+                  <td style={{ ...styles.pdfTd, fontWeight: 700 }}>Total général</td>
+                  <td style={{ ...styles.pdfTd, fontWeight: 700 }}>
+                    {sortedForExport.reduce((sum, e) => sum + entryTotal(e), 0)}€
+                  </td>
+                </tr>
+              </tfoot>
             </table>
             <p style={styles.pdfNote}>
               Astuce : utilise "Imprimer" ou "Imprimer en PDF" de ton navigateur pour garder ce récapitulatif.
@@ -268,6 +339,7 @@ const styles = {
   serviceRemove: { background: "none", border: "1px solid #444E3E", color: "#C9756A", borderRadius: "8px", width: "40px", cursor: "pointer", fontSize: "0.9rem" },
   addServiceBtn: { background: "none", border: "1px dashed #5C664F", color: "#C9B896", borderRadius: "8px", padding: "9px", width: "100%", fontSize: "0.8rem", cursor: "pointer", marginBottom: "6px" },
   primaryButton: { width: "100%", background: "#E2621B", color: "#FFF7EE", border: "none", borderRadius: "8px", padding: "13px", fontFamily: "'Oswald', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.85rem", cursor: "pointer", marginTop: "6px" },
+  formTotal: { fontSize: "0.85rem", color: "#C9B896", textAlign: "right", margin: "10px 0 0" },
   sectionTitle: { fontFamily: "'Oswald', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.95rem", color: "#C9B896", margin: "26px 0 12px" },
   hint: { fontSize: "0.85rem", color: "#9AA491" },
   ticketList: { display: "flex", flexDirection: "column", gap: "12px" },
@@ -278,6 +350,19 @@ const styles = {
   ticketClient: { fontSize: "0.95rem", fontWeight: 600, margin: "0 0 4px" },
   ticketServices: { display: "flex", flexWrap: "wrap", gap: "6px" },
   ticketServiceTag: { fontSize: "0.72rem", background: "rgba(201,184,150,0.15)", color: "#C9B896", padding: "3px 9px", borderRadius: "999px" },
+  ticketTotal: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, color: "#E2621B", fontSize: "1rem", flexShrink: 0 },
+  dayTotal: { textAlign: "right", fontSize: "0.85rem", color: "#C9B896", marginTop: "10px" },
+  monthBox: {
+    background: "#333C2E",
+    border: "1px solid #444E3E",
+    borderRadius: "14px",
+    padding: "18px",
+    marginTop: "26px",
+  },
+  monthHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" },
+  sectionTitleInline: { fontFamily: "'Oswald', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.9rem", color: "#C9B896", margin: 0 },
+  monthSelect: { background: "#2B3328", border: "1px solid #444E3E", borderRadius: "8px", padding: "6px 10px", color: "#F5F1E8", fontSize: "0.8rem", outline: "none" },
+  monthTotal: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: "2rem", color: "#E2621B", margin: "0 0 6px" },
   exportButton: {
     position: "fixed",
     bottom: "20px",

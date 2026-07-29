@@ -2028,7 +2028,7 @@ function getStyles(t, isFun) {
   const headWeight = isFun ? 700 : 400;
   const headStyle = isFun ? "normal" : "italic";
   return {
-    page: { minHeight: "100vh", backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%), linear-gradient(160deg, ${t.ink} 0%, ${t.surface2} 100%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
+    page: { minHeight: "100vh", background: `linear-gradient(160deg, ${t.ink} 0%, ${t.surface2} 100%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
     content: { width: "100%", maxWidth: "560px", display: "flex", flexDirection: "column", gap: "16px" },
     headerCard: { background: t.surface, borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 20px 40px -16px rgba(0,0,0,0.25)" },
     header: { textAlign: "center" },

@@ -2295,7 +2295,7 @@ function getStyles(t, isFun) {
     entry: { background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
-    entryName: { fontSize: "0.85rem", fontWeight: 600, color: t.ivory, flex: 1 },
+    entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.accent, flex: 1 },
     entryDate: { fontSize: "0.68rem", color: t.muted },
     entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "10px", marginBottom: "10px" },
     entryAudio: { width: "100%", marginTop: "8px", height: "36px" },

@@ -6,15 +6,17 @@ import { supabase } from "../../lib/supabaseClient";
 
 const THEMES = {
   "Mariage": {
-    ink: "#F7F1E4",
-    surface: "#FFFFFF",
-    surface2: "#F3E9D0",
-    accent: "#B8873A",
-    accentSoft: "rgba(184,135,58,0.18)",
-    accentText: "#2A1F0A",
-    ivory: "#2A2118",
-    muted: "#7A6A4E",
-    avatarPalette: ["#B8873A", "#6E5B8C", "#8C6E4E", "#8A7A9C"],
+    ink: "#F5F0E6",
+    surface: "#FFFDF9",
+    surface2: "#F8F2E6",
+    accent: "#C89A3C",
+    accentSoft: "rgba(200,154,60,0.18)",
+    accentText: "#2D241E",
+    ivory: "#2D241E",
+    muted: "#8C7A63",
+    borderColor: "#D8B57A",
+    cardGradient: "linear-gradient(160deg, #FFFFFF 0%, #FCFAF5 50%, #F8F2E6 100%)",
+    avatarPalette: ["#C89A3C", "#6E5B8C", "#8C6E4E", "#8A7A9C"],
   },
   "Anniversaire": {
     ink: "#241220",
@@ -2028,8 +2030,8 @@ function getStyles(t, isFun) {
   const headWeight = isFun ? 700 : 400;
   const headStyle = isFun ? "normal" : "italic";
   return {
-    page: { minHeight: "100vh", background: `linear-gradient(160deg, ${t.ink} 0%, ${t.surface2} 100%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
-    content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
+    page: { minHeight: "100vh", background: t.ink, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
+    content: { width: "100%", maxWidth: "560px", background: t.cardGradient || t.surface2, border: `1px solid ${t.borderColor || "rgba(255,255,255,0.06)"}`, borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
     headerCard: { background: "none", padding: 0, boxShadow: "none" },
     header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
@@ -2037,8 +2039,8 @@ function getStyles(t, isFun) {
     titleRule: { width: "56px", height: "2px", background: t.accent, margin: "18px auto 0", border: "none" },
     sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
     form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
-    input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface2, color: t.ivory },
-    textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface2, color: t.ivory, resize: "vertical" },
+    input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface, color: t.ivory },
+    textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface, color: t.ivory, resize: "vertical" },
     photoLabel: { fontFamily: "Inter, sans-serif", fontSize: "0.82rem", color: t.muted, border: `1.5px dashed ${t.accentSoft}`, borderRadius: isFun ? "18px" : "12px", padding: "12px 14px", textAlign: "center", cursor: "pointer", background: "transparent" },
     photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
     photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" },
@@ -2323,7 +2325,7 @@ function getStyles(t, isFun) {
     dividerCount: { fontSize: "0.72rem", color: t.muted },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },
     empty: { textAlign: "center", color: t.muted, fontFamily: headFont, fontStyle: headStyle, fontSize: "1.2rem", padding: "20px 0" },
-    entry: { background: t.surface, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px", boxShadow: "0 12px 24px -12px rgba(0,0,0,0.2)" },
+    entry: { background: t.surface, border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px", boxShadow: "0 12px 24px -12px rgba(0,0,0,0.2)" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
     entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.accent, flex: 1 },

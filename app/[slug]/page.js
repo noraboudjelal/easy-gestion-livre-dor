@@ -2029,9 +2029,9 @@ function getStyles(t, isFun) {
   const headStyle = isFun ? "normal" : "italic";
   return {
     page: { minHeight: "100vh", background: `linear-gradient(160deg, ${t.ink} 0%, ${t.surface2} 100%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
-    content: { width: "100%", maxWidth: "560px", display: "flex", flexDirection: "column", gap: "16px" },
-    headerCard: { background: t.surface, borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 20px 40px -16px rgba(0,0,0,0.25)" },
-    header: { textAlign: "center" },
+    content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
+    headerCard: { background: "none", padding: 0, boxShadow: "none" },
+    header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
     title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.6rem", color: t.ivory, margin: 0, lineHeight: 1.15 },
     titleRule: { width: "56px", height: "2px", background: t.accent, margin: "18px auto 0", border: "none" },

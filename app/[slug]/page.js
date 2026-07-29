@@ -1290,12 +1290,14 @@ export default function GuestbookPage() {
           ::placeholder { color: ${theme.muted}; }
         `}</style>
         <div style={styles.content}>
-          <header style={styles.header}>
-            <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
-            <h1 style={styles.title}>{event?.event_title}</h1>
-            <hr style={styles.titleRule} />
-            <p style={styles.sub}>On a hâte de vous voir !</p>
-          </header>
+          <div style={styles.headerCard}>
+            <header style={styles.header}>
+              <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
+              <h1 style={styles.title}>{event?.event_title}</h1>
+              <hr style={styles.titleRule} />
+              <p style={styles.sub}>On a hâte de vous voir !</p>
+            </header>
+          </div>
 
           {rsvpDone ? (
             <div style={styles.rsvpConfirmedCard}>
@@ -1408,14 +1410,16 @@ export default function GuestbookPage() {
       `}</style>
 
       <div style={styles.content}>
-        <header style={styles.header}>
-          <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
-          <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
-          <hr style={styles.titleRule} />
-          {isReview && (
-            <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>
-          )}
-        </header>
+        <div style={styles.headerCard}>
+          <header style={styles.header}>
+            <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
+            <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
+            <hr style={styles.titleRule} />
+            {isReview && (
+              <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>
+            )}
+          </header>
+        </div>
 
         {isJournal && (
           <div className="fun-card" style={styles.wheelCard}>
@@ -2024,9 +2028,10 @@ function getStyles(t, isFun) {
   const headWeight = isFun ? 700 : 400;
   const headStyle = isFun ? "normal" : "italic";
   return {
-    page: { minHeight: "100vh", background: t.ink, backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
-    content: { width: "100%", maxWidth: "560px", background: `linear-gradient(160deg, ${t.surface} 0%, ${t.surface2} 100%)`, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
-    header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
+    page: { minHeight: "100vh", backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%), linear-gradient(160deg, ${t.ink} 0%, ${t.surface2} 100%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
+    content: { width: "100%", maxWidth: "560px", display: "flex", flexDirection: "column", gap: "16px" },
+    headerCard: { background: t.surface, borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 20px 40px -16px rgba(0,0,0,0.25)" },
+    header: { textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
     title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.6rem", color: t.ivory, margin: 0, lineHeight: 1.15 },
     titleRule: { width: "56px", height: "2px", background: t.accent, margin: "18px auto 0", border: "none" },
@@ -2318,7 +2323,7 @@ function getStyles(t, isFun) {
     dividerCount: { fontSize: "0.72rem", color: t.muted },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },
     empty: { textAlign: "center", color: t.muted, fontFamily: headFont, fontStyle: headStyle, fontSize: "1.2rem", padding: "20px 0" },
-    entry: { background: t.surface, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
+    entry: { background: t.surface, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px", boxShadow: "0 12px 24px -12px rgba(0,0,0,0.2)" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
     entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.accent, flex: 1 },

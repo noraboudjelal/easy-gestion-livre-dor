@@ -487,8 +487,8 @@ export default function GuestbookPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
-  const [photo, setPhoto] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
   const [video, setVideo] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [recording, setRecording] = useState(false);
@@ -1012,19 +1012,16 @@ export default function GuestbookPage() {
   }
 
   function handlePhotoChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setPhoto(null);
-      setPhotoPreview(null);
-      return;
-    }
-    setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setPhotos((prev) => [...prev, ...files]);
+    setPhotoPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+    e.target.value = "";
   }
 
-  function removePhoto() {
-    setPhoto(null);
-    setPhotoPreview(null);
+  function removePhoto(index) {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleVideoChange(e) {
@@ -1102,16 +1099,18 @@ export default function GuestbookPage() {
     setError("");
     setSending(true);
 
-    let photoUrl = null;
-    if (photo && supabase) {
-      const ext = photo.name.split(".").pop() || "jpg";
-      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("guestbook-photos")
-        .upload(path, photo);
-      if (!uploadError) {
-        const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
-        photoUrl = pub?.publicUrl || null;
+    let photoUrls = [];
+    if (photos.length > 0 && supabase) {
+      for (const file of photos) {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("guestbook-photos")
+          .upload(path, file);
+        if (!uploadError) {
+          const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
+          if (pub?.publicUrl) photoUrls.push(pub.publicUrl);
+        }
       }
     }
 
@@ -1144,7 +1143,7 @@ export default function GuestbookPage() {
       id: "temp-" + Date.now(),
       name: name.trim() || "Anonyme",
       message: text.trim().slice(0, 400),
-      photo_url: photoUrl || photoPreview,
+      photo_urls: photoUrls.length > 0 ? photoUrls : photoPreviews,
       video_url: videoUrl || videoPreview,
       audio_url: audioUrl || audioPreviewUrl,
       ink: randomInk(theme.avatarPalette),
@@ -1153,8 +1152,8 @@ export default function GuestbookPage() {
     };
     setMessages((prev) => [...prev, optimisticEntry]);
     setText("");
-    setPhoto(null);
-    setPhotoPreview(null);
+    setPhotos([]);
+    setPhotoPreviews([]);
     setVideo(null);
     setVideoPreview(null);
     setAudioBlob(null);
@@ -1169,7 +1168,8 @@ export default function GuestbookPage() {
         event_id: event.id,
         name: optimisticEntry.name,
         message: optimisticEntry.message,
-        photo_url: photoUrl,
+        photo_url: photoUrls[0] || null,
+        photo_urls: photoUrls,
         video_url: videoUrl,
         audio_url: audioUrl,
         ink: optimisticEntry.ink,
@@ -1835,24 +1835,33 @@ export default function GuestbookPage() {
             style={styles.textarea}
           />
 
-          {photoPreview ? (
-            <div style={styles.photoPreviewWrap}>
-              <img src={photoPreview} alt="Aperçu" style={styles.photoPreview} />
-              <button type="button" onClick={removePhoto} style={styles.removePhotoButton}>
-                ✕ retirer la photo
-              </button>
+          {photoPreviews.length > 0 && (
+            <div style={styles.multiPhotoGrid}>
+              {photoPreviews.map((src, i) => (
+                <div key={i} style={styles.multiPhotoThumbWrap}>
+                  <img src={src} alt="Aperçu" style={styles.multiPhotoThumb} />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    style={styles.multiPhotoRemove}
+                    aria-label="Retirer cette photo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
-          ) : (
-            <label style={styles.photoLabel}>
-              📷 Ajouter une photo (optionnel)
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                style={{ display: "none" }}
-              />
-            </label>
           )}
+          <label style={styles.photoLabel}>
+            📷 {photoPreviews.length > 0 ? "Ajouter d'autres photos" : "Ajouter une ou plusieurs photos (optionnel)"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoChange}
+              style={{ display: "none" }}
+            />
+          </label>
 
           {videoPreview ? (
             <div style={styles.photoPreviewWrap}>
@@ -1937,9 +1946,20 @@ export default function GuestbookPage() {
                   <span style={styles.entryName}>{m.name}</span>
                   <span style={styles.entryDate}>{formatDate(m.created_at)}</span>
                 </div>
-                {m.photo_url && (
-                  <img src={m.photo_url} alt="" style={styles.entryPhoto} />
-                )}
+                {(() => {
+                  const photos = m.photo_urls?.length > 0 ? m.photo_urls : m.photo_url ? [m.photo_url] : [];
+                  if (photos.length === 0) return null;
+                  if (photos.length === 1) {
+                    return <img src={photos[0]} alt="" style={styles.entryPhoto} />;
+                  }
+                  return (
+                    <div style={styles.entryPhotoGrid}>
+                      {photos.map((url, i) => (
+                        <img key={i} src={url} alt="" style={styles.entryPhotoGridItem} />
+                      ))}
+                    </div>
+                  );
+                })()}
                 {m.video_url && (
                   <video src={m.video_url} controls style={styles.entryPhoto} />
                 )}
@@ -2005,7 +2025,7 @@ function getStyles(t, isFun) {
   const headStyle = isFun ? "normal" : "italic";
   return {
     page: { minHeight: "100vh", background: t.ink, backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
-    content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
+    content: { width: "100%", maxWidth: "560px", background: `linear-gradient(160deg, ${t.surface} 0%, ${t.surface2} 100%)`, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
     header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
     title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.6rem", color: t.ivory, margin: 0, lineHeight: 1.15 },
@@ -2018,6 +2038,12 @@ function getStyles(t, isFun) {
     photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
     photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" },
     removePhotoButton: { alignSelf: "flex-start", fontFamily: "Inter, sans-serif", fontSize: "0.72rem", color: "#D98C7F", background: "none", border: "none", padding: 0, cursor: "pointer" },
+    multiPhotoGrid: { display: "flex", flexWrap: "wrap", gap: "8px" },
+    multiPhotoThumbWrap: { position: "relative", width: "72px", height: "72px" },
+    multiPhotoThumb: { width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px", border: `1px solid ${t.muted}` },
+    multiPhotoRemove: { position: "absolute", top: "-6px", right: "-6px", width: "20px", height: "20px", borderRadius: "50%", border: "none", background: "#D98C7F", color: "#fff", fontSize: "0.62rem", cursor: "pointer", lineHeight: 1 },
+    entryPhotoGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "6px", marginBottom: "10px" },
+    entryPhotoGridItem: { width: "100%", height: "120px", objectFit: "cover", borderRadius: "8px" },
     formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
     counter: { fontSize: "0.7rem", color: t.muted },
     button: isFun
@@ -2292,7 +2318,7 @@ function getStyles(t, isFun) {
     dividerCount: { fontSize: "0.72rem", color: t.muted },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },
     empty: { textAlign: "center", color: t.muted, fontFamily: headFont, fontStyle: headStyle, fontSize: "1.2rem", padding: "20px 0" },
-    entry: { background: t.surface, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
+    entry: { background: `linear-gradient(160deg, ${t.surface} 0%, ${t.surface2} 100%)`, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
     entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.accent, flex: 1 },

@@ -9,12 +9,12 @@ const THEMES = {
     ink: "#F7F1E4",
     surface: "#FFFFFF",
     surface2: "#F3E9D0",
-    accent: "#C9A24B",
-    accentSoft: "rgba(201,162,75,0.18)",
+    accent: "#B8873A",
+    accentSoft: "rgba(184,135,58,0.18)",
     accentText: "#2A1F0A",
-    ivory: "#241F14",
-    muted: "#9B8F72",
-    avatarPalette: ["#C9A24B", "#8797C4", "#B79C6B", "#D9C08A"],
+    ivory: "#2A2118",
+    muted: "#7A6A4E",
+    avatarPalette: ["#B8873A", "#6E5B8C", "#8C6E4E", "#8A7A9C"],
   },
   "Anniversaire": {
     ink: "#241220",
@@ -1293,6 +1293,7 @@ export default function GuestbookPage() {
           <header style={styles.header}>
             <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
             <h1 style={styles.title}>{event?.event_title}</h1>
+            <hr style={styles.titleRule} />
             <p style={styles.sub}>On a hâte de vous voir !</p>
           </header>
 
@@ -1410,6 +1411,7 @@ export default function GuestbookPage() {
         <header style={styles.header}>
           <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
           <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
+          <hr style={styles.titleRule} />
           {isReview && (
             <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>
           )}
@@ -2004,9 +2006,10 @@ function getStyles(t, isFun) {
   return {
     page: { minHeight: "100vh", background: t.ink, backgroundImage: `radial-gradient(circle at 15% 0%, ${t.accentSoft}, transparent 40%), radial-gradient(circle at 85% 100%, ${t.accentSoft}, transparent 45%)`, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
     content: { width: "100%", maxWidth: "560px", background: t.surface, border: "1px solid rgba(255,255,255,0.06)", borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
-    header: { borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "18px", marginBottom: "22px", textAlign: "center" },
-    eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0" },
-    title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.4rem", color: t.ivory, margin: 0, lineHeight: 1.1 },
+    header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
+    eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
+    title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.6rem", color: t.ivory, margin: 0, lineHeight: 1.15 },
+    titleRule: { width: "56px", height: "2px", background: t.accent, margin: "18px auto 0", border: "none" },
     sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
     form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
     input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: isFun ? "18px" : "12px", background: t.surface2, color: t.ivory },

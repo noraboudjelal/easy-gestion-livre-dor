@@ -2318,7 +2318,7 @@ function getStyles(t, isFun) {
     dividerCount: { fontSize: "0.72rem", color: t.muted },
     entries: { display: "flex", flexDirection: "column", gap: "12px" },
     empty: { textAlign: "center", color: t.muted, fontFamily: headFont, fontStyle: headStyle, fontSize: "1.2rem", padding: "20px 0" },
-    entry: { background: `linear-gradient(160deg, ${t.surface} 0%, ${t.surface2} 100%)`, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
+    entry: { background: t.surface, border: `1px solid ${t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
     entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.accent, flex: 1 },

@@ -547,14 +547,36 @@ export default function GuestbookPage() {
   const [bacAnswerValues, setBacAnswerValues] = useState({});
   const [bacSubmitting, setBacSubmitting] = useState(false);
   const [bacSubmitted, setBacSubmitted] = useState(false);
+  const [bacJoined, setBacJoined] = useState(false);
+  const [bacJoining, setBacJoining] = useState(false);
+  const [bacElapsedSeconds, setBacElapsedSeconds] = useState(0);
+  const [bacViewResults, setBacViewResults] = useState(false);
   useEffect(() => {
     setBacAnswerValues({});
     if (typeof window !== "undefined" && bacRound) {
       setBacSubmitted(window.localStorage.getItem(`bac-submitted-${bacRound.id}`) === "1");
+      setBacJoined(window.localStorage.getItem(`bac-joined-${bacRound.id}`) === "1");
     } else {
       setBacSubmitted(false);
+      setBacJoined(false);
     }
+    setBacViewResults(false);
   }, [bacRound?.id]);
+
+  // --- Jeu du petit bac : chrono qui défile depuis le lancement ---
+  useEffect(() => {
+    if (!bacRound || bacRound.status !== "playing") {
+      setBacElapsedSeconds(0);
+      return;
+    }
+    function tick() {
+      const started = new Date(bacRound.started_at).getTime();
+      setBacElapsedSeconds(Math.max(0, Math.floor((Date.now() - started) / 1000)));
+    }
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [bacRound?.id, bacRound?.status, bacRound?.started_at]);
 
   // --- Jeu du pendu ---
   const [hangmanGame, setHangmanGame] = useState(null);
@@ -829,6 +851,26 @@ export default function GuestbookPage() {
 
   function handleBacAnswerChange(category, value) {
     setBacAnswerValues((prev) => ({ ...prev, [category]: value }));
+  }
+
+  async function handleJoinBacRound(e) {
+    e.preventDefault();
+    if (!bacRound || !bacPlayerName.trim() || !supabase) return;
+    setBacJoining(true);
+    await supabase.from("petit_bac_answers").delete().eq("round_id", bacRound.id).eq("player_name", bacPlayerName.trim());
+    const { error: insertError } = await supabase.from("petit_bac_answers").insert({
+      round_id: bacRound.id,
+      player_name: bacPlayerName.trim(),
+      answers: {},
+    });
+    setBacJoining(false);
+    if (!insertError) {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(`bac-joined-${bacRound.id}`, "1");
+      }
+      setBacJoined(true);
+      loadAll();
+    }
   }
 
   async function handleSubmitBacAnswers(e) {
@@ -1797,18 +1839,60 @@ export default function GuestbookPage() {
             {bacRound && bacRound.status === "playing" ? (
               <>
                 <p style={styles.hangmanSetBy}>
-                  Lettre : <strong style={{ fontSize: "1.2rem" }}>{bacRound.letter}</strong> · Premier·ère qui finit gagne !
+                  {bacRound.status === "finished" ? (
+                    <>🏁 {bacRound.winner_name} a déjà fini — tu peux quand même valider tes réponses !</>
+                  ) : (
+                    <>
+                      🔴 En cours depuis {bacElapsedSeconds}s · Lettre : <strong style={{ fontSize: "1.2rem" }}>{bacRound.letter}</strong> · Premier·ère qui finit gagne !
+                    </>
+                  )}
                 </p>
 
-                {!bacSubmitted ? (
-                  <form onSubmit={handleSubmitBacAnswers} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ marginBottom: "12px" }}>
+                  <p style={{ ...styles.bacResultCategoryTitle, marginBottom: "6px" }}>
+                    👥 {bacAnswersAll.length === 0 ? "Personne n'a encore rejoint" : "Ont rejoint la partie"}
+                  </p>
+                  {bacAnswersAll.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      {bacAnswersAll.map((a) => (
+                        <span
+                          key={a.id}
+                          style={{
+                            background: "rgba(255,255,255,0.2)",
+                            color: "#fff",
+                            padding: "5px 12px",
+                            borderRadius: "999px",
+                            fontSize: "0.75rem",
+                            fontFamily: "'Fredoka', sans-serif",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {a.player_name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {!bacJoined ? (
+                  <form onSubmit={handleJoinBacRound} style={{ display: "flex", gap: "8px" }}>
                     <input
-                      style={styles.input}
+                      style={{ ...styles.input, flex: 1 }}
                       type="text"
                       placeholder="Ton prénom"
                       value={bacPlayerName}
                       onChange={(e) => setBacPlayerName(e.target.value)}
                     />
+                    <button
+                      type="submit"
+                      disabled={bacJoining || !bacPlayerName.trim()}
+                      style={{ ...styles.button, opacity: !bacPlayerName.trim() ? 0.5 : 1 }}
+                    >
+                      {bacJoining ? "…" : "Rejoindre"}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleSubmitBacAnswers} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {bacRound.categories.map((cat) => (
                       <input
                         key={cat}
@@ -1819,16 +1903,10 @@ export default function GuestbookPage() {
                         onChange={(e) => handleBacAnswerChange(cat, e.target.value)}
                       />
                     ))}
-                    <button
-                      type="submit"
-                      disabled={bacSubmitting || !bacPlayerName.trim()}
-                      style={{ ...styles.button, opacity: !bacPlayerName.trim() ? 0.5 : 1 }}
-                    >
+                    <button type="submit" disabled={bacSubmitting} style={styles.button}>
                       {bacSubmitting ? "…" : "Valider mes réponses"}
                     </button>
                   </form>
-                ) : (
-                  <p style={styles.hangmanStatus}>✓ Réponses envoyées, en attente que quelqu'un finisse…</p>
                 )}
               </>
             ) : bacRound && bacRound.status === "finished" && !bacShowSetup ? (
@@ -1938,7 +2016,7 @@ export default function GuestbookPage() {
                   disabled={bacCreating || bacSetupCategories.length < 1}
                   style={{ ...styles.button, opacity: bacSetupCategories.length < 1 ? 0.5 : 1 }}
                 >
-                  {bacCreating ? "…" : "🚀 Lancer la manche (60s)"}
+                  {bacCreating ? "…" : "🚀 Lancer la manche"}
                 </button>
                 {bacShowSetup && bacRound && (
                   <button type="button" onClick={() => setBacShowSetup(false)} style={styles.rsvpToggleBtn}>

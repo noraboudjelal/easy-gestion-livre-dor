@@ -534,6 +534,28 @@ export default function GuestbookPage() {
   const [newPollOptions, setNewPollOptions] = useState(["", ""]);
   const [addingPoll, setAddingPoll] = useState(false);
 
+  // --- Jeu du petit bac ---
+  const [bacRound, setBacRound] = useState(null);
+  const [bacAllRounds, setBacAllRounds] = useState([]);
+  const [bacAllAnswers, setBacAllAnswers] = useState([]);
+  const [bacAnswersAll, setBacAnswersAll] = useState([]);
+  const [bacCategoryInput, setBacCategoryInput] = useState("");
+  const [bacSetupCategories, setBacSetupCategories] = useState([]);
+  const [bacCreating, setBacCreating] = useState(false);
+  const [bacShowSetup, setBacShowSetup] = useState(false);
+  const [bacPlayerName, setBacPlayerName] = useState("");
+  const [bacAnswerValues, setBacAnswerValues] = useState({});
+  const [bacSubmitting, setBacSubmitting] = useState(false);
+  const [bacSubmitted, setBacSubmitted] = useState(false);
+  useEffect(() => {
+    setBacAnswerValues({});
+    if (typeof window !== "undefined" && bacRound) {
+      setBacSubmitted(window.localStorage.getItem(`bac-submitted-${bacRound.id}`) === "1");
+    } else {
+      setBacSubmitted(false);
+    }
+  }, [bacRound?.id]);
+
   // --- Jeu du pendu ---
   const [hangmanGame, setHangmanGame] = useState(null);
   const [hangmanSetterName, setHangmanSetterName] = useState("");
@@ -707,6 +729,35 @@ export default function GuestbookPage() {
       .limit(1);
     setHangmanGame(hangmanData && hangmanData.length > 0 ? hangmanData[0] : null);
 
+    const { data: bacRoundsData } = await supabase
+      .from("petit_bac_rounds")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("created_at", { ascending: true });
+    const allRounds = bacRoundsData || [];
+    setBacAllRounds(allRounds);
+    const latestRound = allRounds.length > 0 ? allRounds[allRounds.length - 1] : null;
+    setBacRound(latestRound);
+
+    if (allRounds.length > 0) {
+      const { data: bacAnswersData } = await supabase
+        .from("petit_bac_answers")
+        .select("*")
+        .in(
+          "round_id",
+          allRounds.map((r) => r.id)
+        );
+      setBacAllAnswers(bacAnswersData || []);
+      setBacAnswersAll((bacAnswersData || []).filter((a) => a.round_id === latestRound?.id));
+      if (typeof window !== "undefined" && latestRound) {
+        const already = window.localStorage.getItem(`bac-submitted-${latestRound.id}`);
+        if (already) setBacSubmitted(true);
+      }
+    } else {
+      setBacAllAnswers([]);
+      setBacAnswersAll([]);
+    }
+
     setLoading(false);
   }, [slug]);
 
@@ -740,6 +791,120 @@ export default function GuestbookPage() {
   useEffect(() => {
     return () => clearTimeout(wheelSpinTimeoutRef.current);
   }, []);
+
+  // --- Jeu du petit bac ---
+  const ALPHABET_BAC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+  function addBacCategory() {
+    const trimmed = bacCategoryInput.trim();
+    if (!trimmed) return;
+    setBacSetupCategories((prev) => [...prev, trimmed]);
+    setBacCategoryInput("");
+  }
+
+  function removeBacCategory(index) {
+    setBacSetupCategories((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleCreateBacRound(e) {
+    e.preventDefault();
+    if (bacSetupCategories.length < 1 || !supabase || !event) return;
+    setBacCreating(true);
+    const letter = ALPHABET_BAC[Math.floor(Math.random() * ALPHABET_BAC.length)];
+    const { error: insertError } = await supabase.from("petit_bac_rounds").insert({
+      event_id: event.id,
+      letter,
+      categories: bacSetupCategories,
+      duration_seconds: 60,
+      started_at: new Date().toISOString(),
+    });
+    setBacCreating(false);
+    if (!insertError) {
+      setBacSetupCategories([]);
+      setBacCategoryInput("");
+      setBacShowSetup(false);
+      loadAll();
+    }
+  }
+
+  function handleBacAnswerChange(category, value) {
+    setBacAnswerValues((prev) => ({ ...prev, [category]: value }));
+  }
+
+  async function handleSubmitBacAnswers(e) {
+    e.preventDefault();
+    if (!bacRound || !bacPlayerName.trim() || !supabase) return;
+    const allFilled = bacRound.categories.every((cat) => (bacAnswerValues[cat] || "").trim());
+    if (!allFilled) {
+      setError("Remplis toutes les catégories avant de valider.");
+      return;
+    }
+    setError("");
+    setBacSubmitting(true);
+    await supabase.from("petit_bac_answers").delete().eq("round_id", bacRound.id).eq("player_name", bacPlayerName.trim());
+    const { error: insertError } = await supabase.from("petit_bac_answers").insert({
+      round_id: bacRound.id,
+      player_name: bacPlayerName.trim(),
+      answers: bacAnswerValues,
+    });
+
+    if (!insertError) {
+      // Le premier à valider complètement remporte la manche
+      await supabase
+        .from("petit_bac_rounds")
+        .update({ status: "finished", winner_name: bacPlayerName.trim(), finished_at: new Date().toISOString() })
+        .eq("id", bacRound.id)
+        .eq("status", "playing");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(`bac-submitted-${bacRound.id}`, "1");
+      }
+      setBacSubmitted(true);
+      loadAll();
+    }
+    setBacSubmitting(false);
+  }
+
+  function computeBacScores(round, answers) {
+    const scoresByCategory = {};
+    const totals = {};
+    (round?.categories || []).forEach((cat) => {
+      const validEntries = answers
+        .map((a) => ({ player: a.player_name, raw: (a.answers?.[cat] || "").trim() }))
+        .map((e) => ({
+          ...e,
+          valid: !!e.raw && e.raw.toUpperCase().startsWith((round.letter || "").toUpperCase()),
+          normalized: e.raw.toUpperCase(),
+        }));
+
+      const countByWord = {};
+      validEntries.forEach((e) => {
+        if (e.valid) countByWord[e.normalized] = (countByWord[e.normalized] || 0) + 1;
+      });
+
+      scoresByCategory[cat] = validEntries.map((e) => {
+        let points = 0;
+        if (e.valid) points = countByWord[e.normalized] > 1 ? 1 : 2;
+        totals[e.player] = (totals[e.player] || 0) + points;
+        return { player: e.player, raw: e.raw, valid: e.valid, points };
+      });
+    });
+    return { scoresByCategory, totals };
+  }
+
+  function computeBacCumulativeScores(allRounds, allAnswers) {
+    const grandTotals = {};
+    allRounds
+      .filter((r) => r.status === "finished")
+      .forEach((round) => {
+        const roundAnswers = allAnswers.filter((a) => a.round_id === round.id);
+        const { totals } = computeBacScores(round, roundAnswers);
+        Object.entries(totals).forEach(([player, pts]) => {
+          grandTotals[player] = (grandTotals[player] || 0) + pts;
+        });
+      });
+    return grandTotals;
+  }
 
   // --- Jeu du pendu ---
   function normalizeHangmanWord(raw) {
@@ -1627,6 +1792,166 @@ export default function GuestbookPage() {
 
         {isJournal && (
           <div className="fun-card" style={styles.wheelCard}>
+            <p style={styles.wheelTitle}>🔤 Petit Bac</p>
+
+            {bacRound && bacRound.status === "playing" ? (
+              <>
+                <p style={styles.hangmanSetBy}>
+                  Lettre : <strong style={{ fontSize: "1.2rem" }}>{bacRound.letter}</strong> · Premier·ère qui finit gagne !
+                </p>
+
+                {!bacSubmitted ? (
+                  <form onSubmit={handleSubmitBacAnswers} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <input
+                      style={styles.input}
+                      type="text"
+                      placeholder="Ton prénom"
+                      value={bacPlayerName}
+                      onChange={(e) => setBacPlayerName(e.target.value)}
+                    />
+                    {bacRound.categories.map((cat) => (
+                      <input
+                        key={cat}
+                        style={styles.input}
+                        type="text"
+                        placeholder={`${cat} en ${bacRound.letter}...`}
+                        value={bacAnswerValues[cat] || ""}
+                        onChange={(e) => handleBacAnswerChange(cat, e.target.value)}
+                      />
+                    ))}
+                    <button
+                      type="submit"
+                      disabled={bacSubmitting || !bacPlayerName.trim()}
+                      style={{ ...styles.button, opacity: !bacPlayerName.trim() ? 0.5 : 1 }}
+                    >
+                      {bacSubmitting ? "…" : "Valider mes réponses"}
+                    </button>
+                  </form>
+                ) : (
+                  <p style={styles.hangmanStatus}>✓ Réponses envoyées, en attente que quelqu'un finisse…</p>
+                )}
+              </>
+            ) : bacRound && bacRound.status === "finished" && !bacShowSetup ? (
+              (() => {
+                const { scoresByCategory, totals } = computeBacScores(bacRound, bacAnswersAll);
+                const ranking = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+                const grandTotals = computeBacCumulativeScores(bacAllRounds, bacAllAnswers);
+                const grandRanking = Object.entries(grandTotals).sort((a, b) => b[1] - a[1]);
+                const finishedRoundsCount = bacAllRounds.filter((r) => r.status === "finished").length;
+                return (
+                  <>
+                    <p style={styles.hangmanSetBy}>
+                      🏁 {bacRound.winner_name} a fini en premier ! Lettre : <strong>{bacRound.letter}</strong>
+                    </p>
+
+                    {grandRanking.length > 0 && finishedRoundsCount > 1 && (
+                      <div style={{ ...styles.bacResultCategory, marginBottom: "12px", background: "rgba(255,255,255,0.2)" }}>
+                        <p style={styles.bacResultCategoryTitle}>
+                          🏆 Classement général ({finishedRoundsCount} manche{finishedRoundsCount > 1 ? "s" : ""})
+                        </p>
+                        {grandRanking.map(([player, pts], i) => (
+                          <p key={player} style={styles.bacResultLine}>
+                            {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "•"} <strong>{player}</strong> — {pts} pt{pts > 1 ? "s" : ""}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {ranking.length > 0 && (
+                      <div style={{ ...styles.bacResultCategory, marginBottom: "12px" }}>
+                        <p style={styles.bacResultCategoryTitle}>Cette manche</p>
+                        {ranking.map(([player, pts], i) => (
+                          <p key={player} style={styles.bacResultLine}>
+                            {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "•"} <strong>{player}</strong> — {pts} pt{pts > 1 ? "s" : ""}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
+                      {bacRound.categories.map((cat) => (
+                        <div key={cat} style={styles.bacResultCategory}>
+                          <p style={styles.bacResultCategoryTitle}>{cat}</p>
+                          {(scoresByCategory[cat] || []).length === 0 && (
+                            <p style={styles.bacResultEmpty}>Personne n'a répondu.</p>
+                          )}
+                          {(scoresByCategory[cat] || []).map((entry, i) => (
+                            <p key={i} style={styles.bacResultLine}>
+                              <strong>{entry.player}</strong> — {entry.raw || <em>(vide)</em>}{" "}
+                              <span style={{ opacity: 0.85 }}>
+                                ({entry.points} pt{entry.points !== 1 ? "s" : ""})
+                              </span>
+                            </p>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => setBacShowSetup(true)} style={{ ...styles.button, width: "100%" }}>
+                      🔄 Nouvelle manche
+                    </button>
+                  </>
+                );
+              })()
+            ) : (
+              <form onSubmit={handleCreateBacRound} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <p style={styles.hangmanSetBy}>Ajoutez vos catégories (ex. Prénom, Animal, Pays…), une lettre sera tirée au sort.</p>
+                <div style={styles.formRow}>
+                  <input
+                    style={{ ...styles.input, flex: 1, marginRight: "8px" }}
+                    type="text"
+                    placeholder="Une catégorie"
+                    value={bacCategoryInput}
+                    onChange={(e) => setBacCategoryInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addBacCategory();
+                      }
+                    }}
+                  />
+                  <button type="button" onClick={addBacCategory} style={styles.button}>
+                    Ajouter
+                  </button>
+                </div>
+                {bacSetupCategories.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {bacSetupCategories.map((c, i) => (
+                      <span
+                        key={i}
+                        onClick={() => removeBacCategory(i)}
+                        style={{
+                          background: theme.surface2,
+                          color: theme.ivory,
+                          padding: "6px 12px",
+                          borderRadius: "999px",
+                          fontSize: "0.8rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {c} ✕
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={bacCreating || bacSetupCategories.length < 1}
+                  style={{ ...styles.button, opacity: bacSetupCategories.length < 1 ? 0.5 : 1 }}
+                >
+                  {bacCreating ? "…" : "🚀 Lancer la manche (60s)"}
+                </button>
+                {bacShowSetup && bacRound && (
+                  <button type="button" onClick={() => setBacShowSetup(false)} style={styles.rsvpToggleBtn}>
+                    Annuler
+                  </button>
+                )}
+              </form>
+            )}
+          </div>
+        )}
+
+        {isJournal && (
+          <div className="fun-card" style={styles.wheelCard}>
             <p style={styles.wheelTitle}>🎯 Jeu du pendu</p>
 
             {hangmanGame && hangmanGame.status === "playing" && !hangmanShowSetup ? (
@@ -2441,6 +2766,10 @@ function getStyles(t, isFun) {
       padding: "9px 0",
       borderRadius: "8px",
     },
+    bacResultCategory: { background: "rgba(255,255,255,0.12)", borderRadius: "12px", padding: "10px 12px" },
+    bacResultCategoryTitle: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "#fff", margin: "0 0 6px" },
+    bacResultLine: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.8rem", color: "rgba(255,255,255,0.92)", margin: "2px 0" },
+    bacResultEmpty: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.78rem", color: "rgba(255,255,255,0.7)", margin: 0, fontStyle: "italic" },
     wheelSub: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.82rem", color: "rgba(255,255,255,0.92)", margin: "0 0 14px", fontWeight: 500 },
     wheelInputRow: { display: "flex", gap: "8px", marginBottom: "10px" },
     wheelAddBtn: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "0 18px", background: "#241a15", color: "#FFD93D", border: "none", borderRadius: "16px" },

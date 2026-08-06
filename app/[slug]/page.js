@@ -1051,13 +1051,21 @@ export default function GuestbookPage() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       audioChunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
+
+      // Safari (iPhone) ne supporte pas "audio/webm" — on détecte le bon format
+      const candidates = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/aac"];
+      const supportedType =
+        candidates.find((type) => typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported(type)) ||
+        "";
+
+      const recorder = supportedType ? new MediaRecorder(stream, { mimeType: supportedType }) : new MediaRecorder(stream);
+      const actualType = recorder.mimeType || supportedType || "audio/mp4";
       mediaRecorderRef.current = recorder;
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
       recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(audioChunksRef.current, { type: actualType });
         setAudioBlob(blob);
         setAudioPreviewUrl(URL.createObjectURL(blob));
         streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -1131,10 +1139,11 @@ export default function GuestbookPage() {
 
     let audioUrl = null;
     if (audioBlob && supabase) {
-      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webm`;
+      const audioExt = audioBlob.type.includes("mp4") ? "m4a" : audioBlob.type.includes("aac") ? "aac" : "webm";
+      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${audioExt}`;
       const { error: uploadError } = await supabase.storage
         .from("guestbook-media")
-        .upload(path, audioBlob);
+        .upload(path, audioBlob, { contentType: audioBlob.type || "audio/mp4" });
       if (!uploadError) {
         const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
         audioUrl = pub?.publicUrl || null;

@@ -534,6 +534,16 @@ export default function GuestbookPage() {
   const [newPollOptions, setNewPollOptions] = useState(["", ""]);
   const [addingPoll, setAddingPoll] = useState(false);
 
+  // --- Jeu du pendu ---
+  const [hangmanGame, setHangmanGame] = useState(null);
+  const [hangmanSetterName, setHangmanSetterName] = useState("");
+  const [hangmanWordInput, setHangmanWordInput] = useState("");
+  const [hangmanPlayerInput, setHangmanPlayerInput] = useState("");
+  const [hangmanSetupPlayers, setHangmanSetupPlayers] = useState([]);
+  const [hangmanCreating, setHangmanCreating] = useState(false);
+  const [hangmanGuessingLetter, setHangmanGuessingLetter] = useState(null);
+  const [hangmanShowSetup, setHangmanShowSetup] = useState(false);
+
   // --- La Roue ---
   const [wheelPlayerInput, setWheelPlayerInput] = useState("");
   const [wheelPlayers, setWheelPlayers] = useState([]);
@@ -689,6 +699,14 @@ export default function GuestbookPage() {
       });
     }
 
+    const { data: hangmanData } = await supabase
+      .from("hangman_games")
+      .select("*")
+      .eq("event_id", ev.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    setHangmanGame(hangmanData && hangmanData.length > 0 ? hangmanData[0] : null);
+
     setLoading(false);
   }, [slug]);
 
@@ -722,6 +740,94 @@ export default function GuestbookPage() {
   useEffect(() => {
     return () => clearTimeout(wheelSpinTimeoutRef.current);
   }, []);
+
+  // --- Jeu du pendu ---
+  function normalizeHangmanWord(raw) {
+    return raw
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function addHangmanPlayer() {
+    const trimmed = hangmanPlayerInput.trim();
+    if (!trimmed) return;
+    setHangmanSetupPlayers((prev) => [...prev, trimmed]);
+    setHangmanPlayerInput("");
+  }
+
+  function removeHangmanPlayer(index) {
+    setHangmanSetupPlayers((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleCreateHangman(e) {
+    e.preventDefault();
+    const word = normalizeHangmanWord(hangmanWordInput.trim());
+    if (!word || hangmanSetupPlayers.length < 1 || !supabase || !event) return;
+    setHangmanCreating(true);
+    const { error: insertError } = await supabase.from("hangman_games").insert({
+      event_id: event.id,
+      word,
+      set_by: hangmanSetterName.trim() || "Quelqu'un",
+      players: hangmanSetupPlayers,
+      guessed_letters: [],
+      wrong_count: 0,
+      max_wrong: 6,
+      status: "playing",
+      current_turn_index: 0,
+    });
+    setHangmanCreating(false);
+    if (!insertError) {
+      setHangmanWordInput("");
+      setHangmanSetterName("");
+      setHangmanSetupPlayers([]);
+      setHangmanShowSetup(false);
+      loadAll();
+    }
+  }
+
+  async function handleGuessHangmanLetter(letter) {
+    if (!hangmanGame || hangmanGame.status !== "playing" || !supabase) return;
+    if (hangmanGame.guessed_letters.includes(letter) || hangmanGuessingLetter) return;
+    setHangmanGuessingLetter(letter);
+
+    const newGuessed = [...hangmanGame.guessed_letters, letter];
+    const isCorrect = hangmanGame.word.includes(letter);
+    const newWrongCount = isCorrect ? hangmanGame.wrong_count : hangmanGame.wrong_count + 1;
+    const players = hangmanGame.players || [];
+    const newTurnIndex = isCorrect
+      ? hangmanGame.current_turn_index
+      : players.length > 0
+      ? (hangmanGame.current_turn_index + 1) % players.length
+      : 0;
+
+    const wordLetters = [...new Set(hangmanGame.word.split(""))].filter((c) => /[A-Z]/.test(c));
+    const won = wordLetters.every((l) => newGuessed.includes(l));
+    const lost = newWrongCount >= hangmanGame.max_wrong;
+    const newStatus = won ? "won" : lost ? "lost" : "playing";
+
+    // mise à jour optimiste
+    setHangmanGame((prev) => ({
+      ...prev,
+      guessed_letters: newGuessed,
+      wrong_count: newWrongCount,
+      current_turn_index: newTurnIndex,
+      status: newStatus,
+    }));
+
+    await supabase
+      .from("hangman_games")
+      .update({
+        guessed_letters: newGuessed,
+        wrong_count: newWrongCount,
+        current_turn_index: newTurnIndex,
+        status: newStatus,
+      })
+      .eq("id", hangmanGame.id);
+
+    setHangmanGuessingLetter(null);
+    loadAll();
+  }
 
   // --- Look du jour : hydrate "déjà posté aujourd'hui" ---
   useEffect(() => {
@@ -1520,6 +1626,172 @@ export default function GuestbookPage() {
         )}
 
         {isJournal && (
+          <div className="fun-card" style={styles.wheelCard}>
+            <p style={styles.wheelTitle}>🎯 Jeu du pendu</p>
+
+            {hangmanGame && hangmanGame.status === "playing" && !hangmanShowSetup ? (
+              <>
+                <p style={styles.hangmanSetBy}>Mot défini par {hangmanGame.set_by}</p>
+                <div style={styles.hangmanSvgWrap}>
+                  <svg width="140" height="140" viewBox="0 0 160 160">
+                    <line x1="20" y1="150" x2="100" y2="150" stroke={theme.muted} strokeWidth="4" strokeLinecap="round" />
+                    <line x1="40" y1="150" x2="40" y2="20" stroke={theme.muted} strokeWidth="4" strokeLinecap="round" />
+                    <line x1="40" y1="20" x2="110" y2="20" stroke={theme.muted} strokeWidth="4" strokeLinecap="round" />
+                    <line x1="110" y1="20" x2="110" y2="38" stroke={theme.muted} strokeWidth="4" strokeLinecap="round" />
+                    {hangmanGame.wrong_count >= 1 && (
+                      <circle cx="110" cy="52" r="14" stroke={theme.accent} strokeWidth="4" fill="none" />
+                    )}
+                    {hangmanGame.wrong_count >= 2 && (
+                      <line x1="110" y1="66" x2="110" y2="105" stroke={theme.accent} strokeWidth="4" strokeLinecap="round" />
+                    )}
+                    {hangmanGame.wrong_count >= 3 && (
+                      <line x1="110" y1="78" x2="92" y2="95" stroke={theme.accent} strokeWidth="4" strokeLinecap="round" />
+                    )}
+                    {hangmanGame.wrong_count >= 4 && (
+                      <line x1="110" y1="78" x2="128" y2="95" stroke={theme.accent} strokeWidth="4" strokeLinecap="round" />
+                    )}
+                    {hangmanGame.wrong_count >= 5 && (
+                      <line x1="110" y1="105" x2="94" y2="132" stroke={theme.accent} strokeWidth="4" strokeLinecap="round" />
+                    )}
+                    {hangmanGame.wrong_count >= 6 && (
+                      <line x1="110" y1="105" x2="126" y2="132" stroke={theme.accent} strokeWidth="4" strokeLinecap="round" />
+                    )}
+                  </svg>
+                </div>
+
+                <div style={styles.hangmanWordRow}>
+                  {hangmanGame.word.split("").map((letter, i) =>
+                    letter === " " ? (
+                      <div key={i} style={{ width: "14px" }} />
+                    ) : (
+                      <div key={i} style={styles.hangmanLetterSlot}>
+                        {hangmanGame.guessed_letters.includes(letter) ? letter : ""}
+                      </div>
+                    )
+                  )}
+                </div>
+
+                <p style={styles.hangmanStatus}>
+                  {hangmanGame.wrong_count}/{hangmanGame.max_wrong} erreur{hangmanGame.wrong_count > 1 ? "s" : ""} ·{" "}
+                  <strong>Tour de {hangmanGame.players?.[hangmanGame.current_turn_index] || "?"}</strong>
+                </p>
+
+                <div style={styles.hangmanKeyboard}>
+                  {"AZERTYUIOPQSDFGHJKLMWXCVBN".split("").map((letter) => {
+                    const isGuessed = hangmanGame.guessed_letters.includes(letter);
+                    const isCorrect = isGuessed && hangmanGame.word.includes(letter);
+                    return (
+                      <button
+                        key={letter}
+                        type="button"
+                        disabled={isGuessed || !!hangmanGuessingLetter}
+                        onClick={() => handleGuessHangmanLetter(letter)}
+                        style={{
+                          ...styles.hangmanKey,
+                          background: isGuessed ? (isCorrect ? "#5FCBB8" : "#E2705A") : theme.surface2,
+                          opacity: isGuessed ? 0.7 : 1,
+                        }}
+                      >
+                        {letter}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : hangmanGame && (hangmanGame.status === "won" || hangmanGame.status === "lost") && !hangmanShowSetup ? (
+              <>
+                <p style={styles.hangmanStatus}>
+                  {hangmanGame.status === "won" ? "🎉 Le mot a été trouvé !" : "😅 Perdu !"} Le mot était{" "}
+                  <strong>{hangmanGame.word}</strong>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setHangmanShowSetup(true)}
+                  style={{ ...styles.button, width: "100%", marginTop: "10px" }}
+                >
+                  🔄 Lancer un nouveau mot
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleCreateHangman} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <p style={styles.hangmanSetBy}>Choisis un mot secret, et ajoute les joueurs qui vont deviner.</p>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Ton prénom (qui choisit le mot)"
+                  value={hangmanSetterName}
+                  onChange={(e) => setHangmanSetterName(e.target.value)}
+                />
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Le mot secret"
+                  value={hangmanWordInput}
+                  onChange={(e) => setHangmanWordInput(e.target.value)}
+                />
+                <div style={styles.formRow}>
+                  <input
+                    style={{ ...styles.input, flex: 1, marginRight: "8px" }}
+                    type="text"
+                    placeholder="Prénom d'un joueur"
+                    value={hangmanPlayerInput}
+                    onChange={(e) => setHangmanPlayerInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addHangmanPlayer();
+                      }
+                    }}
+                  />
+                  <button type="button" onClick={addHangmanPlayer} style={styles.button}>
+                    Ajouter
+                  </button>
+                </div>
+                {hangmanSetupPlayers.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {hangmanSetupPlayers.map((p, i) => (
+                      <span
+                        key={i}
+                        onClick={() => removeHangmanPlayer(i)}
+                        style={{
+                          background: theme.surface2,
+                          color: theme.ivory,
+                          padding: "6px 12px",
+                          borderRadius: "999px",
+                          fontSize: "0.8rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {p} ✕
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={hangmanCreating || !hangmanWordInput.trim() || hangmanSetupPlayers.length < 1}
+                  style={{
+                    ...styles.button,
+                    opacity: !hangmanWordInput.trim() || hangmanSetupPlayers.length < 1 ? 0.5 : 1,
+                  }}
+                >
+                  {hangmanCreating ? "…" : "🚀 Lancer la partie"}
+                </button>
+                {hangmanShowSetup && hangmanGame && (
+                  <button
+                    type="button"
+                    onClick={() => setHangmanShowSetup(false)}
+                    style={{ ...styles.rsvpToggleBtn }}
+                  >
+                    Annuler
+                  </button>
+                )}
+              </form>
+            )}
+          </div>
+        )}
+
+        {isJournal && (
           <div className="fun-card" style={styles.lookCard}>
             <p style={styles.lookTitle}>✨ Look du Jour ✨</p>
             <p style={styles.lookSub}>Poste ta tenue et vote pour tes préférées !</p>
@@ -2136,6 +2408,39 @@ function getStyles(t, isFun) {
       boxShadow: "0 14px 30px -12px rgba(167,139,250,0.5)",
     },
     wheelTitle: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "1.5rem", color: "#fff", margin: "0 0 4px", textShadow: "0 2px 0 rgba(0,0,0,0.12)" },
+    hangmanSetBy: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.82rem", color: "rgba(255,255,255,0.92)", margin: "0 0 12px", fontWeight: 500 },
+    hangmanSvgWrap: { display: "flex", justifyContent: "center", marginBottom: "10px" },
+    hangmanWordRow: { display: "flex", justifyContent: "center", gap: "6px", flexWrap: "wrap", marginBottom: "12px" },
+    hangmanLetterSlot: {
+      width: "26px",
+      height: "34px",
+      borderBottom: "3px solid #fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "1.2rem",
+      fontWeight: 700,
+      color: "#fff",
+      fontFamily: "'Fredoka', sans-serif",
+    },
+    hangmanStatus: {
+      textAlign: "center",
+      fontFamily: "'Fredoka', sans-serif",
+      fontSize: "0.85rem",
+      color: "#fff",
+      fontWeight: 600,
+      margin: "0 0 14px",
+    },
+    hangmanKeyboard: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" },
+    hangmanKey: {
+      border: "none",
+      color: "#fff",
+      fontFamily: "'Fredoka', sans-serif",
+      fontWeight: 700,
+      fontSize: "0.85rem",
+      padding: "9px 0",
+      borderRadius: "8px",
+    },
     wheelSub: { fontFamily: "'Fredoka', sans-serif", fontSize: "0.82rem", color: "rgba(255,255,255,0.92)", margin: "0 0 14px", fontWeight: 500 },
     wheelInputRow: { display: "flex", gap: "8px", marginBottom: "10px" },
     wheelAddBtn: { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "0 18px", background: "#241a15", color: "#FFD93D", border: "none", borderRadius: "16px" },

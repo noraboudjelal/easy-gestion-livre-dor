@@ -1109,96 +1109,110 @@ export default function GuestbookPage() {
     setError("");
     setSending(true);
 
-    let photoUrls = [];
-    if (photos.length > 0 && supabase) {
-      for (const file of photos) {
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("guestbook-photos")
-          .upload(path, file);
-        if (!uploadError) {
-          const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
-          if (pub?.publicUrl) photoUrls.push(pub.publicUrl);
+    try {
+      let photoUrls = [];
+      if (photos.length > 0 && supabase) {
+        for (const file of photos) {
+          try {
+            const ext = file.name.split(".").pop() || "jpg";
+            const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+            const { error: uploadError } = await supabase.storage.from("guestbook-photos").upload(path, file);
+            if (!uploadError) {
+              const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
+              if (pub?.publicUrl) photoUrls.push(pub.publicUrl);
+            }
+          } catch {
+            // on ignore l'échec d'une photo et on continue avec les autres
+          }
         }
       }
-    }
 
-    let videoUrl = null;
-    if (video && supabase) {
-      const ext = video.name.split(".").pop() || "mp4";
-      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("guestbook-media")
-        .upload(path, video);
-      if (!uploadError) {
-        const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
-        videoUrl = pub?.publicUrl || null;
+      let videoUrl = null;
+      if (video && supabase) {
+        try {
+          const ext = video.name.split(".").pop() || "mp4";
+          const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: uploadError } = await supabase.storage.from("guestbook-media").upload(path, video);
+          if (!uploadError) {
+            const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
+            videoUrl = pub?.publicUrl || null;
+          }
+        } catch {
+          // on ignore l'échec de la vidéo, le message texte part quand même
+        }
       }
-    }
 
-    let audioUrl = null;
-    if (audioBlob && supabase) {
-      const audioExt = audioBlob.type.includes("mp4") ? "m4a" : audioBlob.type.includes("aac") ? "aac" : "webm";
-      const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${audioExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("guestbook-media")
-        .upload(path, audioBlob, { contentType: audioBlob.type || "audio/mp4" });
-      if (!uploadError) {
-        const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
-        audioUrl = pub?.publicUrl || null;
+      let audioUrl = null;
+      if (audioBlob && supabase) {
+        try {
+          const audioType = audioBlob.type || "audio/mp4";
+          const audioExt = audioType.includes("mp4") ? "m4a" : audioType.includes("aac") ? "aac" : "webm";
+          const path = `${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${audioExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from("guestbook-media")
+            .upload(path, audioBlob, { contentType: audioType });
+          if (!uploadError) {
+            const { data: pub } = supabase.storage.from("guestbook-media").getPublicUrl(path);
+            audioUrl = pub?.publicUrl || null;
+          }
+        } catch {
+          // on ignore l'échec de l'audio, le message texte part quand même
+        }
       }
-    }
 
-    const optimisticEntry = {
-      id: "temp-" + Date.now(),
-      name: name.trim() || "Anonyme",
-      message: text.trim().slice(0, 400),
-      photo_urls: photoUrls.length > 0 ? photoUrls : photoPreviews,
-      video_url: videoUrl || videoPreview,
-      audio_url: audioUrl || audioPreviewUrl,
-      ink: randomInk(theme.avatarPalette),
-      rotation: randomRotation(),
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimisticEntry]);
-    setText("");
-    setPhotos([]);
-    setPhotoPreviews([]);
-    setVideo(null);
-    setVideoPreview(null);
-    setAudioBlob(null);
-    setAudioPreviewUrl(null);
-    setRecordSeconds(0);
-    setJustSent(true);
-    setTimeout(() => setJustSent(false), 2500);
+      const optimisticEntry = {
+        id: "temp-" + Date.now(),
+        name: name.trim() || "Anonyme",
+        message: text.trim().slice(0, 400),
+        photo_urls: photoUrls.length > 0 ? photoUrls : photoPreviews,
+        video_url: videoUrl || videoPreview,
+        audio_url: audioUrl || audioPreviewUrl,
+        ink: randomInk(theme.avatarPalette),
+        rotation: randomRotation(),
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, optimisticEntry]);
+      setText("");
+      setPhotos([]);
+      setPhotoPreviews([]);
+      setVideo(null);
+      setVideoPreview(null);
+      setAudioBlob(null);
+      setAudioPreviewUrl(null);
+      setRecordSeconds(0);
+      setJustSent(true);
+      setTimeout(() => setJustSent(false), 2500);
 
-    const { data: insertedMsg, error: insertError } = await supabase
-      .from("messages")
-      .insert({
-        event_id: event.id,
-        name: optimisticEntry.name,
-        message: optimisticEntry.message,
-        photo_url: photoUrls[0] || null,
-        photo_urls: photoUrls,
-        video_url: videoUrl,
-        audio_url: audioUrl,
-        ink: optimisticEntry.ink,
-        rotation: optimisticEntry.rotation,
-      })
-      .select()
-      .single();
+      const { data: insertedMsg, error: insertError } = await supabase
+        .from("messages")
+        .insert({
+          event_id: event.id,
+          name: optimisticEntry.name,
+          message: optimisticEntry.message,
+          photo_url: photoUrls[0] || null,
+          photo_urls: photoUrls,
+          video_url: videoUrl,
+          audio_url: audioUrl,
+          ink: optimisticEntry.ink,
+          rotation: optimisticEntry.rotation,
+        })
+        .select()
+        .single();
 
-    if (insertError) {
-      setError("Le message est affiché ici mais n'a pas pu être sauvegardé : " + insertError.message);
-    } else {
-      if (insertedMsg?.id && typeof window !== "undefined") {
-        window.localStorage.setItem(`msg-owned-${insertedMsg.id}`, "1");
-        setOwnedMessageIds((prev) => ({ ...prev, [insertedMsg.id]: true }));
+      if (insertError) {
+        setError("Le message est affiché ici mais n'a pas pu être sauvegardé : " + insertError.message);
+      } else {
+        if (insertedMsg?.id && typeof window !== "undefined") {
+          window.localStorage.setItem(`msg-owned-${insertedMsg.id}`, "1");
+          setOwnedMessageIds((prev) => ({ ...prev, [insertedMsg.id]: true }));
+        }
+        loadAll();
       }
-      loadAll();
+    } catch (err) {
+      setError("Une erreur inattendue est survenue : " + (err?.message || "réessayez."));
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   }
 
   function renderGiftList() {

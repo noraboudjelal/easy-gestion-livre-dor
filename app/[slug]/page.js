@@ -154,11 +154,13 @@ const THEMES = {
     ink: "#241B3D", surface: "#32245A", surface2: "#3D2C6E",
     accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
     ivory: "#FBF6FF", muted: "#C7B8E8",
+    avatarPalette: ["#FF6FB5", "#8B7FD9", "#5FCBB8", "#FFC15E"],
   },
   "Entre Nous": {
     ink: "#241B3D", surface: "#32245A", surface2: "#3D2C6E",
     accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
     ivory: "#FBF6FF", muted: "#C7B8E8",
+    avatarPalette: ["#FF6FB5", "#8B7FD9", "#5FCBB8", "#FFC15E"],
   },
   "Autre": {
     ink: "#14131C",
@@ -179,7 +181,8 @@ function randomRotation() {
   return +(Math.random() * 6 - 3).toFixed(2);
 }
 function randomInk(palette) {
-  return palette[Math.floor(Math.random() * palette.length)];
+  const safePalette = Array.isArray(palette) && palette.length > 0 ? palette : ["#1E2A3A", "#8B3A2B", "#355E3B", "#5B4636"];
+  return safePalette[Math.floor(Math.random() * safePalette.length)];
 }
 function formatDate(ts) {
   try {

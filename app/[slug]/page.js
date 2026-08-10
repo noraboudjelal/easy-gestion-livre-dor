@@ -1,4 +1,4 @@
-"use client";
+use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
@@ -2754,9 +2754,29 @@ function getStyles(t, isFun) {
     headerCard: { background: "none", padding: 0, boxShadow: "none" },
     header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
-    title: { fontFamily: headFont, fontStyle: headStyle, fontWeight: isFun ? 700 : 400, fontSize: "2.6rem", color: t.ivory, margin: 0, lineHeight: 1.15 },
+    title: {
+      fontFamily: headFont,
+      fontStyle: headStyle,
+      fontWeight: isFun ? 700 : 400,
+      fontSize: "2.6rem",
+      color: t.ivory,
+      margin: "0 auto",
+      lineHeight: 1.15,
+      width: "100%",
+      maxWidth: "440px",
+      textAlign: "center",
+      overflowWrap: "break-word",
+    },
     titleRule: { width: "56px", height: "2px", background: t.accent, margin: "18px auto 0", border: "none" },
-    sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
+    sub: {
+      fontSize: "0.85rem",
+      color: t.muted,
+      margin: "10px auto 0",
+      lineHeight: 1.4,
+      width: "100%",
+      maxWidth: "420px",
+      textAlign: "center",
+    },
     form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
     sectionCard: {
       width: "calc(100% + 18px)",
@@ -3194,3 +3214,4 @@ function getStyles(t, isFun) {
     rsvpConfirmedSub: { fontSize: "0.82rem", color: t.muted, margin: "0 0 14px" },
     rsvpEditLink: { fontSize: "0.78rem", color: t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
   };
+}

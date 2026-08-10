@@ -2359,40 +2359,49 @@ export default function GuestbookPage() {
           </div>
         )}
 
-        {pollQuestions.map((q) => {
-          const voted = !!votedIds[q.id];
-          const total = (q.votes || []).reduce((a, b) => a + b, 0);
-          return (
-            <div style={styles.pollCard} key={q.id}>
-              <p style={styles.pollQuestion}>🎉 {q.question}</p>
-              <div style={styles.pollOptions}>
-                {(q.options || []).map((opt, i) => {
-                  const votes = q.votes?.[i] || 0;
-                  const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleVote(q.id, i)}
-                      disabled={voted || votingId === q.id}
-                      style={styles.pollOption}
-                    >
-                      <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
-                      <span style={styles.pollOptionRow}>
-                        <span>{opt}</span>
-                        <strong style={{ color: theme.accent }}>{pct}%</strong>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p style={styles.pollNote}>
-                {total === 0 ? "Soyez le premier·ère à voter !" : `${total} invité${total > 1 ? "s ont" : " a"} voté`}
-                {voted ? " · merci pour votre vote ✓" : ""}
-              </p>
+        {pollQuestions.length > 0 && (
+          <section style={styles.sectionCard}>
+            <div style={styles.sectionHeading}>
+              <h2 style={styles.sectionTitle}>Petit quiz 🎉</h2>
+              <p style={styles.sectionSubtitle}>À vous de jouer !</p>
             </div>
-          );
-        })}
+
+            {pollQuestions.map((q) => {
+              const voted = !!votedIds[q.id];
+              const total = (q.votes || []).reduce((a, b) => a + b, 0);
+              return (
+                <div style={styles.pollCard} key={q.id}>
+                  <p style={styles.pollQuestion}>{q.question}</p>
+                  <div style={styles.pollOptions}>
+                    {(q.options || []).map((opt, i) => {
+                      const votes = q.votes?.[i] || 0;
+                      const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleVote(q.id, i)}
+                          disabled={voted || votingId === q.id}
+                          style={styles.pollOption}
+                        >
+                          <span style={{ ...styles.pollOptionFill, width: `${pct}%` }} />
+                          <span style={styles.pollOptionRow}>
+                            <span>{opt}</span>
+                            <strong style={{ color: theme.accent }}>{pct}%</strong>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={styles.pollNote}>
+                    {total === 0 ? "Soyez le premier·ère à voter !" : `${total} invité${total > 1 ? "s ont" : " a"} voté`}
+                    {voted ? " · merci pour votre vote ✓" : ""}
+                  </p>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         {event?.event_type === "Baby Shower" && event?.reveal_at && (
           <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
@@ -2415,7 +2424,7 @@ export default function GuestbookPage() {
           </a>
         )}
 
-        {renderGiftList()}
+
 
         {isJournal && eventDates.length > 0 && (
           <div style={{ marginBottom: "22px" }}>
@@ -2524,23 +2533,12 @@ export default function GuestbookPage() {
           </div>
         )}
 
-        <div style={{ marginTop: "40px", marginBottom: "18px", textAlign: "center" }}>
-          <span style={styles.liveDot} />
-          <p
-            style={{
-              fontFamily: isJournal ? "'Fredoka', sans-serif" : "'Instrument Serif', serif",
-              fontStyle: isJournal ? "normal" : "italic",
-              fontWeight: isJournal ? 700 : 400,
-              fontSize: "1.4rem",
-              color: theme.ivory,
-              margin: "10px 0 0",
-            }}
-          >
-            Partagez vos réponses et souvenirs ici
-          </p>
-        </div>
+        <section style={styles.sectionCard}>
+          <div style={styles.sectionHeading}>
+            <h2 style={styles.sectionTitle}>Laissez un mot, un souvenir 💌</h2>
+          </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+          <form onSubmit={handleSubmit} style={{ ...styles.form, marginBottom: 0 }}>
           <input
             type="text"
             placeholder="Votre prénom"
@@ -2639,9 +2637,10 @@ export default function GuestbookPage() {
               {sending ? "Envoi…" : isReview ? "Envoyer" : "Publier"}
             </button>
           </div>
-          {error && <p style={styles.errorText}>{error}</p>}
-          {justSent && <p style={styles.successText}>Merci, votre message a été publié ✓</p>}
-        </form>
+            {error && <p style={styles.errorText}>{error}</p>}
+            {justSent && <p style={styles.successText}>Merci, votre message a été publié ✓</p>}
+          </form>
+        </section>
 
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
@@ -2756,6 +2755,35 @@ function getStyles(t, isFun) {
     titleRule: { width: "56px", height: "2px", background: t.accent, margin: "18px auto 0", border: "none" },
     sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
     form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
+    sectionCard: {
+      background: t.surface2,
+      border: `1.5px solid ${t.borderColor || t.accent}`,
+      borderRadius: isFun ? "24px" : "18px",
+      padding: "22px 20px",
+      marginBottom: "24px",
+      boxShadow: "0 14px 30px -18px rgba(0,0,0,0.28)",
+    },
+    sectionHeading: {
+      textAlign: "center",
+      marginBottom: "18px",
+    },
+    sectionTitle: {
+      fontFamily: headFont,
+      fontStyle: headStyle,
+      fontWeight: isFun ? 700 : 400,
+      fontSize: "1.8rem",
+      lineHeight: 1.15,
+      color: t.ivory,
+      margin: 0,
+    },
+    sectionSubtitle: {
+      fontFamily: headFont,
+      fontStyle: headStyle,
+      fontWeight: isFun ? 600 : 400,
+      fontSize: "1.15rem",
+      color: t.accent,
+      margin: "6px 0 0",
+    },
     input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface, color: t.ivory },
     textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface, color: t.ivory, resize: "vertical" },
     photoLabel: { fontFamily: "Inter, sans-serif", fontSize: "0.82rem", color: t.muted, border: `1.5px dashed ${t.accentSoft}`, borderRadius: isFun ? "18px" : "12px", padding: "12px 14px", textAlign: "center", cursor: "pointer", background: "transparent" },
@@ -2776,11 +2804,11 @@ function getStyles(t, isFun) {
     errorText: { color: "#D98C7F", fontSize: "0.8rem", margin: 0 },
     successText: { color: "#6FAE7F", fontSize: "0.8rem", margin: 0 },
     pollCard: {
-      background: t.surface2,
-      border: `1px dashed ${t.accentSoft}`,
-      borderRadius: isFun ? "22px" : "14px",
-      padding: "18px",
-      marginBottom: "22px",
+      background: t.surface,
+      border: `1px solid ${t.accentSoft}`,
+      borderRadius: isFun ? "18px" : "14px",
+      padding: "16px",
+      marginBottom: "12px",
     },
     pollQuestion: {
       fontFamily: headFont,

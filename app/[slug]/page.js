@@ -2362,6 +2362,10 @@ export default function GuestbookPage() {
           </div>
         )}
 
+        {event?.event_type === "Baby Shower" && event?.reveal_at && (
+          <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
+        )}
+
         {pollQuestions.length > 0 && (
           <section style={styles.sectionCard}>
             <div style={styles.sectionHeading}>
@@ -2406,9 +2410,7 @@ export default function GuestbookPage() {
           </section>
         )}
 
-        {event?.event_type === "Baby Shower" && event?.reveal_at && (
-          <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
-        )}
+
 
         {event?.playlist_enabled && <PlaylistRequest eventId={event.id} theme={theme} />}
 

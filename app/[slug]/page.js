@@ -403,14 +403,16 @@ function PlaylistRequest({ eventId, theme }) {
   return (
     <div
       style={{
-        width: "100%",
-        maxWidth: "560px",
-        background: theme.surface2,
-        border: `1.5px solid ${theme.borderColor || theme.accent}`,
-        borderRadius: "18px",
-        padding: "22px 20px",
-        margin: "0 auto 24px",
-        boxShadow: "0 14px 30px -18px rgba(0,0,0,0.28)",
+        width: "calc(100% + 18px)",
+        maxWidth: "none",
+        marginLeft: "-9px",
+        marginRight: "-9px",
+        background: `linear-gradient(180deg, ${theme.surface2} 0%, ${theme.surface} 100%)`,
+        border: `1px solid ${theme.borderColor || theme.accent}`,
+        borderRadius: "20px",
+        padding: "28px 30px",
+        marginBottom: "26px",
+        boxShadow: "0 12px 28px rgba(60,42,20,0.08)",
       }}
     >
       <p style={{ fontSize: "1rem", fontWeight: 700, color: theme.ivory, margin: "0 0 4px" }}>🎵 Demande une chanson</p>
@@ -2757,16 +2759,19 @@ function getStyles(t, isFun) {
     sub: { fontSize: "0.85rem", color: t.muted, marginTop: "10px", lineHeight: 1.4 },
     form: { display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" },
     sectionCard: {
-      background: t.surface2,
-      border: `1.5px solid ${t.borderColor || t.accent}`,
-      borderRadius: isFun ? "24px" : "18px",
-      padding: "22px 20px",
-      marginBottom: "24px",
-      boxShadow: "0 14px 30px -18px rgba(0,0,0,0.28)",
+      width: "calc(100% + 18px)",
+      marginLeft: "-9px",
+      marginRight: "-9px",
+      background: `linear-gradient(180deg, ${t.surface2} 0%, ${t.surface} 100%)`,
+      border: `1px solid ${t.borderColor || t.accent}`,
+      borderRadius: isFun ? "26px" : "20px",
+      padding: "28px 30px",
+      marginBottom: "26px",
+      boxShadow: "0 12px 28px rgba(60,42,20,0.08)",
     },
     sectionHeading: {
       textAlign: "center",
-      marginBottom: "18px",
+      marginBottom: "24px",
     },
     quizSectionTitle: {
       fontFamily: headFont,
@@ -2780,12 +2785,13 @@ function getStyles(t, isFun) {
     memorySectionTitle: {
       fontFamily: headFont,
       fontStyle: headStyle,
-      fontWeight: isFun ? 700 : 600,
-      fontSize: "2.6rem",
-      lineHeight: 1.05,
+      fontWeight: isFun ? 700 : 500,
+      fontSize: "2.75rem",
+      lineHeight: 1.02,
       color: t.ivory,
       margin: 0,
-      letterSpacing: "-0.02em",
+      letterSpacing: "-0.025em",
+      textAlign: "center",
     },
     sectionSubtitle: {
       fontFamily: headFont,
@@ -2818,8 +2824,9 @@ function getStyles(t, isFun) {
       background: t.surface,
       border: `1px solid ${t.accentSoft}`,
       borderRadius: isFun ? "18px" : "14px",
-      padding: "16px",
-      marginBottom: "12px",
+      padding: "22px",
+      marginBottom: "14px",
+      overflow: "hidden",
     },
     pollQuestion: {
       fontFamily: headFont,

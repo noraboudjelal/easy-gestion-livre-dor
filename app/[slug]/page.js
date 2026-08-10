@@ -406,10 +406,11 @@ function PlaylistRequest({ eventId, theme }) {
         width: "100%",
         maxWidth: "560px",
         background: theme.surface2,
-        border: `1px solid ${theme.accentSoft}`,
-        borderRadius: "16px",
-        padding: "20px",
+        border: `1.5px solid ${theme.borderColor || theme.accent}`,
+        borderRadius: "18px",
+        padding: "22px 20px",
         margin: "0 auto 24px",
+        boxShadow: "0 14px 30px -18px rgba(0,0,0,0.28)",
       }}
     >
       <p style={{ fontSize: "1rem", fontWeight: 700, color: theme.ivory, margin: "0 0 4px" }}>🎵 Demande une chanson</p>
@@ -2362,7 +2363,7 @@ export default function GuestbookPage() {
         {pollQuestions.length > 0 && (
           <section style={styles.sectionCard}>
             <div style={styles.sectionHeading}>
-              <h2 style={styles.sectionTitle}>Petit quiz 🎉</h2>
+              <h2 style={styles.quizSectionTitle}>Petit quiz 🎉</h2>
               <p style={styles.sectionSubtitle}>À vous de jouer !</p>
             </div>
 
@@ -2535,7 +2536,7 @@ export default function GuestbookPage() {
 
         <section style={styles.sectionCard}>
           <div style={styles.sectionHeading}>
-            <h2 style={styles.sectionTitle}>Laissez un mot, un souvenir 💌</h2>
+            <h2 style={styles.memorySectionTitle}>Laissez un mot, un souvenir 💌</h2>
           </div>
 
           <form onSubmit={handleSubmit} style={{ ...styles.form, marginBottom: 0 }}>
@@ -2767,7 +2768,7 @@ function getStyles(t, isFun) {
       textAlign: "center",
       marginBottom: "18px",
     },
-    sectionTitle: {
+    quizSectionTitle: {
       fontFamily: headFont,
       fontStyle: headStyle,
       fontWeight: isFun ? 700 : 400,
@@ -2775,6 +2776,16 @@ function getStyles(t, isFun) {
       lineHeight: 1.15,
       color: t.ivory,
       margin: 0,
+    },
+    memorySectionTitle: {
+      fontFamily: headFont,
+      fontStyle: headStyle,
+      fontWeight: isFun ? 700 : 600,
+      fontSize: "2.6rem",
+      lineHeight: 1.05,
+      color: t.ivory,
+      margin: 0,
+      letterSpacing: "-0.02em",
     },
     sectionSubtitle: {
       fontFamily: headFont,
@@ -2822,15 +2833,16 @@ function getStyles(t, isFun) {
     pollOption: {
       position: "relative",
       overflow: "hidden",
-      textAlign: "left",
-      fontFamily: "Inter, sans-serif",
-      fontSize: "0.85rem",
-      fontWeight: 500,
-      color: t.ivory,
-      background: t.surface,
-      border: "1px solid rgba(255,255,255,0.07)",
+      width: "100%",
+      minHeight: "46px",
+      border: `1.5px solid ${t.borderColor || t.accent}`,
       borderRadius: "12px",
-      padding: "12px 14px",
+      background: "#FFFFFF",
+      padding: "0",
+      cursor: "pointer",
+      textAlign: "left",
+      color: t.accentText,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     },
     pollOptionFill: {
       position: "absolute",

@@ -2841,7 +2841,7 @@ function getStyles(t, isFun) {
       position: "relative",
       overflow: "hidden",
       width: "100%",
-      minHeight: "46px",
+      minHeight: "56px",
       border: `1.5px solid ${t.borderColor || t.accent}`,
       borderRadius: "12px",
       background: "#FFFFFF",
@@ -2862,7 +2862,12 @@ function getStyles(t, isFun) {
       position: "relative",
       zIndex: 1,
       display: "flex",
+      alignItems: "center",
       justifyContent: "space-between",
+      gap: "14px",
+      width: "100%",
+      padding: "16px 20px",
+      lineHeight: 1.35,
     },
     pollNote: { fontSize: "0.75rem", color: t.muted, textAlign: "center", margin: "10px 0 0 0" },
     wheelCard: {
@@ -3189,4 +3194,3 @@ function getStyles(t, isFun) {
     rsvpConfirmedSub: { fontSize: "0.82rem", color: t.muted, margin: "0 0 14px" },
     rsvpEditLink: { fontSize: "0.78rem", color: t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
   };
-}

@@ -551,16 +551,23 @@ export default function GuestbookPage() {
   const [bacJoining, setBacJoining] = useState(false);
   const [bacElapsedSeconds, setBacElapsedSeconds] = useState(0);
   const [bacViewResults, setBacViewResults] = useState(false);
+  const [bacError, setBacError] = useState("");
   useEffect(() => {
     setBacAnswerValues({});
     if (typeof window !== "undefined" && bacRound) {
       setBacSubmitted(window.localStorage.getItem(`bac-submitted-${bacRound.id}`) === "1");
-      setBacJoined(window.localStorage.getItem(`bac-joined-${bacRound.id}`) === "1");
+      const wasJoined = window.localStorage.getItem(`bac-joined-${bacRound.id}`) === "1";
+      setBacJoined(wasJoined);
+      if (wasJoined) {
+        const savedName = window.localStorage.getItem(`bac-name-${bacRound.id}`);
+        if (savedName) setBacPlayerName(savedName);
+      }
     } else {
       setBacSubmitted(false);
       setBacJoined(false);
     }
     setBacViewResults(false);
+    setBacError("");
   }, [bacRound?.id]);
 
   // --- Jeu du petit bac : chrono qui défile depuis le lancement ---
@@ -867,6 +874,7 @@ export default function GuestbookPage() {
     if (!insertError) {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(`bac-joined-${bacRound.id}`, "1");
+        window.localStorage.setItem(`bac-name-${bacRound.id}`, bacPlayerName.trim());
       }
       setBacJoined(true);
       loadAll();
@@ -875,13 +883,18 @@ export default function GuestbookPage() {
 
   async function handleSubmitBacAnswers(e) {
     e.preventDefault();
-    if (!bacRound || !bacPlayerName.trim() || !supabase) return;
-    const allFilled = bacRound.categories.every((cat) => (bacAnswerValues[cat] || "").trim());
-    if (!allFilled) {
-      setError("Remplis toutes les catégories avant de valider.");
+    if (!bacRound || !supabase) return;
+    if (!bacPlayerName.trim()) {
+      setBacError("Ton prénom semble manquant, retape-le puis rejoins à nouveau la manche.");
+      setBacJoined(false);
       return;
     }
-    setError("");
+    const allFilled = bacRound.categories.every((cat) => (bacAnswerValues[cat] || "").trim());
+    if (!allFilled) {
+      setBacError("Remplis toutes les catégories avant de valider.");
+      return;
+    }
+    setBacError("");
     setBacSubmitting(true);
     await supabase.from("petit_bac_answers").delete().eq("round_id", bacRound.id).eq("player_name", bacPlayerName.trim());
     const { error: insertError } = await supabase.from("petit_bac_answers").insert({
@@ -1906,6 +1919,9 @@ export default function GuestbookPage() {
                     <button type="submit" disabled={bacSubmitting} style={styles.button}>
                       {bacSubmitting ? "…" : "Valider mes réponses"}
                     </button>
+                    {bacError && (
+                      <p style={{ ...styles.hangmanStatus, color: "#FFD9D0", margin: "4px 0 0" }}>{bacError}</p>
+                    )}
                   </form>
                 )}
               </>

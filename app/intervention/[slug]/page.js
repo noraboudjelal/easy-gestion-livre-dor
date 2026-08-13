@@ -33,6 +33,9 @@ export default function InterventionPage() {
 
   const [selectedMonth, setSelectedMonth] = useState(todayISO().slice(0, 7)); // "2026-07"
 
+  // Date consultée dans la section "Interventions" (par défaut aujourd'hui)
+  const [viewDate, setViewDate] = useState(todayISO());
+
   const load = useCallback(async () => {
     if (!supabase || !slug) return;
     setLoading(true);
@@ -122,13 +125,13 @@ export default function InterventionPage() {
   }
 
   const today = todayISO();
-  const todaysEntries = entries.filter((e) => e.entry_date === today);
-  const sortedForExport = [...entries].sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+  const viewedEntries = entries.filter((e) => e.entry_date === viewDate);
 
   const availableMonths = [...new Set(entries.map((e) => e.entry_date.slice(0, 7)))].sort().reverse();
   if (!availableMonths.includes(selectedMonth)) availableMonths.unshift(selectedMonth);
   const monthEntries = entries.filter((e) => e.entry_date.slice(0, 7) === selectedMonth);
   const monthTotal = monthEntries.reduce((sum, e) => sum + entryTotal(e), 0);
+  const sortedMonthForExport = [...monthEntries].sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
 
   function monthLabel(monthStr) {
     const [y, m] = monthStr.split("-").map(Number);
@@ -139,20 +142,14 @@ export default function InterventionPage() {
 
   function handleExportPdf() {
     const doc = new jsPDF();
-    const grandTotal = sortedForExport.reduce((sum, e) => sum + entryTotal(e), 0);
+    const grandTotal = sortedMonthForExport.reduce((sum, e) => sum + entryTotal(e), 0);
 
     doc.setFontSize(16);
     doc.text("Récapitulatif d'interventions", 14, 18);
     doc.setFontSize(10);
     doc.setTextColor(120);
     doc.text(pro?.name || "", 14, 25);
-    if (sortedForExport.length > 0) {
-      doc.text(
-        `Du ${sortedForExport[0].entry_date} au ${sortedForExport[sortedForExport.length - 1].entry_date}`,
-        14,
-        31
-      );
-    }
+    doc.text(monthLabel(selectedMonth), 14, 31);
 
     let y = 42;
     doc.setTextColor(20);
@@ -167,7 +164,7 @@ export default function InterventionPage() {
     doc.line(14, y, 196, y);
     y += 6;
 
-    sortedForExport.forEach((e) => {
+    sortedMonthForExport.forEach((e) => {
       if (y > 275) {
         doc.addPage();
         y = 20;
@@ -188,7 +185,7 @@ export default function InterventionPage() {
 
     // Récapitulatif par service, avec quantité
     const serviceSummary = {};
-    sortedForExport.forEach((e) => {
+    sortedMonthForExport.forEach((e) => {
       (e.services || []).forEach((s) => {
         if (!serviceSummary[s.name]) serviceSummary[s.name] = { count: 0, total: 0 };
         serviceSummary[s.name].count += 1;
@@ -227,7 +224,9 @@ export default function InterventionPage() {
       });
     }
 
-    doc.save(`interventions-${(pro?.name || "pro").replace(/\s+/g, "-").toLowerCase()}.pdf`);
+    doc.save(
+      `interventions-${(pro?.name || "pro").replace(/\s+/g, "-").toLowerCase()}-${selectedMonth}.pdf`
+    );
   }
 
   return (
@@ -301,13 +300,31 @@ export default function InterventionPage() {
           </button>
         </div>
 
-        <p style={styles.sectionTitle}>Interventions du jour</p>
-        {todaysEntries.length === 0 ? (
-          <p style={styles.hint}>Aucune intervention enregistrée aujourd'hui.</p>
+        <div style={styles.viewDateHeader}>
+          <p style={styles.sectionTitleInline}>
+            Interventions {viewDate === today ? "du jour" : "du"}
+          </p>
+          <div style={styles.viewDateControls}>
+            <input
+              type="date"
+              style={styles.dateSelect}
+              value={viewDate}
+              onChange={(e) => setViewDate(e.target.value)}
+            />
+            {viewDate !== today && (
+              <button style={styles.todayBtn} onClick={() => setViewDate(today)}>
+                Aujourd'hui
+              </button>
+            )}
+          </div>
+        </div>
+
+        {viewedEntries.length === 0 ? (
+          <p style={styles.hint}>Aucune intervention enregistrée à cette date.</p>
         ) : (
           <>
             <div style={styles.ticketList}>
-              {todaysEntries.map((e) => {
+              {viewedEntries.map((e) => {
                 const badge = formatDateBadge(e.entry_date);
                 return (
                   <div key={e.id} style={styles.ticket}>
@@ -333,7 +350,7 @@ export default function InterventionPage() {
               })}
             </div>
             <p style={styles.dayTotal}>
-              Total du jour : <strong>{todaysEntries.reduce((sum, e) => sum + entryTotal(e), 0)}€</strong>
+              Total : <strong>{viewedEntries.reduce((sum, e) => sum + entryTotal(e), 0)}€</strong>
             </p>
           </>
         )}
@@ -356,13 +373,13 @@ export default function InterventionPage() {
           <p style={styles.monthTotal}>{monthTotal}€</p>
           <p style={styles.hint}>
             {monthEntries.length} intervention(s) sur {monthLabel(selectedMonth)} — chaque mois est compté
-            indépendamment, sans report d'un mois sur l'autre.
+            indépendamment, sans report d'un mois sur l'autre. L'export PDF ci-dessous porte sur ce mois.
           </p>
         </div>
       </div>
 
       <button style={styles.exportButton} onClick={handleExportPdf}>
-        Exporter en PDF
+        Exporter en PDF ({monthLabel(selectedMonth)})
       </button>
     </div>
   );
@@ -392,6 +409,10 @@ const styles = {
   primaryButton: { width: "100%", background: "#E2621B", color: "#FFF7EE", border: "none", borderRadius: "8px", padding: "13px", fontFamily: "'Oswald', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.85rem", cursor: "pointer", marginTop: "6px" },
   formTotal: { fontSize: "0.85rem", color: "#C9B896", textAlign: "right", margin: "10px 0 0" },
   sectionTitle: { fontFamily: "'Oswald', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.95rem", color: "#C9B896", margin: "26px 0 12px" },
+  viewDateHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", margin: "26px 0 12px" },
+  viewDateControls: { display: "flex", gap: "8px", alignItems: "center" },
+  dateSelect: { background: "#333C2E", border: "1px solid #444E3E", borderRadius: "8px", padding: "6px 10px", color: "#F5F1E8", fontSize: "0.8rem", outline: "none" },
+  todayBtn: { background: "none", border: "1px solid #5C664F", color: "#C9B896", borderRadius: "8px", padding: "6px 10px", fontSize: "0.72rem", cursor: "pointer" },
   hint: { fontSize: "0.85rem", color: "#9AA491" },
   ticketList: { display: "flex", flexDirection: "column", gap: "12px" },
   ticket: { position: "relative", background: "#333C2E", border: "1px solid #444E3E", borderRadius: "10px", padding: "14px 16px", display: "flex", gap: "14px", alignItems: "flex-start" },

@@ -30,6 +30,7 @@ export default function InterventionPage() {
   const [clientName, setClientName] = useState("");
   const [selectedServiceNames, setSelectedServiceNames] = useState([""]);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [selectedMonth, setSelectedMonth] = useState(todayISO().slice(0, 7)); // "2026-07"
 
@@ -93,25 +94,61 @@ export default function InterventionPage() {
       .map((name) => ({ name, price: priceFor(name) }));
     if (services.length === 0) return;
     setSaving(true);
-    const { error } = await supabase.from("intervention_entries").insert({
-      pro_id: pro.id,
-      entry_date: entryDate,
-      client_name: clientName.trim(),
-      services,
-    });
+    let error;
+    if (editingId) {
+      ({ error } = await supabase
+        .from("intervention_entries")
+        .update({
+          entry_date: entryDate,
+          client_name: clientName.trim(),
+          services,
+        })
+        .eq("id", editingId));
+    } else {
+      ({ error } = await supabase.from("intervention_entries").insert({
+        pro_id: pro.id,
+        entry_date: entryDate,
+        client_name: clientName.trim(),
+        services,
+      }));
+    }
     setSaving(false);
     if (!error) {
       setClientName("");
       setSelectedServiceNames([pro?.services?.[0]?.name || ""]);
+      setEntryDate(todayISO());
+      setEditingId(null);
       load();
     }
+  }
+
+  function handleStartEdit(entry) {
+    setEditingId(entry.id);
+    setEntryDate(entry.entry_date);
+    setClientName(entry.client_name || "");
+    setSelectedServiceNames(
+      (entry.services || []).map((s) => s.name).length > 0
+        ? (entry.services || []).map((s) => s.name)
+        : [pro?.services?.[0]?.name || ""]
+    );
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    setClientName("");
+    setSelectedServiceNames([pro?.services?.[0]?.name || ""]);
+    setEntryDate(todayISO());
   }
 
   async function handleDeleteEntry(id) {
     if (!supabase) return;
     if (!window.confirm("Supprimer cette intervention ?")) return;
     const { error } = await supabase.from("intervention_entries").delete().eq("id", id);
-    if (!error) load();
+    if (!error) {
+      if (editingId === id) handleCancelEdit();
+      load();
+    }
   }
 
   if (loading) {
@@ -244,7 +281,9 @@ export default function InterventionPage() {
         <h1 style={styles.title}>{pro.name}</h1>
 
         <div style={styles.addCard}>
-          <h2 style={styles.addCardTitle}>Nouvelle intervention</h2>
+          <h2 style={styles.addCardTitle}>
+            {editingId ? "Modifier l'intervention" : "Nouvelle intervention"}
+          </h2>
 
           <div style={styles.field}>
             <label style={styles.label}>Date</label>
@@ -297,8 +336,13 @@ export default function InterventionPage() {
           )}
 
           <button style={styles.primaryButton} onClick={handleSaveEntry} disabled={saving}>
-            {saving ? "Enregistrement…" : "Enregistrer l'intervention"}
+            {saving ? "Enregistrement…" : editingId ? "Mettre à jour" : "Enregistrer l'intervention"}
           </button>
+          {editingId && (
+            <button style={styles.cancelEditBtn} onClick={handleCancelEdit}>
+              Annuler la modification
+            </button>
+          )}
         </div>
 
         <div style={styles.viewDateHeader}>
@@ -343,9 +387,14 @@ export default function InterventionPage() {
                         ))}
                       </div>
                     </div>
-                    <button style={styles.deleteButton} onClick={() => handleDeleteEntry(e.id)} aria-label="Supprimer">
-                      supprimer
-                    </button>
+                    <div style={styles.ticketActions}>
+                      <button style={styles.editButton} onClick={() => handleStartEdit(e)} aria-label="Modifier">
+                        modifier
+                      </button>
+                      <button style={styles.deleteButton} onClick={() => handleDeleteEntry(e.id)} aria-label="Supprimer">
+                        supprimer
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -424,6 +473,16 @@ const styles = {
   ticketServices: { display: "flex", flexWrap: "wrap", gap: "6px" },
   ticketServiceTag: { fontSize: "0.72rem", background: "rgba(201,184,150,0.15)", color: "#C9B896", padding: "3px 9px", borderRadius: "999px" },
   ticketTotal: { fontFamily: "'Oswald', sans-serif", fontWeight: 700, color: "#E2621B", fontSize: "1rem", flexShrink: 0 },
+  ticketActions: { display: "flex", flexDirection: "column", gap: "6px", flexShrink: 0, alignSelf: "flex-start" },
+  editButton: {
+    background: "none",
+    border: "1px solid #5C664F",
+    color: "#C9B896",
+    borderRadius: "8px",
+    padding: "7px 10px",
+    fontSize: "0.72rem",
+    cursor: "pointer",
+  },
   deleteButton: {
     background: "none",
     border: "1px solid #6B4A42",
@@ -432,8 +491,17 @@ const styles = {
     padding: "7px 10px",
     fontSize: "0.72rem",
     cursor: "pointer",
-    flexShrink: 0,
-    alignSelf: "flex-start",
+  },
+  cancelEditBtn: {
+    width: "100%",
+    background: "none",
+    border: "1px solid #5C664F",
+    color: "#C9B896",
+    borderRadius: "8px",
+    padding: "10px",
+    fontSize: "0.78rem",
+    cursor: "pointer",
+    marginTop: "8px",
   },
   dayTotal: { textAlign: "right", fontSize: "0.85rem", color: "#C9B896", marginTop: "10px" },
   monthBox: {

@@ -56,7 +56,8 @@ export default function InterventionPage() {
       .from("intervention_entries")
       .select("*")
       .eq("pro_id", proData.id)
-      .order("entry_date", { ascending: false });
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: true });
     setEntries(entriesData || []);
     setLoading(false);
   }, [slug]);

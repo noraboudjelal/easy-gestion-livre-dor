@@ -1,45 +1,248 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";
-import {supabase} from "../../lib/supabaseClient";
-const SLUG="sarah-karim-demo";
-export default function DemoFil(){
- const [ev,setEv]=useState(null),[msgs,setMsgs]=useState([]),[polls,setPolls]=useState([]),[words,setWords]=useState([]),[riddles,setRiddles]=useState([]),[word,setWord]=useState(""),[ri,setRi]=useState(0),[answer,setAnswer]=useState(""),[result,setResult]=useState(null),[song,setSong]=useState(""),[artist,setArtist]=useState("");
- async function load(){const {data:e}=await supabase.from("events").select("*").eq("slug",SLUG).single();if(!e)return;setEv(e);const [m,p,w,r]=await Promise.all([supabase.from("messages").select("*").eq("event_id",e.id).order("created_at",{ascending:false}),supabase.from("poll_questions").select("*").eq("event_id",e.id).order("position"),supabase.from("word_cloud_entries").select("*").eq("event_id",e.id),supabase.from("event_riddles").select("*").eq("event_id",e.id).order("position")]);setMsgs(m.data||[]);setPolls(p.data||[]);setWords(w.data||[]);setRiddles(r.data||[])}
- useEffect(()=>{load()},[]);
- const cloud=useMemo(()=>{const c={};words.forEach(x=>{let w=(x.word||"").trim().toLowerCase();if(w)c[w]=(c[w]||0)+1});return Object.entries(c).sort((a,b)=>b[1]-a[1])},[words]);
- const jump=id=>document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"});
- async function addWord(e){e.preventDefault();if(!word.trim())return;await supabase.from("word_cloud_entries").insert({event_id:ev.id,word:word.trim().slice(0,28)});setWord("");load()}
- async function sendSong(e){e.preventDefault();if(!song.trim())return;await supabase.from("playlist_requests").insert({event_id:ev.id,song_title:song.trim(),artist:artist.trim()||null});setSong("");setArtist("")}
- function norm(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g,"").trim()}
- function check(e){e.preventDefault();const r=riddles[ri];if(!r)return;setResult(norm(answer)===norm(r.answer)?"yes":"no")}
- if(!ev)return <main style={s.loading}>Chargement…</main>;
- const r=riddles[ri];
- return <main style={s.page}><div style={s.app}>
-  <header style={s.head}><div><div style={s.brand}>LE FIL</div><h1 style={s.title}>Sarah <i style={s.and}>&</i> Karim</h1><p style={s.date}>Notre soirée · 15 août 2026</p></div><div style={s.avatar}>S&K</div></header>
-  <nav style={s.nav}>{[["quiz","Quiz"],["dj","Musique"],["riddle","Devinettes"],["souvenir","Souvenir"],["fund","Cagnotte"],["cloud","Nuage de mots"]].map(([id,t])=><button key={id} onClick={()=>jump(id)} style={s.navBtn}>{t}</button>)}</nav>
 
-  <section id="quiz" style={s.block}><Label>Petit quiz</Label><h2 style={s.h2}>On commence par vous tester un peu…</h2>{polls[0]&&<div style={s.card}><p style={s.question}>{polls[0].question}</p><div style={s.options}>{(polls[0].options||[]).map((o,i)=><button key={i} style={s.option}>{o}</button>)}</div></div>}</section>
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../lib/supabaseClient";
 
-  {ev.playlist_enabled&&<section id="dj" style={s.block}><Label>Pour le DJ</Label><h2 style={s.h2}>Un titre qui doit passer ce soir ?</h2><p style={s.sub}>Glissez votre morceau ici, il arrive directement dans les demandes du DJ.</p><form onSubmit={sendSong} style={s.card}><input style={s.input} placeholder="Titre de la chanson" value={song} onChange={e=>setSong(e.target.value)}/><input style={s.input} placeholder="Artiste" value={artist} onChange={e=>setArtist(e.target.value)}/><button style={s.primary}>Envoyer la demande ♫</button></form></section>}
+const DEMO_SLUG = "sarah-karim-demo";
+const DEMO_DATE = "24 mai 2025";
 
-  {ev.riddles_enabled&&r&&<section id="riddle" style={s.block}><Label>Devinettes</Label><div style={s.row}><h2 style={s.h2}>À vous de jouer</h2><span style={s.counter}>{ri+1}/{riddles.length}</span></div><div style={s.card}><p style={s.question}>{r.question}</p><form onSubmit={check} style={s.answerRow}><input style={s.input} placeholder="Votre réponse" value={answer} onChange={e=>{setAnswer(e.target.value);setResult(null)}}/><button style={s.square}>→</button></form>{result==="yes"&&<p style={s.ok}>Bien joué ✦</p>}{result==="no"&&<p style={s.no}>Presque… Indice : {r.hint}</p>}{result&&<button style={s.next} onClick={()=>{setRi((ri+1)%riddles.length);setAnswer("");setResult(null)}}>Suivante →</button>}</div></section>}
+export default function DemoFilPage() {
+  const [event, setEvent] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [polls, setPolls] = useState([]);
+  const [words, setWords] = useState([]);
+  const [riddles, setRiddles] = useState([]);
+  const [word, setWord] = useState("");
+  const [riddleIndex, setRiddleIndex] = useState(0);
+  const [riddleAnswer, setRiddleAnswer] = useState("");
+  const [riddleResult, setRiddleResult] = useState(null);
+  const [songTitle, setSongTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [requester, setRequester] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  <section id="souvenir" style={s.memory}><Label>Pour les mariés</Label><h2 style={s.memoryTitle}>Laissez quelque chose<br/>qui restera.</h2><p style={s.memorySub}>Un instant, quelques mots ou simplement votre voix.</p><div style={s.memoryActions}><button style={s.memoryBtn}><b>Photo ou vidéo</b><span>Ajouter un moment</span><em>＋</em></button><button style={s.memoryBtn}><b>Écrire un mot</b><span>Quelques lignes pour eux</span><em>＋</em></button><button style={s.memoryBtn}><b>Message vocal</b><span>Votre voix en souvenir</span><em>＋</em></button></div></section>
+  async function load() {
+    if (!supabase) return;
+    setLoading(true);
+    const { data: ev } = await supabase.from("events").select("*").eq("slug", DEMO_SLUG).single();
+    if (!ev) return setLoading(false);
+    setEvent(ev);
+    const [m, p, w, r] = await Promise.all([
+      supabase.from("messages").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+      supabase.from("poll_questions").select("*").eq("event_id", ev.id).order("position", { ascending: true }),
+      supabase.from("word_cloud_entries").select("*").eq("event_id", ev.id).order("created_at", { ascending: true }),
+      supabase.from("event_riddles").select("*").eq("event_id", ev.id).order("position", { ascending: true }),
+    ]);
+    setMessages(m.data || []);
+    setPolls(p.data || []);
+    setWords(w.data || []);
+    setRiddles(r.data || []);
+    setLoading(false);
+  }
 
-  <section style={s.feed}><div style={s.feedTop}><div><Label>Les souvenirs</Label><h2 style={s.h2}>Le Fil de la soirée</h2></div><span style={s.live}>● en direct</span></div>{msgs.slice(0,6).map(m=><article key={m.id} style={s.post}>{m.photo_url&&<img src={m.photo_url} style={s.photo}/>}<div style={s.postBody}><div style={s.meta}><b>{m.name||"Invité"}</b><span>♡ {m.likes_count||0}</span></div>{m.message&&<p style={s.message}>{m.message}</p>}{m.audio_url&&<audio controls src={m.audio_url} style={{width:"100%"}}/>}</div></article>)}</section>
+  useEffect(() => { load(); }, []);
 
-  <section id="fund" style={s.block}><Label>Cagnotte</Label><div style={s.fund}><div><h2 style={s.h2}>Pour leur prochaine aventure</h2><p style={s.sub}>Une petite attention pour accompagner la suite de leur histoire.</p></div><button style={s.fundBtn}>Participer ↗</button></div></section>
+  const wordCloud = useMemo(() => {
+    const counts = {};
+    words.forEach((x) => {
+      const k = (x.word || "").trim().toLowerCase();
+      if (k) counts[k] = (counts[k] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  }, [words]);
 
-  {ev.word_cloud_enabled&&<section id="cloud" style={{...s.block,paddingBottom:100}}><Label>Un dernier mot</Label><h2 style={s.h2}>Comment décririez-vous Sarah & Karim ?</h2><div style={s.cloud}>{cloud.map(([w,n],i)=><span key={w} style={{fontSize:Math.min(31,16+n*4+(i===0?3:0)),opacity:Math.max(.55,1-i*.05)}}>{w}</span>)}</div><form onSubmit={addWord} style={s.answerRow}><input style={s.input} placeholder="Un mot…" value={word} onChange={e=>setWord(e.target.value)}/><button style={s.square}>＋</button></form></section>}
- </div></main>
+  async function addWord(e) {
+    e.preventDefault();
+    const clean = word.trim().slice(0, 28);
+    if (!clean || !event) return;
+    await supabase.from("word_cloud_entries").insert({ event_id: event.id, word: clean });
+    setWord("");
+    load();
+  }
+
+  function normalize(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").trim();
+  }
+
+  function checkRiddle(e) {
+    e.preventDefault();
+    const current = riddles[riddleIndex];
+    if (!current || !riddleAnswer.trim()) return;
+    const a = normalize(current.answer), b = normalize(riddleAnswer);
+    setRiddleResult(b === a || b.includes(a) || a.includes(b) ? "good" : "bad");
+  }
+
+  function nextRiddle() {
+    setRiddleIndex((i) => riddles.length ? (i + 1) % riddles.length : 0);
+    setRiddleAnswer("");
+    setRiddleResult(null);
+  }
+
+  async function sendSong(e) {
+    e.preventDefault();
+    if (!event || !songTitle.trim()) return;
+    await supabase.from("playlist_requests").insert({
+      event_id: event.id,
+      song_title: songTitle.trim(),
+      artist: artist.trim() || null,
+      requester_name: requester.trim() || null,
+    });
+    setSongTitle(""); setArtist(""); setRequester("");
+  }
+
+  if (loading) return <main style={s.center}>Chargement…</main>;
+  if (!event) return <main style={s.center}>Démo introuvable.</main>;
+
+  const riddle = riddles[riddleIndex];
+  const firstPoll = polls[0];
+
+  return (
+    <main style={s.page}>
+      <div style={s.app}>
+        <header style={s.header}>
+          <div>
+            <h1 style={s.names}>Sarah <span style={s.amp}>&</span> Karim</h1>
+            <div style={s.date}>{DEMO_DATE}</div>
+          </div>
+          <div style={s.navScroller}>
+            <a href="#quiz" style={s.navPill}>Quiz</a>
+            <a href="#dj" style={s.navPill}>Musique</a>
+            <a href="#riddles" style={s.navPill}>Devinettes</a>
+            <a href="#souvenir" style={s.navPill}>Souvenir</a>
+            <a href="#feed" style={s.navPill}>Le Fil</a>
+            <a href="#fund" style={s.navPill}>Cagnotte</a>
+            <a href="#words" style={s.navPill}>Nuage de mots</a>
+          </div>
+        </header>
+
+        <section id="quiz" style={s.section}>
+          <h2 style={s.sectionTitle}>Petit quiz</h2>
+          {firstPoll && (
+            <div style={s.card}>
+              <p style={s.question}>{firstPoll.question}</p>
+              <div style={s.stack}>{(firstPoll.options || []).map((o, i) => <button key={i} style={s.choice}>{o}</button>)}</div>
+            </div>
+          )}
+        </section>
+
+        {event.playlist_enabled && (
+          <section id="dj" style={s.sectionAlt}>
+            <h2 style={s.sectionTitle}>Une chanson pour la soirée</h2>
+            <p style={s.sectionLead}>Proposez un titre, le DJ reçoit la demande directement.</p>
+            <form onSubmit={sendSong} style={s.stack}>
+              <input style={s.input} value={songTitle} onChange={(e)=>setSongTitle(e.target.value)} placeholder="Titre de la chanson" />
+              <input style={s.input} value={artist} onChange={(e)=>setArtist(e.target.value)} placeholder="Artiste" />
+              <input style={s.input} value={requester} onChange={(e)=>setRequester(e.target.value)} placeholder="Votre prénom (facultatif)" />
+              <button style={s.primary}>Envoyer au DJ</button>
+            </form>
+          </section>
+        )}
+
+        {event.riddles_enabled && riddle && (
+          <section id="riddles" style={s.section}>
+            <h2 style={s.sectionTitle}>Devinettes</h2>
+            <div style={s.card}>
+              <div style={s.counter}>{riddleIndex + 1} / {riddles.length}</div>
+              <p style={s.question}>{riddle.question}</p>
+              <form onSubmit={checkRiddle} style={s.stack}>
+                <input style={s.input} value={riddleAnswer} onChange={(e)=>{setRiddleAnswer(e.target.value);setRiddleResult(null);}} placeholder="Votre réponse" />
+                <button style={s.primary}>Valider</button>
+              </form>
+              {riddleResult === "good" && <p style={s.good}>Bien joué ✨</p>}
+              {riddleResult === "bad" && <p style={s.bad}>Pas tout à fait. Indice : {riddle.hint}</p>}
+              {riddleResult && <button onClick={nextRiddle} style={s.textBtn}>Devinette suivante →</button>}
+            </div>
+          </section>
+        )}
+
+        <section id="souvenir" style={s.memorySection}>
+          <h2 style={s.memoryTitle}>Laissez votre souvenir</h2>
+          <p style={s.memoryLead}>Choisissez simplement ce que vous voulez laisser aux mariés.</p>
+          <div style={s.memoryGrid}>
+            <button style={s.memoryBtn}><span style={s.memoryIcon}>📷</span><b>Photo ou vidéo</b></button>
+            <button style={s.memoryBtn}><span style={s.memoryIcon}>✍️</span><b>Écrire un mot</b></button>
+            <button style={s.memoryBtn}><span style={s.memoryIcon}>🎙️</span><b>Message vocal</b></button>
+          </div>
+        </section>
+
+        <section id="feed" style={s.section}>
+          <h2 style={s.sectionTitle}>Le Fil</h2>
+          <div style={s.feed}>
+            {messages.slice(0, 6).map((m) => (
+              <article key={m.id} style={s.post}>
+                {m.photo_url && <img src={m.photo_url} alt="Souvenir" style={s.photo} />}
+                <div style={s.postBody}>
+                  <div style={s.meta}><b>{m.name || "Invité"}</b><span>♡ {m.likes_count || 0}</span></div>
+                  {m.message && <p style={s.message}>{m.message}</p>}
+                  {m.audio_url && <audio controls src={m.audio_url} style={{width:"100%"}} />}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="fund" style={s.sectionAlt}>
+          <h2 style={s.sectionTitle}>Cagnotte</h2>
+          <p style={s.sectionLead}>Pour ceux qui souhaitent participer au voyage de noces des mariés.</p>
+          <button style={s.outline}>Voir la cagnotte</button>
+        </section>
+
+        {event.word_cloud_enabled && (
+          <section id="words" style={s.section}>
+            <h2 style={s.sectionTitle}>Nuage de mots</h2>
+            <p style={s.sectionLead}>Décrivez Sarah & Karim en un mot.</p>
+            <div style={s.cloud}>
+              {wordCloud.map(([label, count], i)=><span key={label} style={{...s.cloudWord,fontSize:`${18 + Math.min(18,count*4)}px`,opacity:Math.max(.55,1-i*.06)}}>{label}</span>)}
+            </div>
+            <form onSubmit={addWord} style={s.inline}>
+              <input style={s.input} value={word} onChange={(e)=>setWord(e.target.value)} placeholder="Votre mot…" maxLength={28} />
+              <button style={s.primary}>Ajouter</button>
+            </form>
+          </section>
+        )}
+      </div>
+    </main>
+  );
 }
-function Label({children}){return <div style={s.label}>{children}</div>}
-const s={
- page:{minHeight:"100vh",background:"#eeeae4",color:"#292522",fontFamily:"Arial,Helvetica,sans-serif"},loading:{minHeight:"100vh",display:"grid",placeItems:"center",background:"#f5f1eb"},app:{width:"100%",maxWidth:760,margin:"0 auto",background:"#f9f7f3",minHeight:"100vh",boxShadow:"0 0 50px rgba(45,35,25,.08)"},
- head:{padding:"34px 24px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,borderBottom:"1px solid #e6dfd6"},brand:{fontSize:10,fontWeight:800,letterSpacing:".28em",color:"#a68458",marginBottom:9},title:{margin:0,fontFamily:"'Baskerville','Times New Roman',serif",fontSize:"clamp(37px,8vw,56px)",fontWeight:400,letterSpacing:"-.045em",lineHeight:.95},and:{fontWeight:400,color:"#b08c5b",fontSize:".75em"},date:{margin:"10px 0 0",fontFamily:"Georgia,serif",fontStyle:"italic",fontSize:13,color:"#8a8178"},avatar:{width:48,height:48,borderRadius:"50%",border:"1px solid #cdbb9f",display:"grid",placeItems:"center",fontFamily:"Georgia,serif",fontSize:13,color:"#8a6942",flexShrink:0},
- nav:{position:"sticky",top:0,zIndex:20,display:"flex",gap:8,overflowX:"auto",padding:"11px 14px",background:"rgba(249,247,243,.96)",backdropFilter:"blur(10px)",borderBottom:"1px solid #e6dfd6",scrollbarWidth:"none"},navBtn:{whiteSpace:"nowrap",border:"1px solid #ded3c5",borderRadius:999,background:"#fff",padding:"9px 13px",fontSize:12,color:"#4d453e",cursor:"pointer"},
- block:{padding:"38px 22px",borderBottom:"1px solid #e6dfd6",scrollMarginTop:65},label:{textTransform:"uppercase",letterSpacing:".2em",fontSize:9,fontWeight:800,color:"#a17d4d",marginBottom:8},h2:{fontFamily:"'Baskerville','Times New Roman',serif",fontSize:"clamp(27px,5vw,35px)",lineHeight:1.08,fontWeight:400,letterSpacing:"-.025em",margin:"0 0 14px"},sub:{fontFamily:"Georgia,serif",fontSize:14,lineHeight:1.6,color:"#81776e",margin:"0 0 18px"},card:{background:"#fff",border:"1px solid #e1d8cc",borderRadius:18,padding:18,display:"grid",gap:10,boxShadow:"0 7px 22px rgba(65,50,35,.035)"},question:{fontFamily:"Georgia,serif",fontSize:19,lineHeight:1.45,margin:"2px 0 8px"},options:{display:"grid",gap:8},option:{border:"1px solid #dfd5c8",borderRadius:12,background:"#faf8f5",padding:"13px 14px",textAlign:"left",fontSize:14,color:"#39332e"},input:{width:"100%",boxSizing:"border-box",border:"1px solid #ded4c8",borderRadius:12,background:"#fbfaf8",padding:"13px 14px",fontSize:14,outline:"none"},primary:{border:0,borderRadius:12,background:"#332c27",color:"#fff",padding:14,fontWeight:700,fontSize:13},row:{display:"flex",justifyContent:"space-between",alignItems:"start",gap:12},counter:{fontFamily:"Georgia,serif",fontStyle:"italic",fontSize:13,color:"#a07b4d",paddingTop:7},answerRow:{display:"flex",gap:8},square:{width:48,flex:"0 0 48px",border:0,borderRadius:12,background:"#a98555",color:"#fff",fontSize:20},ok:{fontSize:13,color:"#52745a",fontWeight:700,margin:"4px 0 0"},no:{fontFamily:"Georgia,serif",fontStyle:"italic",fontSize:13,color:"#9b6659",margin:"4px 0 0"},next:{border:0,background:"none",textAlign:"left",padding:"5px 0 0",fontWeight:700,color:"#8d6a40"},
- memory:{padding:"44px 22px",background:"#302a26",color:"#fff",scrollMarginTop:65},memoryTitle:{fontFamily:"'Baskerville','Times New Roman',serif",fontSize:"clamp(35px,7vw,48px)",fontWeight:400,lineHeight:1.02,letterSpacing:"-.035em",margin:"0 0 13px"},memorySub:{fontFamily:"Georgia,serif",fontStyle:"italic",color:"#cfc4b9",fontSize:14,margin:"0 0 24px"},memoryActions:{display:"grid",gap:1,background:"#554a42",border:"1px solid #554a42",borderRadius:16,overflow:"hidden"},memoryBtn:{position:"relative",border:0,background:"#39322d",color:"#fff",padding:"17px 50px 17px 17px",display:"flex",flexDirection:"column",textAlign:"left",gap:4},memoryBtnSpan:{},
- feed:{padding:"38px 14px",borderBottom:"1px solid #e6dfd6"},feedTop:{padding:"0 8px",display:"flex",justifyContent:"space-between",alignItems:"end",gap:12,marginBottom:18},live:{fontSize:10,color:"#9b7950",whiteSpace:"nowrap",paddingBottom:17},post:{background:"#fff",border:"1px solid #e2d9ce",borderRadius:18,overflow:"hidden",marginBottom:14},photo:{display:"block",width:"100%",height:"auto",maxHeight:620,objectFit:"cover"},postBody:{padding:16},meta:{display:"flex",justifyContent:"space-between",fontSize:12,color:"#716860"},message:{fontFamily:"Georgia,serif",fontSize:17,lineHeight:1.55,margin:"12px 0 2px",color:"#403934"},
- fund:{display:"flex",alignItems:"end",justifyContent:"space-between",gap:16},fundBtn:{whiteSpace:"nowrap",border:"1px solid #b99d78",borderRadius:999,background:"transparent",padding:"11px 14px",color:"#765a38"},cloud:{minHeight:170,display:"flex",alignItems:"center",justifyContent:"center",flexWrap:"wrap",gap:"10px 17px",fontFamily:"'Baskerville','Times New Roman',serif",color:"#86673f",padding:"18px 8px",marginBottom:12}
+
+const s = {
+  page:{minHeight:"100vh",background:"#eee8df",padding:"0",fontFamily:"Inter,system-ui,sans-serif",color:"#2c241f"},
+  center:{minHeight:"100vh",display:"grid",placeItems:"center",background:"#eee8df",fontFamily:"Inter,sans-serif"},
+  app:{width:"100%",maxWidth:"760px",margin:"0 auto",background:"#fbfaf7",minHeight:"100vh"},
+  header:{padding:"34px 22px 18px",position:"sticky",top:0,zIndex:20,background:"rgba(251,250,247,.96)",backdropFilter:"blur(14px)",borderBottom:"1px solid #e8dfd4"},
+  names:{margin:0,fontFamily:"'Times New Roman',Georgia,serif",fontWeight:400,fontSize:"clamp(38px,9vw,60px)",lineHeight:1,letterSpacing:"-.035em"},
+  amp:{fontStyle:"italic",color:"#b48a52"},
+  date:{marginTop:"8px",fontSize:"12px",letterSpacing:".14em",textTransform:"uppercase",color:"#8b7b6a"},
+  navScroller:{display:"flex",gap:"8px",overflowX:"auto",paddingTop:"18px",scrollbarWidth:"none"},
+  navPill:{flex:"0 0 auto",textDecoration:"none",color:"#5d4d40",border:"1px solid #d9cec1",background:"#fff",borderRadius:"999px",padding:"9px 13px",fontSize:"12px",fontWeight:700},
+  section:{padding:"72px 22px 76px",borderBottom:"10px solid #f0ebe4"},
+  sectionAlt:{padding:"72px 22px 76px",background:"#f3eee7",borderBottom:"10px solid #fbfaf7"},
+  sectionTitle:{fontFamily:"'Times New Roman',Georgia,serif",fontWeight:400,fontSize:"clamp(40px,8vw,58px)",lineHeight:.98,letterSpacing:"-.035em",margin:"0 0 26px"},
+  sectionLead:{fontSize:"15px",lineHeight:1.65,color:"#756a61",margin:"-12px 0 26px",maxWidth:"560px"},
+  card:{background:"#fff",border:"1px solid #e2d8cc",borderRadius:"22px",padding:"24px",boxShadow:"0 8px 24px rgba(75,58,40,.05)"},
+  question:{fontFamily:"'Times New Roman',Georgia,serif",fontSize:"27px",lineHeight:1.25,margin:"0 0 22px"},
+  stack:{display:"grid",gap:"10px"},
+  choice:{background:"#fff",border:"1px solid #d7cab9",borderRadius:"14px",padding:"15px 16px",textAlign:"left",fontSize:"15px",cursor:"pointer"},
+  input:{width:"100%",boxSizing:"border-box",background:"#fff",border:"1px solid #d6c9ba",borderRadius:"14px",padding:"14px 15px",fontSize:"15px",outline:"none"},
+  primary:{background:"#2f2924",color:"#fff",border:0,borderRadius:"14px",padding:"14px 18px",fontWeight:800,fontSize:"14px",cursor:"pointer"},
+  counter:{fontSize:"12px",fontWeight:800,letterSpacing:".12em",color:"#9b7c58",marginBottom:"12px"},
+  good:{color:"#56775b",fontWeight:800,marginBottom:0},
+  bad:{color:"#9c5d50",lineHeight:1.5,marginBottom:0},
+  textBtn:{border:0,background:"none",padding:"12px 0 0",fontWeight:800,color:"#8f6d43",cursor:"pointer"},
+  memorySection:{padding:"78px 22px 82px",background:"#2d2824",color:"#fff",borderBottom:"10px solid #f0ebe4"},
+  memoryTitle:{fontFamily:"'Times New Roman',Georgia,serif",fontWeight:400,fontSize:"clamp(42px,9vw,62px)",lineHeight:.98,letterSpacing:"-.035em",margin:"0 0 16px"},
+  memoryLead:{color:"#cfc5ba",fontSize:"15px",lineHeight:1.6,margin:"0 0 28px"},
+  memoryGrid:{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:"10px"},
+  memoryBtn:{minHeight:"118px",background:"#3a342f",color:"#fff",border:"1px solid #5a5047",borderRadius:"18px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"10px",padding:"14px 8px",fontSize:"13px"},
+  memoryIcon:{fontSize:"26px"},
+  feed:{display:"grid",gap:"22px"},
+  post:{background:"#fff",border:"1px solid #e3d9ce",borderRadius:"20px",overflow:"hidden",boxShadow:"0 8px 24px rgba(76,57,38,.05)"},
+  photo:{width:"100%",maxHeight:"520px",objectFit:"cover",display:"block"},
+  postBody:{padding:"18px"},
+  meta:{display:"flex",justifyContent:"space-between",fontSize:"13px",color:"#74695f"},
+  message:{fontFamily:"'Times New Roman',Georgia,serif",fontSize:"22px",lineHeight:1.4,margin:"14px 0 0"},
+  outline:{background:"transparent",border:"1px solid #9e805b",color:"#6e5437",borderRadius:"14px",padding:"13px 16px",fontWeight:800},
+  cloud:{minHeight:"210px",display:"flex",flexWrap:"wrap",alignItems:"center",justifyContent:"center",gap:"12px 18px",padding:"28px 18px",background:"#f2ece3",borderRadius:"20px"},
+  cloudWord:{fontFamily:"'Times New Roman',Georgia,serif",color:"#806447",lineHeight:1},
+  inline:{display:"grid",gridTemplateColumns:"1fr auto",gap:"10px",marginTop:"14px"}
 };

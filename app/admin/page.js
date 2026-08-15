@@ -578,7 +578,7 @@ export default function AdminPage() {
 
   function handleCopyDjLink(ev) {
     if (typeof window === "undefined") return;
-    const link = `${window.location.origin}/${ev.slug}/dj`;
+    const link = `https://lehnova.fr/${ev.slug}/dj`;
     if (navigator.clipboard) navigator.clipboard.writeText(link).catch(() => {});
     setCopiedDjFor(ev.id);
     setTimeout(() => setCopiedDjFor(null), 1800);
@@ -629,12 +629,12 @@ export default function AdminPage() {
 
   function linkFor(slug) {
     if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/${slug}`;
+    return `https://lehnova.fr/${slug}`;
   }
 
   function espaceLinkFor(slug) {
     if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/${slug}/espace`;
+    return `https://lehnova.fr/${slug}/espace`;
   }
 
   async function handleRegenerateEventCode(eventId) {
@@ -650,12 +650,12 @@ export default function AdminPage() {
 
   function catalogLinkFor(slug) {
     if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/catalogue/${slug}`;
+    return `https://lehnova.fr/catalogue/${slug}`;
   }
 
   function clientManageLinkFor(slug) {
     if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/catalogue/${slug}/gerer`;
+    return `https://lehnova.fr/catalogue/${slug}/gerer`;
   }
 
   async function handleRegenerateCode(catalogId) {
@@ -741,12 +741,12 @@ export default function AdminPage() {
 
   function showcaseLinkFor(slug) {
     if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/vitrine/${slug}`;
+    return `https://lehnova.fr/vitrine/${slug}`;
   }
 
   function showcaseManageLinkFor(slug) {
     if (typeof window === "undefined") return slug;
-    return `${window.location.origin}/vitrine/${slug}/gerer`;
+    return `https://lehnova.fr/vitrine/${slug}/gerer`;
   }
 
   async function handleRegenerateShowcaseCode(showcaseId) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -198,6 +198,31 @@ function formatDate(ts) {
 }
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
+}
+function normalizeAnswer(value) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, "")
+    .trim();
+}
+function splitEventTitle(title, eventType) {
+  const fullTitle = (title || "").trim();
+  const type = (eventType || "").trim();
+  if (!fullTitle) return { context: type, names: "" };
+
+  const prepositionMatch = fullTitle.match(/^(.+?\s(?:de|du|des|d['’]))\s*(.+)$/i);
+  if (prepositionMatch) {
+    return { context: prepositionMatch[1], names: prepositionMatch[2] };
+  }
+
+  if (type && fullTitle.toLocaleLowerCase("fr-FR").startsWith(type.toLocaleLowerCase("fr-FR"))) {
+    const remainder = fullTitle.slice(type.length).trim().replace(/^[-–—:]+\s*/, "");
+    if (remainder) return { context: type, names: remainder };
+  }
+
+  return { context: type, names: fullTitle };
 }
 function wheelPolarToCartesian(cx, cy, r, angleDeg) {
   const a = ((angleDeg - 90) * Math.PI) / 180;
@@ -401,7 +426,9 @@ function PlaylistRequest({ eventId, theme }) {
   }
 
   return (
-    <div
+    <section
+      id="music"
+      className="event-section music-section"
       style={{
         width: "calc(100% + 18px)",
         maxWidth: "none",
@@ -415,7 +442,8 @@ function PlaylistRequest({ eventId, theme }) {
         boxShadow: "0 12px 28px rgba(60,42,20,0.08)",
       }}
     >
-      <p style={{ fontSize: "1rem", fontWeight: 700, color: theme.ivory, margin: "0 0 4px" }}>🎵 Demande une chanson</p>
+      <h2 className="event-section-title">Musique</h2>
+      <p className="event-section-subtitle">Une envie pour la soirée ?</p>
       <p style={{ fontSize: "0.82rem", color: theme.muted, margin: "0 0 14px" }}>
         Le DJ verra toutes les demandes en direct !
       </p>
@@ -481,7 +509,7 @@ function PlaylistRequest({ eventId, theme }) {
       >
         {sending ? "Envoi…" : sent ? "✓ Envoyée !" : "Envoyer ma demande"}
       </button>
-    </div>
+    </section>
   );
 }
 
@@ -511,6 +539,13 @@ export default function GuestbookPage() {
   const [error, setError] = useState("");
   const [justSent, setJustSent] = useState(false);
   const [pollQuestions, setPollQuestions] = useState([]);
+  const [riddles, setRiddles] = useState([]);
+  const [riddleIndex, setRiddleIndex] = useState(0);
+  const [riddleAnswer, setRiddleAnswer] = useState("");
+  const [riddleResult, setRiddleResult] = useState(null);
+  const [wordCloudEntries, setWordCloudEntries] = useState([]);
+  const [newWord, setNewWord] = useState("");
+  const [addingWord, setAddingWord] = useState(false);
   const [votedIds, setVotedIds] = useState({});
   const [votingId, setVotingId] = useState(null);
   const [giftItems, setGiftItems] = useState([]);
@@ -630,6 +665,41 @@ export default function GuestbookPage() {
     today.setHours(0, 0, 0, 0);
     return eventDay.getTime() > today.getTime();
   })();
+  const displayTitle = splitEventTitle(event?.event_title, event?.event_type);
+  const wordCloud = useMemo(() => {
+    const counts = {};
+    wordCloudEntries.forEach(({ word }) => {
+      const key = (word || "").trim().toLowerCase();
+      if (key) counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [wordCloudEntries]);
+
+  function handleRiddleSubmit(e) {
+    e.preventDefault();
+    const riddle = riddles[riddleIndex];
+    if (!riddle || !riddleAnswer.trim()) return;
+    const expected = normalizeAnswer(riddle.answer);
+    const submitted = normalizeAnswer(riddleAnswer);
+    setRiddleResult(submitted === expected || submitted.includes(expected) || expected.includes(submitted) ? "good" : "bad");
+  }
+
+  async function handleAddWord(e) {
+    e.preventDefault();
+    if (!supabase || !event || !newWord.trim() || addingWord) return;
+    setAddingWord(true);
+    const word = newWord.trim().slice(0, 28);
+    const { data, error: wordError } = await supabase
+      .from("word_cloud_entries")
+      .insert({ event_id: event.id, word })
+      .select("*")
+      .single();
+    setAddingWord(false);
+    if (!wordError && data) {
+      setWordCloudEntries((current) => [...current, data]);
+      setNewWord("");
+    }
+  }
 
   const todaysLooks = dailyLooks.filter((l) => (l.created_at || "").slice(0, 10) === todayKey());
   const leaderLook = todaysLooks.length > 0 ? todaysLooks[0] : null;
@@ -698,6 +768,13 @@ export default function GuestbookPage() {
         return next;
       });
     }
+
+    const [{ data: riddlesData }, { data: wordsData }] = await Promise.all([
+      supabase.from("event_riddles").select("*").eq("event_id", ev.id).order("position", { ascending: true }),
+      supabase.from("word_cloud_entries").select("*").eq("event_id", ev.id).order("created_at", { ascending: true }),
+    ]);
+    setRiddles(riddlesData || []);
+    setWordCloudEntries(wordsData || []);
 
     const { data: gifts } = await supabase
       .from("gift_items")
@@ -1747,10 +1824,34 @@ export default function GuestbookPage() {
   }
 
   return (
-    <div style={styles.page}>
+    <div className="event-shell" style={styles.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
         * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; }
+        .event-shell { padding-top: 0 !important; }
+        .event-content { padding-top: 0 !important; }
+        .event-header-card { position: sticky; top: 0; z-index: 50; margin: 0 -26px 18px !important; padding: 14px 26px 12px !important; background: ${theme.surface} !important; backdrop-filter: blur(14px); border-bottom: 1px solid ${theme.borderColor || theme.accentSoft}; box-shadow: 0 5px 18px rgba(0,0,0,.08) !important; }
+        .event-header { border: 0 !important; padding: 0 !important; margin: 0 !important; text-align: center !important; }
+        .event-title-context { margin: 0 0 3px; color: ${theme.muted}; font-size: .68rem; font-weight: 700; letter-spacing: .12em; line-height: 1.2; text-transform: uppercase; }
+        .event-title-names { display: block; width: 100%; max-width: none !important; margin: 0 auto !important; text-align: center !important; font-family: 'Libre Baskerville', Georgia, serif !important; font-style: italic !important; font-weight: 700 !important; font-size: clamp(.65rem, var(--event-title-size, 7.2vw), 2.15rem) !important; line-height: 1.1 !important; letter-spacing: -.045em; color: ${theme.ivory} !important; white-space: nowrap; }
+        .event-date { margin: 6px 0 0; font-size: .58rem; letter-spacing: .2em; color: ${theme.muted}; text-transform: uppercase; }
+        .event-nav { display: flex; gap: 6px; overflow-x: auto; margin-top: 12px; scrollbar-width: none; }
+        .event-nav::-webkit-scrollbar { display: none; }
+        .event-nav a { flex: none; border: 1px solid ${theme.borderColor || theme.accentSoft}; background: ${theme.surface2}; border-radius: 999px; padding: 7px 10px; color: ${theme.ivory}; font-size: .62rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+        .event-section { scroll-margin-top: 122px; position: relative; background: ${theme.cardGradient || `linear-gradient(160deg, ${theme.surface2}, ${theme.surface})`} !important; border: 1px solid ${theme.borderColor || theme.accent} !important; border-radius: 26px !important; padding: 28px 24px 24px !important; margin: 0 -9px 18px !important; box-shadow: 0 8px 22px rgba(0,0,0,.08) !important; overflow: hidden; }
+        .event-section::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: ${theme.accent}; opacity: .55; }
+        .event-section-title { margin: 0; text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-weight: 700; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -.035em; color: ${theme.ivory}; }
+        .event-section-subtitle { text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-size: .95rem; color: ${theme.accent}; margin: 7px 0 19px; }
+        .event-section input, .event-section textarea { border-radius: 13px !important; background: ${theme.surface} !important; color: ${theme.ivory} !important; border-color: ${theme.borderColor || theme.muted} !important; }
+        .event-section button { border-radius: 13px !important; }
+        .feed-section .ld-entry { background: ${theme.surface} !important; border-color: ${theme.borderColor || theme.muted} !important; border-radius: 18px !important; }
+        .fund-section { text-align: center; }
+        .fund-section a { display: inline-flex !important; width: auto !important; margin: 0 auto !important; }
+        .word-cloud { min-height: 160px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 9px 14px; padding: 18px; border-radius: 17px; background: ${theme.surface2}; border: 1px solid ${theme.borderColor || theme.accentSoft}; }
+        .word-cloud span { font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; color: ${theme.accent}; }
+        @media (max-width: 599px) { .event-content { border-radius: 0 !important; padding-left: 18px !important; padding-right: 18px !important; } .event-header-card { margin-left: -18px !important; margin-right: -18px !important; padding-left: 18px !important; padding-right: 18px !important; } .event-title-names { font-size: clamp(.65rem, var(--event-title-size, 7.2vw), 1.85rem) !important; } .event-section { padding: 25px 16px 20px !important; } }
         .ld-entry { transition: transform 0.15s ease, background 0.15s ease; animation: ldFadeIn 0.5s ease both; }
         .ld-entry:hover { transform: translateY(-2px); background: ${theme.surface2}; }
         @keyframes ldFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -1766,16 +1867,36 @@ export default function GuestbookPage() {
         ::placeholder { color: ${theme.muted}; }
       `}</style>
 
-      <div style={styles.content}>
-        <div style={styles.headerCard}>
-          <header style={styles.header}>
-            <p style={styles.eyebrow}>{isJournal ? "ENTRE NOUS" : "LE FIL"}</p>
-            <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
-            <hr style={styles.titleRule} />
+      <div className="event-content" style={styles.content}>
+        <div className="event-header-card" style={styles.headerCard}>
+          <header className="event-header" style={styles.header}>
+            {!loading && displayTitle.context && <p className="event-title-context">{displayTitle.context}</p>}
+            <h1
+              className="event-title-names"
+              style={{
+                ...styles.title,
+                "--event-title-size": `${Math.max(2.4, Math.min(7.2, 150 / Math.max(displayTitle.names.length, 1)))}vw`,
+              }}
+            >
+              {loading ? "…" : displayTitle.names}
+            </h1>
+            {event?.event_date && <p className="event-date">{new Date(`${event.event_date}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>}
             {isReview && (
               <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>
             )}
           </header>
+          {!isReview && (
+            <nav className="event-nav" aria-label="Sections de l'événement">
+              {event?.event_type === "Baby Shower" && event?.reveal_at && <a href="#reveal">Révélation</a>}
+              {pollQuestions.length > 0 && <a href="#quiz">Quiz</a>}
+              {event?.playlist_enabled && <a href="#music">Musique</a>}
+              <a href="#memory">Souvenir</a>
+              {riddles.length > 0 && <a href="#riddles">Devinettes</a>}
+              <a href="#feed">Le Fil</a>
+              {event?.cagnotte_url && <a href="#fund">Cagnotte</a>}
+              {event?.word_cloud_enabled && <a href="#words">Nuage</a>}
+            </nav>
+          )}
         </div>
 
         {isJournal && (
@@ -2363,14 +2484,18 @@ export default function GuestbookPage() {
         )}
 
         {event?.event_type === "Baby Shower" && event?.reveal_at && (
-          <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
+          <section id="reveal" className="event-section reveal-section">
+            <h2 className="event-section-title">La révélation</h2>
+            <p className="event-section-subtitle">Une merveilleuse surprise vous attend</p>
+            <EggReveal revealAt={event.reveal_at} revealGender={event.reveal_gender || "fille"} theme={theme} />
+          </section>
         )}
 
         {pollQuestions.length > 0 && (
-          <section style={styles.sectionCard}>
+          <section id="quiz" className="event-section quiz-section" style={styles.sectionCard}>
             <div style={styles.sectionHeading}>
-              <h2 style={styles.quizSectionTitle}>Petit quiz 🎉</h2>
-              <p style={styles.sectionSubtitle}>À vous de jouer !</p>
+              <h2 className="event-section-title" style={styles.quizSectionTitle}>Petit quiz 🎉</h2>
+              <p className="event-section-subtitle" style={styles.sectionSubtitle}>À vous de jouer !</p>
             </div>
 
             {pollQuestions.map((q) => {
@@ -2413,23 +2538,6 @@ export default function GuestbookPage() {
 
 
         {event?.playlist_enabled && <PlaylistRequest eventId={event.id} theme={theme} />}
-
-        {event?.cagnotte_url && (
-          <a
-            href={event.cagnotte_url}
-            target="_blank"
-            rel="noreferrer"
-            style={styles.cagnotteCard}
-          >
-            <span style={styles.cagnotteIcon}>💛</span>
-            <span>
-              <span style={styles.cagnotteTitle}>Participer à la cagnotte</span>
-              <span style={styles.cagnotteSub}>Un geste qui fera plaisir ↗</span>
-            </span>
-          </a>
-        )}
-
-
 
         {isJournal && eventDates.length > 0 && (
           <div style={{ marginBottom: "22px" }}>
@@ -2538,9 +2646,10 @@ export default function GuestbookPage() {
           </div>
         )}
 
-        <section style={styles.sectionCard}>
+        <section id="memory" className="event-section memory-section" style={styles.sectionCard}>
           <div style={styles.sectionHeading}>
-            <h2 style={styles.memorySectionTitle}>Laissez un mot, un souvenir 💌</h2>
+            <h2 className="event-section-title" style={styles.memorySectionTitle}>Laissez un mot, un souvenir 💌</h2>
+            <p className="event-section-subtitle">Quelques mots pour cette journée</p>
           </div>
 
           <form onSubmit={handleSubmit} style={{ ...styles.form, marginBottom: 0 }}>
@@ -2647,6 +2756,32 @@ export default function GuestbookPage() {
           </form>
         </section>
 
+        {riddles.length > 0 && (() => {
+          const riddle = riddles[riddleIndex];
+          return (
+            <section id="riddles" className="event-section riddles-section">
+              <h2 className="event-section-title">Devinettes</h2>
+              <p className="event-section-subtitle">À vous de trouver ✨</p>
+              <div style={styles.pollCard}>
+                <p style={styles.pollNote}>{riddleIndex + 1} / {riddles.length}</p>
+                <p style={styles.pollQuestion}>{riddle.question}</p>
+                <form onSubmit={handleRiddleSubmit} style={styles.form}>
+                  <input style={styles.input} value={riddleAnswer} onChange={(e) => { setRiddleAnswer(e.target.value); setRiddleResult(null); }} placeholder="Votre réponse" />
+                  <button type="submit" style={styles.button}>Valider</button>
+                </form>
+                {riddleResult === "good" && <p style={styles.successText}>Bien joué ✨</p>}
+                {riddleResult === "bad" && <p style={styles.errorText}>Indice : {riddle.hint}</p>}
+                {riddleResult && riddles.length > 1 && (
+                  <button type="button" style={{ ...styles.button, marginTop: "12px" }} onClick={() => { setRiddleIndex((riddleIndex + 1) % riddles.length); setRiddleAnswer(""); setRiddleResult(null); }}>Suivante →</button>
+                )}
+              </div>
+            </section>
+          );
+        })()}
+
+        <section id="feed" className="event-section feed-section">
+        <h2 className="event-section-title">Le Fil</h2>
+        <p className="event-section-subtitle">Les souvenirs de la soirée</p>
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
           <span style={styles.dividerLabel}>Le Fil</span>
@@ -2741,25 +2876,54 @@ export default function GuestbookPage() {
               </article>
             ))}
         </div>
+        </section>
+
+        {event?.cagnotte_url && (
+          <section id="fund" className="event-section fund-section">
+            <h2 className="event-section-title">Cagnotte</h2>
+            <p className="event-section-subtitle">Pour leur prochaine aventure</p>
+            <a href={event.cagnotte_url} target="_blank" rel="noreferrer" style={styles.cagnotteCard}>
+              <span style={styles.cagnotteIcon}>💛</span>
+              <span>
+                <span style={styles.cagnotteTitle}>Participer à la cagnotte</span>
+                <span style={styles.cagnotteSub}>Un geste qui fera plaisir ↗</span>
+              </span>
+            </a>
+          </section>
+        )}
+
+        {event?.word_cloud_enabled && (
+          <section id="words" className="event-section words-section">
+            <h2 className="event-section-title">Nuage de mots</h2>
+            <p className="event-section-subtitle">Décrivez ce moment en un mot</p>
+            <div className="word-cloud">
+              {wordCloud.map(([word, count], index) => <span key={word} style={{ fontSize: 18 + Math.min(15, count * 3), opacity: Math.max(.55, 1 - index * .06) }}>{word}</span>)}
+            </div>
+            <form onSubmit={handleAddWord} style={{ ...styles.form, flexDirection: "row", marginTop: "12px", marginBottom: 0 }}>
+              <input style={{ ...styles.input, flex: 1, minWidth: 0 }} value={newWord} onChange={(e) => setNewWord(e.target.value)} placeholder="Un mot…" maxLength={28} />
+              <button type="submit" disabled={addingWord || !newWord.trim()} style={styles.button}>{addingWord ? "…" : "Ajouter"}</button>
+            </form>
+          </section>
+        )}
       </div>
     </div>
   );
 }
 
 function getStyles(t, isFun) {
-  const headFont = isFun ? "'Fredoka', sans-serif" : "'Instrument Serif', serif";
-  const headWeight = isFun ? 700 : 400;
-  const headStyle = isFun ? "normal" : "italic";
+  const headFont = "'Libre Baskerville', Georgia, serif";
+  const headWeight = 700;
+  const headStyle = "italic";
   return {
-    page: { minHeight: "100vh", background: t.ink, display: "flex", justifyContent: "center", padding: "40px 14px", fontFamily: "Inter, system-ui, sans-serif" },
-    content: { width: "100%", maxWidth: "560px", background: t.cardGradient || t.surface2, border: `1px solid ${t.borderColor || "rgba(255,255,255,0.06)"}`, borderRadius: isFun ? "28px" : "20px", padding: "32px 26px", boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)" },
+    page: { minHeight: "100vh", background: t.ink, display: "flex", justifyContent: "center", padding: 0, fontFamily: "'DM Sans', Inter, system-ui, sans-serif", color: t.ivory },
+    content: { width: "100%", maxWidth: "760px", minHeight: "100vh", background: t.cardGradient || t.surface2, border: "none", borderRadius: 0, padding: "0 26px 52px", boxShadow: "0 20px 60px rgba(0,0,0,.16)" },
     headerCard: { background: "none", padding: 0, boxShadow: "none" },
     header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
     title: {
       fontFamily: headFont,
       fontStyle: headStyle,
-      fontWeight: isFun ? 700 : 400,
+      fontWeight: 700,
       fontSize: "2.6rem",
       color: t.ivory,
       margin: "0 auto",
@@ -2798,7 +2962,7 @@ function getStyles(t, isFun) {
     quizSectionTitle: {
       fontFamily: headFont,
       fontStyle: headStyle,
-      fontWeight: isFun ? 700 : 400,
+      fontWeight: 700,
       fontSize: "1.8rem",
       lineHeight: 1.15,
       color: t.ivory,
@@ -2807,7 +2971,7 @@ function getStyles(t, isFun) {
     memorySectionTitle: {
       fontFamily: headFont,
       fontStyle: headStyle,
-      fontWeight: isFun ? 700 : 500,
+      fontWeight: 700,
       fontSize: "2.75rem",
       lineHeight: 1.02,
       color: t.ivory,
@@ -2818,13 +2982,13 @@ function getStyles(t, isFun) {
     sectionSubtitle: {
       fontFamily: headFont,
       fontStyle: headStyle,
-      fontWeight: isFun ? 600 : 400,
+      fontWeight: 400,
       fontSize: "1.15rem",
       color: t.accent,
       margin: "6px 0 0",
     },
-    input: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface, color: t.ivory },
-    textarea: { fontFamily: "Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "18px" : "12px", background: t.surface, color: t.ivory, resize: "vertical" },
+    input: { fontFamily: "'DM Sans', Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: "13px", background: t.surface, color: t.ivory },
+    textarea: { fontFamily: "'DM Sans', Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: "13px", background: t.surface, color: t.ivory, resize: "vertical" },
     photoLabel: { fontFamily: "Inter, sans-serif", fontSize: "0.82rem", color: t.muted, border: `1.5px dashed ${t.accentSoft}`, borderRadius: isFun ? "18px" : "12px", padding: "12px 14px", textAlign: "center", cursor: "pointer", background: "transparent" },
     photoPreviewWrap: { position: "relative", display: "flex", flexDirection: "column", gap: "6px" },
     photoPreview: { width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" },
@@ -2837,9 +3001,7 @@ function getStyles(t, isFun) {
     entryPhotoGridItem: { width: "100%", height: "120px", objectFit: "cover", borderRadius: "8px" },
     formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
     counter: { fontSize: "0.7rem", color: t.muted },
-    button: isFun
-      ? { fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: "0.9rem", padding: "13px 22px", background: t.accent, color: "#fff", border: "none", borderRadius: "999px", boxShadow: "0 5px 0 rgba(0,0,0,0.2)", cursor: "pointer" }
-      : { fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "11px 20px", background: t.accent, color: t.accentText, border: "none", borderRadius: "12px" },
+    button: { fontFamily: "'DM Sans', Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "13px 20px", background: "#3d3128", color: "#fff", border: "none", borderRadius: "13px", cursor: "pointer" },
     errorText: { color: "#D98C7F", fontSize: "0.8rem", margin: 0 },
     successText: { color: "#6FAE7F", fontSize: "0.8rem", margin: 0 },
     pollCard: {
@@ -3217,3 +3379,4 @@ function getStyles(t, isFun) {
     rsvpEditLink: { fontSize: "0.78rem", color: t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
   };
 }
+

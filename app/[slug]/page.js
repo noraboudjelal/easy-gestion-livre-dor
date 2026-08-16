@@ -207,6 +207,23 @@ function normalizeAnswer(value) {
     .replace(/[^a-z0-9 ]/g, "")
     .trim();
 }
+function splitEventTitle(title, eventType) {
+  const fullTitle = (title || "").trim();
+  const type = (eventType || "").trim();
+  if (!fullTitle) return { context: type, names: "" };
+
+  const prepositionMatch = fullTitle.match(/^(.+?\s(?:de|du|des|d['’]))\s*(.+)$/i);
+  if (prepositionMatch) {
+    return { context: prepositionMatch[1], names: prepositionMatch[2] };
+  }
+
+  if (type && fullTitle.toLocaleLowerCase("fr-FR").startsWith(type.toLocaleLowerCase("fr-FR"))) {
+    const remainder = fullTitle.slice(type.length).trim().replace(/^[-–—:]+\s*/, "");
+    if (remainder) return { context: type, names: remainder };
+  }
+
+  return { context: type, names: fullTitle };
+}
 function wheelPolarToCartesian(cx, cy, r, angleDeg) {
   const a = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
@@ -637,7 +654,7 @@ export default function GuestbookPage() {
   const [lightboxLookPhoto, setLightboxLookPhoto] = useState(null);
   const [hasPostedLookToday, setHasPostedLookToday] = useState(false);
 
-  const theme = THEMES.Mariage;
+  const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
   const isJournal = event?.event_type === "Entre Nous" || event?.event_type === "Notre Journal";
   const canAnyoneStartPoll = isJournal && event?.polls_open_to_all;
@@ -648,6 +665,7 @@ export default function GuestbookPage() {
     today.setHours(0, 0, 0, 0);
     return eventDay.getTime() > today.getTime();
   })();
+  const displayTitle = splitEventTitle(event?.event_title, event?.event_type);
   const wordCloud = useMemo(() => {
     const counts = {};
     wordCloudEntries.forEach(({ word }) => {
@@ -1814,25 +1832,26 @@ export default function GuestbookPage() {
         body { margin: 0; }
         .event-shell { padding-top: 0 !important; }
         .event-content { padding-top: 0 !important; }
-        .event-header-card { position: sticky; top: 0; z-index: 50; margin: 0 -26px 18px !important; padding: 16px 26px 12px !important; background: rgba(255,250,242,.97) !important; backdrop-filter: blur(14px); border-bottom: 1px solid #ddc6a2; box-shadow: 0 5px 18px rgba(75,52,30,.07) !important; }
-        .event-header { border: 0 !important; padding: 0 !important; margin: 0 !important; text-align: left !important; }
-        .event-header h1 { max-width: none !important; text-align: left !important; font-family: 'Libre Baskerville', Georgia, serif !important; font-style: italic !important; font-weight: 700 !important; font-size: clamp(1.65rem, 7vw, 2.15rem) !important; color: #332820 !important; white-space: normal; }
-        .event-date { margin: 6px 0 0; font-size: .58rem; letter-spacing: .2em; color: #90785e; text-transform: uppercase; }
+        .event-header-card { position: sticky; top: 0; z-index: 50; margin: 0 -26px 18px !important; padding: 14px 26px 12px !important; background: ${theme.surface} !important; backdrop-filter: blur(14px); border-bottom: 1px solid ${theme.borderColor || theme.accentSoft}; box-shadow: 0 5px 18px rgba(0,0,0,.08) !important; }
+        .event-header { border: 0 !important; padding: 0 !important; margin: 0 !important; text-align: center !important; }
+        .event-title-context { margin: 0 0 3px; color: ${theme.muted}; font-size: .68rem; font-weight: 700; letter-spacing: .12em; line-height: 1.2; text-transform: uppercase; }
+        .event-title-names { display: block; width: 100%; max-width: none !important; margin: 0 auto !important; text-align: center !important; font-family: 'Libre Baskerville', Georgia, serif !important; font-style: italic !important; font-weight: 700 !important; font-size: clamp(.65rem, var(--event-title-size, 7.2vw), 2.15rem) !important; line-height: 1.1 !important; letter-spacing: -.045em; color: ${theme.ivory} !important; white-space: nowrap; }
+        .event-date { margin: 6px 0 0; font-size: .58rem; letter-spacing: .2em; color: ${theme.muted}; text-transform: uppercase; }
         .event-nav { display: flex; gap: 6px; overflow-x: auto; margin-top: 12px; scrollbar-width: none; }
         .event-nav::-webkit-scrollbar { display: none; }
-        .event-nav a { flex: none; border: 1px solid #ddc7a7; background: #fffdf8; border-radius: 999px; padding: 7px 10px; color: #765d43; font-size: .62rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
-        .event-section { scroll-margin-top: 122px; position: relative; background: linear-gradient(160deg,#fffdf9,#fff7eb) !important; border: 1px solid #deb982 !important; border-radius: 26px !important; padding: 28px 24px 24px !important; margin: 0 -9px 18px !important; box-shadow: 0 8px 22px rgba(91,62,31,.05) !important; overflow: hidden; }
-        .event-section::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: linear-gradient(90deg,transparent,#bd8c49,transparent); opacity: .55; }
-        .event-section-title { margin: 0; text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-weight: 700; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -.035em; color: #3a2e25; }
-        .event-section-subtitle { text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-size: .95rem; color: #b17d39; margin: 7px 0 19px; }
-        .event-section input, .event-section textarea { border-radius: 13px !important; background: #fffdf8 !important; color: #47382c !important; border-color: #dac19c !important; }
+        .event-nav a { flex: none; border: 1px solid ${theme.borderColor || theme.accentSoft}; background: ${theme.surface2}; border-radius: 999px; padding: 7px 10px; color: ${theme.ivory}; font-size: .62rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+        .event-section { scroll-margin-top: 122px; position: relative; background: ${theme.cardGradient || `linear-gradient(160deg, ${theme.surface2}, ${theme.surface})`} !important; border: 1px solid ${theme.borderColor || theme.accent} !important; border-radius: 26px !important; padding: 28px 24px 24px !important; margin: 0 -9px 18px !important; box-shadow: 0 8px 22px rgba(0,0,0,.08) !important; overflow: hidden; }
+        .event-section::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: ${theme.accent}; opacity: .55; }
+        .event-section-title { margin: 0; text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-weight: 700; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -.035em; color: ${theme.ivory}; }
+        .event-section-subtitle { text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-size: .95rem; color: ${theme.accent}; margin: 7px 0 19px; }
+        .event-section input, .event-section textarea { border-radius: 13px !important; background: ${theme.surface} !important; color: ${theme.ivory} !important; border-color: ${theme.borderColor || theme.muted} !important; }
         .event-section button { border-radius: 13px !important; }
-        .feed-section .ld-entry { background: #fff !important; border-color: #eadbc7 !important; border-radius: 18px !important; }
+        .feed-section .ld-entry { background: ${theme.surface} !important; border-color: ${theme.borderColor || theme.muted} !important; border-radius: 18px !important; }
         .fund-section { text-align: center; }
         .fund-section a { display: inline-flex !important; width: auto !important; margin: 0 auto !important; }
-        .word-cloud { min-height: 160px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 9px 14px; padding: 18px; border-radius: 17px; background: #f4e8d7; border: 1px solid #e8d2b2; }
-        .word-cloud span { font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; color: #a1743d; }
-        @media (max-width: 599px) { .event-content { border-radius: 0 !important; padding-left: 18px !important; padding-right: 18px !important; } .event-header-card { margin-left: -18px !important; margin-right: -18px !important; padding-left: 18px !important; padding-right: 18px !important; } .event-section { padding: 25px 16px 20px !important; } }
+        .word-cloud { min-height: 160px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 9px 14px; padding: 18px; border-radius: 17px; background: ${theme.surface2}; border: 1px solid ${theme.borderColor || theme.accentSoft}; }
+        .word-cloud span { font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; color: ${theme.accent}; }
+        @media (max-width: 599px) { .event-content { border-radius: 0 !important; padding-left: 18px !important; padding-right: 18px !important; } .event-header-card { margin-left: -18px !important; margin-right: -18px !important; padding-left: 18px !important; padding-right: 18px !important; } .event-title-names { font-size: clamp(.65rem, var(--event-title-size, 7.2vw), 1.85rem) !important; } .event-section { padding: 25px 16px 20px !important; } }
         .ld-entry { transition: transform 0.15s ease, background 0.15s ease; animation: ldFadeIn 0.5s ease both; }
         .ld-entry:hover { transform: translateY(-2px); background: ${theme.surface2}; }
         @keyframes ldFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -1851,7 +1870,16 @@ export default function GuestbookPage() {
       <div className="event-content" style={styles.content}>
         <div className="event-header-card" style={styles.headerCard}>
           <header className="event-header" style={styles.header}>
-            <h1 style={styles.title}>{loading ? "…" : event?.event_title}</h1>
+            {!loading && displayTitle.context && <p className="event-title-context">{displayTitle.context}</p>}
+            <h1
+              className="event-title-names"
+              style={{
+                ...styles.title,
+                "--event-title-size": `${Math.max(2.4, Math.min(7.2, 150 / Math.max(displayTitle.names.length, 1)))}vw`,
+              }}
+            >
+              {loading ? "…" : displayTitle.names}
+            </h1>
             {event?.event_date && <p className="event-date">{new Date(`${event.event_date}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>}
             {isReview && (
               <p style={styles.sub}>Partagez votre avis, ça nous aide à nous améliorer.</p>
@@ -2887,8 +2915,8 @@ function getStyles(t, isFun) {
   const headWeight = 700;
   const headStyle = "italic";
   return {
-    page: { minHeight: "100vh", background: "#eee7dc", display: "flex", justifyContent: "center", padding: 0, fontFamily: "'DM Sans', Inter, system-ui, sans-serif", color: "#392f27" },
-    content: { width: "100%", maxWidth: "760px", minHeight: "100vh", background: "#fffaf2", border: "none", borderRadius: 0, padding: "0 26px 52px", boxShadow: "0 20px 60px rgba(75,52,30,.08)" },
+    page: { minHeight: "100vh", background: t.ink, display: "flex", justifyContent: "center", padding: 0, fontFamily: "'DM Sans', Inter, system-ui, sans-serif", color: t.ivory },
+    content: { width: "100%", maxWidth: "760px", minHeight: "100vh", background: t.cardGradient || t.surface2, border: "none", borderRadius: 0, padding: "0 26px 52px", boxShadow: "0 20px 60px rgba(0,0,0,.16)" },
     headerCard: { background: "none", padding: 0, boxShadow: "none" },
     header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
     eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },

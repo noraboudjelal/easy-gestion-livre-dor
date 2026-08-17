@@ -576,6 +576,20 @@ export default function AdminPage() {
     if (!error) loadEvents();
   }
 
+  async function handleToggleRiddles(ev) {
+    if (!supabase) return;
+    const nextValue = !ev.riddles_enabled;
+    const { error } = await supabase.from("events").update({ riddles_enabled: nextValue }).eq("id", ev.id);
+    if (!error) loadEvents();
+  }
+
+  async function handleToggleWordCloud(ev) {
+    if (!supabase) return;
+    const nextValue = !ev.word_cloud_enabled;
+    const { error } = await supabase.from("events").update({ word_cloud_enabled: nextValue }).eq("id", ev.id);
+    if (!error) loadEvents();
+  }
+
   function handleCopyDjLink(ev) {
     if (typeof window === "undefined") return;
     const link = `https://lehnova.fr/${ev.slug}/dj`;
@@ -1361,6 +1375,12 @@ export default function AdminPage() {
                             <button style={styles.iconButton} onClick={() => handleTogglePlaylist(ev)}>
                               playlist {ev.playlist_enabled ? "✓" : ""}
                             </button>
+                            <button style={styles.iconButton} onClick={() => handleToggleRiddles(ev)}>
+                              devinettes {ev.riddles_enabled ? "✓" : ""}
+                            </button>
+                            <button style={styles.iconButton} onClick={() => handleToggleWordCloud(ev)}>
+                              nuage de mots {ev.word_cloud_enabled ? "✓" : ""}
+                            </button>
                             {ev.playlist_enabled && (
                               <button style={styles.iconButton} onClick={() => handleCopyDjLink(ev)}>
                                 {copiedDjFor === ev.id ? "✓ copié" : "lien DJ"}
@@ -1447,6 +1467,12 @@ export default function AdminPage() {
                         )}
                         <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleTogglePlaylist(ev)}>
                           playlist {ev.playlist_enabled ? "✓" : ""}
+                        </button>
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleToggleRiddles(ev)}>
+                          devinettes {ev.riddles_enabled ? "✓" : ""}
+                        </button>
+                        <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleToggleWordCloud(ev)}>
+                          nuage de mots {ev.word_cloud_enabled ? "✓" : ""}
                         </button>
                         {ev.playlist_enabled && (
                           <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleCopyDjLink(ev)}>
@@ -2231,3 +2257,4 @@ const styles = {
   removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
   addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };
+

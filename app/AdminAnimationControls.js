@@ -24,68 +24,79 @@ function makeButton(label, sample) {
 
 export default function AdminAnimationControls() {
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || window.location.pathname !== "/admin") return;
+    let running = false;
 
     async function enhanceAdmin() {
-      if (window.location.pathname !== "/admin") return;
-      const links = Array.from(document.querySelectorAll('a[href$="/imprimer"]'));
+      if (running) return;
+      running = true;
+      try {
+        const links = Array.from(document.querySelectorAll('a[href$="/imprimer"]'));
+        const seen = new Set();
+        for (const link of links) {
+          const slug = getSlugFromImprimerLink(link);
+          if (!slug || seen.has(slug)) continue;
+          seen.add(slug);
 
-      for (const link of links) {
-        const slug = getSlugFromImprimerLink(link);
-        if (!slug) continue;
-        const row = link.parentElement;
-        const card = row?.parentElement;
-        if (!card || card.querySelector(`[data-anim-controls="${slug}"]`)) continue;
+          const row = link.parentElement;
+          const card = row?.parentElement;
+          if (!card) continue;
 
-        const { data: ev } = await supabase.from("events").select("id,slug,riddles_enabled,word_cloud_enabled").eq("slug", slug).single();
-        if (!ev) continue;
+          const existing = Array.from(document.querySelectorAll(`[data-anim-controls="${slug}"]`));
+          existing.slice(1).forEach((el) => el.remove());
+          if (existing[0]) continue;
 
-        const sample = Array.from(card.querySelectorAll("button")).find((b) => (b.textContent || "").toLowerCase().includes("playlist"));
-        const controls = document.createElement("div");
-        controls.dataset.animControls = slug;
-        controls.style.display = "flex";
-        controls.style.gap = "6px";
-        controls.style.marginTop = "6px";
+          const controls = document.createElement("div");
+          controls.dataset.animControls = slug;
+          controls.style.display = "flex";
+          controls.style.gap = "6px";
+          controls.style.marginTop = "6px";
+          row.insertAdjacentElement("afterend", controls);
 
-        const riddleBtn = makeButton(`devinettes ${ev.riddles_enabled ? "✓" : ""}`, sample);
-        const cloudBtn = makeButton(`nuage de mots ${ev.word_cloud_enabled ? "✓" : ""}`, sample);
+          const { data: ev } = await supabase.from("events").select("id,slug,riddles_enabled,word_cloud_enabled").eq("slug", slug).single();
+          if (!ev) { controls.remove(); continue; }
 
-        riddleBtn.onclick = async () => {
-          const next = !ev.riddles_enabled;
-          const { error } = await supabase.from("events").update({ riddles_enabled: next }).eq("id", ev.id);
-          if (error) return alert("Impossible de modifier les devinettes.");
-          ev.riddles_enabled = next;
-          riddleBtn.textContent = `devinettes ${next ? "✓" : ""}`;
+          const sample = Array.from(card.querySelectorAll("button")).find((b) => (b.textContent || "").toLowerCase().includes("playlist"));
+          const riddleBtn = makeButton(`devinettes ${ev.riddles_enabled ? "✓" : ""}`, sample);
+          const cloudBtn = makeButton(`nuage de mots ${ev.word_cloud_enabled ? "✓" : ""}`, sample);
 
-          if (next) {
-            const { count } = await supabase.from("event_riddles").select("id", { count: "exact", head: true }).eq("event_id", ev.id);
-            if (!count) {
-              const question = window.prompt("Première devinette : quelle est la question ?");
-              if (!question?.trim()) return;
-              const answer = window.prompt("Quelle est la bonne réponse ?");
-              if (!answer?.trim()) return;
-              const hint = window.prompt("Quel indice veux-tu donner ?") || "";
-              await supabase.from("event_riddles").insert({ event_id: ev.id, question: question.trim(), answer: answer.trim(), hint: hint.trim(), position: 0 });
+          riddleBtn.onclick = async () => {
+            const next = !ev.riddles_enabled;
+            const { error } = await supabase.from("events").update({ riddles_enabled: next }).eq("id", ev.id);
+            if (error) return alert("Impossible de modifier les devinettes.");
+            ev.riddles_enabled = next;
+            riddleBtn.textContent = `devinettes ${next ? "✓" : ""}`;
+            if (next) {
+              const { count } = await supabase.from("event_riddles").select("id", { count: "exact", head: true }).eq("event_id", ev.id);
+              if (!count) {
+                const question = window.prompt("Première devinette : quelle est la question ?");
+                if (!question?.trim()) return;
+                const answer = window.prompt("Quelle est la bonne réponse ?");
+                if (!answer?.trim()) return;
+                const hint = window.prompt("Quel indice veux-tu donner ?") || "";
+                await supabase.from("event_riddles").insert({ event_id: ev.id, question: question.trim(), answer: answer.trim(), hint: hint.trim(), position: 0 });
+              }
             }
-          }
-        };
+          };
 
-        cloudBtn.onclick = async () => {
-          const next = !ev.word_cloud_enabled;
-          const { error } = await supabase.from("events").update({ word_cloud_enabled: next }).eq("id", ev.id);
-          if (error) return alert("Impossible de modifier le nuage de mots.");
-          ev.word_cloud_enabled = next;
-          cloudBtn.textContent = `nuage de mots ${next ? "✓" : ""}`;
-        };
+          cloudBtn.onclick = async () => {
+            const next = !ev.word_cloud_enabled;
+            const { error } = await supabase.from("events").update({ word_cloud_enabled: next }).eq("id", ev.id);
+            if (error) return alert("Impossible de modifier le nuage de mots.");
+            ev.word_cloud_enabled = next;
+            cloudBtn.textContent = `nuage de mots ${next ? "✓" : ""}`;
+          };
 
-        controls.append(riddleBtn, cloudBtn);
-        row.insertAdjacentElement("afterend", controls);
+          controls.append(riddleBtn, cloudBtn);
+        }
+      } finally {
+        running = false;
       }
     }
 
-    const observer = new MutationObserver(() => enhanceAdmin());
+    const observer = new MutationObserver(() => { void enhanceAdmin(); });
     observer.observe(document.body, { childList: true, subtree: true });
-    enhanceAdmin();
+    void enhanceAdmin();
     return () => observer.disconnect();
   }, []);
 
@@ -93,7 +104,6 @@ export default function AdminAnimationControls() {
     if (typeof window === "undefined" || window.location.pathname === "/admin") return;
     const slug = window.location.pathname.split("/").filter(Boolean)[0];
     if (!slug) return;
-
     let cancelled = false;
     async function applyRiddleVisibility() {
       const { data: ev } = await supabase.from("events").select("riddles_enabled").eq("slug", slug).maybeSingle();
@@ -104,7 +114,7 @@ export default function AdminAnimationControls() {
       if (navLink) navLink.style.display = ev.riddles_enabled ? "" : "none";
     }
     const timer = setInterval(applyRiddleVisibility, 1200);
-    applyRiddleVisibility();
+    void applyRiddleVisibility();
     return () => { cancelled = true; clearInterval(timer); };
   }, []);
 

@@ -13,6 +13,7 @@ export const viewport = {
   themeColor: "#071522",
 };
 
+// Keep the root layout intentionally minimal; admin controls live in their own pages.
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">

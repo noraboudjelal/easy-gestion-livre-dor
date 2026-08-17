@@ -1,5 +1,3 @@
-import AdminAnimationControls from "./AdminAnimationControls";
-
 export const metadata = {
   title: "Lehnova — Supports numériques personnalisés",
   description: "Solutions numériques accessibles par QR code pour les événements, les commerces et les artisans.",
@@ -18,10 +16,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">
-      <body style={{ margin: 0 }}>
-        {children}
-        <AdminAnimationControls />
-      </body>
+      <body style={{ margin: 0 }}>{children}</body>
     </html>
   );
 }

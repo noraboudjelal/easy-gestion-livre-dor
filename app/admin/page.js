@@ -816,7 +816,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div style={styles.page}>
+    <div className="admin-page" style={styles.page}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; }
@@ -828,11 +828,13 @@ export default function AdminPage() {
           .mobile-cards { display: flex !important; }
         }
         @media (min-width: 721px) {
+          .admin-page { justify-content: flex-start !important; padding-left: 12px !important; padding-right: 12px !important; }
+          .admin-shell { max-width: none !important; }
           .mobile-cards { display: none !important; }
         }
       `}</style>
 
-      <div style={styles.shell}>
+      <div className="admin-shell" style={styles.shell}>
         <header style={styles.header}>
           <div style={styles.brandRow}>
             <span style={styles.logoMark}>LN</span>

@@ -899,6 +899,23 @@ export default function AdminPage() {
     }
   }
 
+  async function handleDeleteTicketBusiness(business) {
+    if (!window.confirm("Supprimer définitivement ce commerce Ticket ?")) return;
+
+    setUpdatingTicketId(business.id);
+    setTicketsError("");
+    try {
+      const response = await fetch(`/api/admin/tickets/${business.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Suppression impossible.");
+      setTicketBusinesses((current) => current.filter((item) => item.id !== business.id));
+    } catch (error) {
+      setTicketsError(error.message || "Suppression impossible.");
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  }
+
   if (authChecking) {
     return <div style={styles.loginPage}>Chargement…</div>;
   }
@@ -1979,6 +1996,7 @@ export default function AdminPage() {
                               >
                                 {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
                               </button>
+                              <button style={styles.iconButtonDanger} disabled={updatingTicketId === business.id} onClick={() => handleDeleteTicketBusiness(business)}>Supprimer</button>
                             </div>
                           </td>
                         </tr>
@@ -2016,6 +2034,7 @@ export default function AdminPage() {
                           <button style={business.is_active ? styles.iconButtonDanger : styles.iconButton} disabled={updatingTicketId === business.id} onClick={() => handleToggleTicketBusiness(business)}>
                             {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
                           </button>
+                          <button style={styles.iconButtonDanger} disabled={updatingTicketId === business.id} onClick={() => handleDeleteTicketBusiness(business)}>Supprimer</button>
                         </div>
                       </div>
                     );

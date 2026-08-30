@@ -45,6 +45,7 @@ function badgeColors(type) {
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [pwd, setPwd] = useState("");
   const [authError, setAuthError] = useState("");
 
@@ -115,25 +116,43 @@ export default function AdminPage() {
   const [creatingShowcase, setCreatingShowcase] = useState(false);
   const [copiedShowcaseId, setCopiedShowcaseId] = useState(null);
 
+  // --- Lehnova Ticket ---
+  const [ticketBusinesses, setTicketBusinesses] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketsError, setTicketsError] = useState("");
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [creatingTicket, setCreatingTicket] = useState(false);
+  const [ticketName, setTicketName] = useState("");
+  const [ticketSlug, setTicketSlug] = useState("");
+  const [ticketSlugTouched, setTicketSlugTouched] = useState(false);
+  const [ticketEmail, setTicketEmail] = useState("");
+  const [ticketPassword, setTicketPassword] = useState("");
+  const [copiedTicketId, setCopiedTicketId] = useState(null);
+  const [updatingTicketId, setUpdatingTicketId] = useState(null);
+
   useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("ld-admin-ok") === "1") {
-      setAuthed(true);
-    }
+    fetch("/api/admin/session", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => setAuthed(Boolean(data.authenticated)))
+      .catch(() => setAuthed(false))
+      .finally(() => setAuthChecking(false));
   }, []);
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
-    const expected = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-    if (!expected) {
-      setAuthError("Mot de passe admin non configuré. Ajoute NEXT_PUBLIC_ADMIN_PASSWORD dans Vercel.");
-      return;
-    }
-    if (pwd === expected) {
-      sessionStorage.setItem("ld-admin-ok", "1");
+    setAuthError("");
+    try {
+      const response = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pwd }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Connexion impossible.");
       setAuthed(true);
-      setAuthError("");
-    } else {
-      setAuthError("Mot de passe incorrect.");
+      setPwd("");
+    } catch (error) {
+      setAuthError(error.message || "Connexion impossible.");
     }
   }
 
@@ -217,14 +236,30 @@ export default function AdminPage() {
     setInterventionsLoading(false);
   }, []);
 
+  const loadTicketBusinesses = useCallback(async () => {
+    setTicketsLoading(true);
+    try {
+      const response = await fetch("/api/admin/tickets", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Impossible de charger les commerces Ticket.");
+      setTicketBusinesses(data.businesses || []);
+      setTicketsError("");
+    } catch (error) {
+      setTicketsError(error.message || "Impossible de charger les commerces Ticket.");
+    } finally {
+      setTicketsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (authed) {
       loadEvents();
       loadCatalogs();
       loadShowcases();
       loadInterventionPros();
+      loadTicketBusinesses();
     }
-  }, [authed, loadEvents, loadCatalogs, loadShowcases, loadInterventionPros]);
+  }, [authed, loadEvents, loadCatalogs, loadShowcases, loadInterventionPros, loadTicketBusinesses]);
 
   function addServiceToDraft() {
     const name = newServiceName.trim();
@@ -792,6 +827,88 @@ export default function AdminPage() {
     }
   }
 
+  function ticketPublicLinkFor(slug) {
+    return `https://lehnova.fr/ticket/${slug}`;
+  }
+
+  function ticketLoginLink() {
+    return "https://lehnova.fr/ticket/connexion";
+  }
+
+  function ticketManagementLink() {
+    return "https://lehnova.fr/ticket/gestion";
+  }
+
+  function markTicketCopied(id) {
+    setCopiedTicketId(id);
+    setTimeout(() => setCopiedTicketId(null), 1800);
+  }
+
+  function copyTicketText(id, text) {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    markTicketCopied(id);
+  }
+
+  async function handleCreateTicket(event) {
+    event.preventDefault();
+    setCreatingTicket(true);
+    setTicketsError("");
+    try {
+      const response = await fetch("/api/admin/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: ticketName,
+          slug: ticketSlug,
+          email: ticketEmail,
+          password: ticketPassword,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Création impossible.");
+
+      setTicketBusinesses((current) => [data.business, ...current]);
+      setTicketName("");
+      setTicketSlug("");
+      setTicketSlugTouched(false);
+      setTicketEmail("");
+      setTicketPassword("");
+      setShowTicketForm(false);
+    } catch (error) {
+      setTicketsError(error.message || "Création impossible.");
+    } finally {
+      setCreatingTicket(false);
+    }
+  }
+
+  async function handleToggleTicketBusiness(business) {
+    const nextActive = !business.is_active;
+    if (!nextActive && !window.confirm(`Désactiver Lehnova Ticket pour « ${business.name} » ? La file sera fermée, sans supprimer les données.`)) {
+      return;
+    }
+
+    setUpdatingTicketId(business.id);
+    setTicketsError("");
+    try {
+      const response = await fetch(`/api/admin/tickets/${business.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: nextActive }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Mise à jour impossible.");
+      await loadTicketBusinesses();
+    } catch (error) {
+      setTicketsError(error.message || "Mise à jour impossible.");
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  }
+
+  if (authChecking) {
+    return <div style={styles.loginPage}>Chargement…</div>;
+  }
+
   if (!authed) {
     return (
       <div style={styles.loginPage}>
@@ -841,7 +958,7 @@ export default function AdminPage() {
             <div>
               <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
               <h1 style={styles.brandTitle}>
-                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : view === "vitrine" ? "Ma Page" : "Suivi d'intervention"}
+                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : view === "vitrine" ? "Ma Page" : view === "tickets" ? "Mes Tickets" : "Suivi d'intervention"}
               </h1>
             </div>
           </div>
@@ -863,6 +980,11 @@ export default function AdminPage() {
           {view === "intervention" && (
             <button style={styles.newButton} onClick={() => setShowInterventionForm(true)}>
               + Nouveau suivi
+            </button>
+          )}
+          {view === "tickets" && (
+            <button style={styles.newButton} onClick={() => setShowTicketForm(true)}>
+              + Nouveau Ticket
             </button>
           )}
         </header>
@@ -892,6 +1014,10 @@ export default function AdminPage() {
             <span style={styles.statNumber}>{interventionPros.length}</span>
             <span style={styles.statLabel}>Suivis d'intervention</span>
           </div>
+          <div style={styles.statCard}>
+            <span style={styles.statNumber}>{ticketBusinesses.length}</span>
+            <span style={styles.statLabel}>Tickets</span>
+          </div>
         </div>
 
         <div style={styles.tabs}>
@@ -918,6 +1044,12 @@ export default function AdminPage() {
             onClick={() => setView("intervention")}
           >
             Suivi d'intervention
+          </button>
+          <button
+            style={{ ...styles.tab, ...(view === "tickets" ? styles.tabActive : {}) }}
+            onClick={() => setView("tickets")}
+          >
+            Tickets
           </button>
         </div>
 
@@ -1729,6 +1861,200 @@ export default function AdminPage() {
           </>
         )}
 
+        {view === "tickets" && (
+          <>
+            {ticketsError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{ticketsError}</p>}
+
+            {showTicketForm && (
+              <div style={styles.modalOverlay} onClick={() => setShowTicketForm(false)}>
+                <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateTicket}>
+                  <h2 style={styles.modalTitle}>Créer un commerce Ticket</h2>
+                  <label style={styles.label}>
+                    Nom du commerce
+                    <input
+                      style={styles.input}
+                      value={ticketName}
+                      onChange={(e) => {
+                        setTicketName(e.target.value);
+                        if (!ticketSlugTouched) setTicketSlug(slugify(e.target.value));
+                      }}
+                      placeholder="ex. Boulangerie Amel"
+                      required
+                      autoFocus
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Slug / URL
+                    <input
+                      style={styles.input}
+                      value={ticketSlug}
+                      onChange={(e) => {
+                        setTicketSlug(slugify(e.target.value));
+                        setTicketSlugTouched(true);
+                      }}
+                      placeholder="boulangerie-amel"
+                      pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                      required
+                    />
+                    <span style={styles.subText}>lehnova.fr/ticket/{ticketSlug || "nom-du-commerce"}</span>
+                  </label>
+                  <label style={styles.label}>
+                    E-mail du commerçant
+                    <input
+                      type="email"
+                      style={styles.input}
+                      value={ticketEmail}
+                      onChange={(e) => setTicketEmail(e.target.value)}
+                      placeholder="commerce@exemple.fr"
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+                  <label style={styles.label}>
+                    Mot de passe initial
+                    <input
+                      type="password"
+                      style={styles.input}
+                      value={ticketPassword}
+                      onChange={(e) => setTicketPassword(e.target.value)}
+                      minLength={8}
+                      autoComplete="new-password"
+                      required
+                    />
+                    <span style={styles.subText}>8 caractères minimum. Ce mot de passe ne sera pas stocké dans la fiche commerce.</span>
+                  </label>
+                  <div style={styles.modalActions}>
+                    <button type="button" style={styles.cancelButton} onClick={() => setShowTicketForm(false)}>
+                      Annuler
+                    </button>
+                    <button type="submit" style={styles.newButton} disabled={creatingTicket}>
+                      {creatingTicket ? "Création…" : "Créer"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {ticketsLoading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
+
+            {!ticketsLoading && ticketBusinesses.length === 0 && !ticketsError && (
+              <div style={styles.emptyState}>
+                <p style={{ fontSize: "1.4rem", fontFamily: "'Caveat', cursive", margin: 0 }}>
+                  Aucun commerce Ticket créé pour l'instant
+                </p>
+                <p style={{ color: "#8A7F66", marginTop: "6px" }}>
+                  Clique sur "+ Nouveau Ticket" pour créer ton premier commerce
+                </p>
+              </div>
+            )}
+
+            {!ticketsLoading && ticketBusinesses.length > 0 && (
+              <>
+                <table className="desktop-table" style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Commerce</th>
+                      <th style={styles.th}>Lien public Ticket</th>
+                      <th style={styles.th}>Accès commerçant</th>
+                      <th style={styles.th}>QR code</th>
+                      <th style={styles.th}>État de la file</th>
+                      <th style={styles.th}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ticketBusinesses.map((business) => {
+                      const publicLink = ticketPublicLinkFor(business.slug);
+                      return (
+                        <tr className="row" key={business.id}>
+                          <td style={styles.td}>
+                            <strong>{business.name}</strong>
+                            <div style={styles.subText}>/{business.slug}</div>
+                            {!business.is_active && <span style={{ ...styles.badge, background: "#FBE9E4", color: "#B5402D" }}>Désactivé</span>}
+                          </td>
+                          <td style={styles.td}>
+                            <div style={styles.linkRow}>
+                              <span style={styles.linkText}>{publicLink}</span>
+                              <button style={styles.iconButton} onClick={() => copyTicketText(`public-${business.id}`, publicLink)}>
+                                {copiedTicketId === `public-${business.id}` ? "✓" : "copier"}
+                              </button>
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              <button style={styles.iconButton} onClick={() => copyTicketText(`login-${business.id}`, ticketLoginLink())}>
+                                {copiedTicketId === `login-${business.id}` ? "✓ copié" : "copier la connexion"}
+                              </button>
+                              <a href={ticketManagementLink()} target="_blank" rel="noreferrer" style={styles.iconButton}>ouvrir la gestion</a>
+                            </div>
+                          </td>
+                          <td style={styles.td}>
+                            <a href={qrUrlForLink(publicLink)} target="_blank" rel="noreferrer" style={styles.qrThumb}>
+                              <img src={qrUrlForLink(publicLink)} alt={`QR code pour ${business.name}`} width={40} height={40} style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }} />
+                            </a>
+                            <a href={qrUrlHighRes(publicLink)} download={`qr-ticket-${business.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>télécharger HD</a>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{ ...styles.badge, background: business.queue?.is_open && business.is_active ? "#E9F3EA" : "#FBE9E4", color: business.queue?.is_open && business.is_active ? "#3F7A52" : "#B5402D" }}>
+                              {business.queue?.is_open && business.is_active ? "Ouverte" : "Fermée"}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                              <a href={publicLink} target="_blank" rel="noreferrer" style={styles.iconButton}>page publique</a>
+                              <button
+                                style={business.is_active ? styles.iconButtonDanger : styles.iconButton}
+                                disabled={updatingTicketId === business.id}
+                                onClick={() => handleToggleTicketBusiness(business)}
+                              >
+                                {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                <div className="mobile-cards" style={styles.mobileCards}>
+                  {ticketBusinesses.map((business) => {
+                    const publicLink = ticketPublicLinkFor(business.slug);
+                    return (
+                      <div style={styles.card} key={business.id}>
+                        <div style={styles.cardHeader}>
+                          <div>
+                            <strong>{business.name}</strong>
+                            <div style={styles.subText}>/{business.slug}</div>
+                            <span style={{ ...styles.badge, marginTop: "6px", background: business.queue?.is_open && business.is_active ? "#E9F3EA" : "#FBE9E4", color: business.queue?.is_open && business.is_active ? "#3F7A52" : "#B5402D" }}>
+                              {business.queue?.is_open && business.is_active ? "File ouverte" : "File fermée"}
+                            </span>
+                          </div>
+                          <div style={{ textAlign: "center" }}>
+                            <img src={qrUrlForLink(publicLink)} alt={`QR code pour ${business.name}`} width={56} height={56} style={{ borderRadius: "4px", border: "1px solid #E6DCC2" }} />
+                            <a href={qrUrlHighRes(publicLink)} download={`qr-ticket-${business.slug}.png`} target="_blank" rel="noreferrer" style={styles.qrDownload}>télécharger HD</a>
+                          </div>
+                        </div>
+                        <div style={styles.linkRow}>
+                          <span style={styles.linkText}>{publicLink}</span>
+                          <button style={styles.iconButton} onClick={() => copyTicketText(`mobile-${business.id}`, publicLink)}>{copiedTicketId === `mobile-${business.id}` ? "✓" : "copier"}</button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                          <a href={publicLink} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>page publique</a>
+                          <a href={ticketManagementLink()} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>gestion</a>
+                          <button style={styles.iconButton} onClick={() => copyTicketText(`mobile-login-${business.id}`, ticketLoginLink())}>{copiedTicketId === `mobile-login-${business.id}` ? "✓ connexion copiée" : "copier connexion"}</button>
+                          <button style={business.is_active ? styles.iconButtonDanger : styles.iconButton} disabled={updatingTicketId === business.id} onClick={() => handleToggleTicketBusiness(business)}>
+                            {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
         {view === "vitrine" && (
           <>
             {showcasesError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{showcasesError}</p>}
@@ -2259,4 +2585,5 @@ const styles = {
   removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
   addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };
+
 

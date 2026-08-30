@@ -114,7 +114,6 @@ export default function TicketClient() {
         )}
 
         {error && state && <p style={styles.error}>{error}</p>}
-        <p style={styles.footer}>Aucune inscription · aucune donnée personnelle</p>
       </section>
     </main>
   );
@@ -141,4 +140,3 @@ const styles = {
   error: { color: ticketColors.accent, textAlign: "center", fontSize: "14px" },
   footer: { margin: "auto 0 0", paddingTop: "28px", color: ticketColors.muted, textAlign: "center", fontSize: "11px" },
 };
-

@@ -7,8 +7,7 @@ import { ticketBase, ticketColors } from "../ticketStyles";
 
 export default function TicketLoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,7 +22,7 @@ export default function TicketLoginForm() {
     setLoading(true);
     setError("");
     try {
-      await signInMerchant(email.trim(), password);
+      await signInMerchant(code);
       router.replace("/ticket/gestion");
     } catch (err) {
       setError(err.message || "Connexion impossible.");
@@ -37,8 +36,7 @@ export default function TicketLoginForm() {
       <form style={styles.card} onSubmit={submit}>
         <p style={styles.brand}>LEHNOVA TICKET</p>
         <h1 style={styles.title}>Espace commerçant</h1>
-        <label style={styles.label}>Adresse e-mail<input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} style={styles.input} /></label>
-        <label style={styles.label}>Mot de passe<input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} style={styles.input} /></label>
+        <label style={styles.label}>Code d’accès<input required autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} style={styles.input} maxLength={32} /></label>
         {error && <p style={styles.error}>{error}</p>}
         <button style={styles.button} disabled={loading}>{loading ? "CONNEXION…" : "SE CONNECTER"}</button>
       </form>
@@ -56,4 +54,3 @@ const styles = {
   button: { minHeight: "52px", border: 0, borderRadius: "13px", background: ticketColors.accent, color: "#FFF", fontWeight: 800, fontSize: "15px" },
   error: { margin: 0, color: ticketColors.accent, fontSize: "13px" },
 };
-

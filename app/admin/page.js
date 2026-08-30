@@ -125,8 +125,6 @@ export default function AdminPage() {
   const [ticketName, setTicketName] = useState("");
   const [ticketSlug, setTicketSlug] = useState("");
   const [ticketSlugTouched, setTicketSlugTouched] = useState(false);
-  const [ticketEmail, setTicketEmail] = useState("");
-  const [ticketPassword, setTicketPassword] = useState("");
   const [copiedTicketId, setCopiedTicketId] = useState(null);
   const [updatingTicketId, setUpdatingTicketId] = useState(null);
 
@@ -860,8 +858,6 @@ export default function AdminPage() {
         body: JSON.stringify({
           name: ticketName,
           slug: ticketSlug,
-          email: ticketEmail,
-          password: ticketPassword,
         }),
       });
       const data = await response.json();
@@ -871,8 +867,6 @@ export default function AdminPage() {
       setTicketName("");
       setTicketSlug("");
       setTicketSlugTouched(false);
-      setTicketEmail("");
-      setTicketPassword("");
       setShowTicketForm(false);
     } catch (error) {
       setTicketsError(error.message || "Création impossible.");
@@ -1898,31 +1892,7 @@ export default function AdminPage() {
                     />
                     <span style={styles.subText}>lehnova.fr/ticket/{ticketSlug || "nom-du-commerce"}</span>
                   </label>
-                  <label style={styles.label}>
-                    E-mail du commerçant
-                    <input
-                      type="email"
-                      style={styles.input}
-                      value={ticketEmail}
-                      onChange={(e) => setTicketEmail(e.target.value)}
-                      placeholder="commerce@exemple.fr"
-                      autoComplete="off"
-                      required
-                    />
-                  </label>
-                  <label style={styles.label}>
-                    Mot de passe initial
-                    <input
-                      type="password"
-                      style={styles.input}
-                      value={ticketPassword}
-                      onChange={(e) => setTicketPassword(e.target.value)}
-                      minLength={8}
-                      autoComplete="new-password"
-                      required
-                    />
-                    <span style={styles.subText}>8 caractères minimum. Ce mot de passe ne sera pas stocké dans la fiche commerce.</span>
-                  </label>
+                  <p style={styles.subText}>Un code d’accès commerçant unique sera généré automatiquement.</p>
                   <div style={styles.modalActions}>
                     <button type="button" style={styles.cancelButton} onClick={() => setShowTicketForm(false)}>
                       Annuler
@@ -1981,8 +1951,9 @@ export default function AdminPage() {
                           </td>
                           <td style={styles.td}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                              <button style={styles.iconButton} onClick={() => copyTicketText(`login-${business.id}`, ticketLoginLink())}>
-                                {copiedTicketId === `login-${business.id}` ? "✓ copié" : "copier la connexion"}
+                              <code style={{ fontWeight: 800, letterSpacing: ".12em" }}>{business.access_code}</code>
+                              <button style={styles.iconButton} onClick={() => copyTicketText(`login-${business.id}`, `${ticketLoginLink()}\nCode : ${business.access_code}`)}>
+                                {copiedTicketId === `login-${business.id}` ? "✓ copié" : "copier lien + code"}
                               </button>
                               <a href={ticketManagementLink()} target="_blank" rel="noreferrer" style={styles.iconButton}>ouvrir la gestion</a>
                             </div>
@@ -2041,7 +2012,7 @@ export default function AdminPage() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                           <a href={publicLink} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>page publique</a>
                           <a href={ticketManagementLink()} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>gestion</a>
-                          <button style={styles.iconButton} onClick={() => copyTicketText(`mobile-login-${business.id}`, ticketLoginLink())}>{copiedTicketId === `mobile-login-${business.id}` ? "✓ connexion copiée" : "copier connexion"}</button>
+                          <button style={styles.iconButton} onClick={() => copyTicketText(`mobile-login-${business.id}`, `${ticketLoginLink()}\nCode : ${business.access_code}`)}>{copiedTicketId === `mobile-login-${business.id}` ? "✓ copié" : `${business.access_code} · copier lien + code`}</button>
                           <button style={business.is_active ? styles.iconButtonDanger : styles.iconButton} disabled={updatingTicketId === business.id} onClick={() => handleToggleTicketBusiness(business)}>
                             {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
                           </button>
@@ -2585,5 +2556,4 @@ const styles = {
   removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
   addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };
-
 

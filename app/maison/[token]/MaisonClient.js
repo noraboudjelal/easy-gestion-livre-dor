@@ -13,22 +13,17 @@ const sections = [
 ];
 
 function SectionIcon({ type }) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    viewBox: "0 0 24 24",
-    "aria-hidden": true,
-  };
+  const common = { viewBox: "0 0 64 64", "aria-hidden": true };
 
   if (type === "groceries") {
     return (
       <svg {...common}>
-        <path d="M3 4h2l2.1 9.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 7H6" />
-        <circle cx="9" cy="19" r="1.2" />
-        <circle cx="18" cy="19" r="1.2" />
+        <path fill="#d8a56d" d="M20 24h25l-3 27H23z" />
+        <path fill="#b96a4b" d="M17 22h31v7H17z" />
+        <path fill="#f2d8b1" d="M25 19c0-7 4-12 7-12s7 5 7 12h-4c0-5-2-8-3-8s-3 3-3 8z" />
+        <path fill="#72906c" d="M24 22c-1-6 1-11 7-13 1 7-1 11-7 13z" />
+        <path fill="#dd8364" d="M38 12c5 0 9 4 9 10H31c0-6 3-10 7-10z" />
+        <path fill="#fff4df" d="M27 33h4v13h-4zm8 0h4v13h-4z" opacity=".75" />
       </svg>
     );
   }
@@ -36,8 +31,15 @@ function SectionIcon({ type }) {
   if (type === "todos") {
     return (
       <svg {...common}>
-        <rect x="5" y="3" width="14" height="18" rx="2.5" />
-        <path d="M9 3.5h6M8.5 9.5l1.6 1.6 3.1-3.2M8.5 15.5l1.6 1.6 3.1-3.2M15.5 10h1M15.5 16h1" />
+        <rect x="15" y="8" width="35" height="48" rx="6" fill="#fff8e9" />
+        <rect x="24" y="5" width="17" height="8" rx="4" fill="#c58b63" />
+        <rect x="22" y="20" width="7" height="7" rx="2" fill="#dfaa73" />
+        <path d="m23.5 23 2 2 4-5" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="33" y="21" width="11" height="4" rx="2" fill="#d7c4a8" />
+        <rect x="22" y="34" width="7" height="7" rx="2" fill="#dfaa73" />
+        <path d="m23.5 37 2 2 4-5" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="33" y="35" width="11" height="4" rx="2" fill="#d7c4a8" />
+        <path fill="#a65b43" d="m46 44 5-17 5 2-5 17-5 5z" />
       </svg>
     );
   }
@@ -45,16 +47,23 @@ function SectionIcon({ type }) {
   if (type === "meals") {
     return (
       <svg {...common}>
-        <circle cx="12" cy="12" r="6.5" />
-        <path d="M12 5.5v13M4 4v7M6.5 4v7M4 8h2.5M19.5 4v16M17.5 8c0-2.2.8-4 2-4" />
+        <circle cx="32" cy="32" r="22" fill="#fff4df" />
+        <circle cx="32" cy="32" r="14" fill="#f0c887" />
+        <path d="M23 32c6-8 14-8 19 0-5 8-13 9-19 0z" fill="#e8895f" />
+        <circle cx="29" cy="29" r="3" fill="#fff7e5" />
+        <path d="M10 17v13m-4-13v9c0 4 8 4 8 0v-9M10 30v20M53 16v34M48 29c0-8 2-13 5-13" fill="none" stroke="#9b604b" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
 
   return (
     <svg {...common}>
-      <path d="M4 5.5c2.8-.7 5.5-.1 8 1.8v12c-2.5-1.9-5.2-2.5-8-1.8zM20 5.5c-2.8-.7-5.5-.1-8 1.8v12c2.5-1.9 5.2-2.5 8-1.8z" />
-      <path d="M7 9h2M7 12h2M15 9h2M15 12h2" />
+      <path fill="#d88965" d="M12 15h38v11H12z" />
+      <path fill="#e8b875" d="M9 28h40v11H9z" />
+      <path fill="#8ea184" d="M14 41h39v11H14z" />
+      <path fill="#fff5e4" d="M17 18h25v5H17zm-2 13h27v5H15zm5 13h26v5H20z" />
+      <path fill="#a75e49" d="m47 9 7 5-22 30-8 3 2-8z" />
+      <path fill="#f1d3aa" d="m47 9 4-5 7 5-4 5z" />
     </svg>
   );
 }

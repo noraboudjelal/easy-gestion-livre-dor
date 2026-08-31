@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { supabase } from "../../../lib/supabaseClient";
+import MealsPlanner from "./MealsPlanner";
 import styles from "./maison.module.css";
 
 const sections = [
@@ -230,16 +231,14 @@ export default function MaisonClient({ token }) {
               </ul>
             )}
           </section>
+        ) : view === "meals" ? (
+          <MealsPlanner token={token} />
         ) : (
           <section className={styles.placeholder}>
             <div className={styles.placeholderIcon}>{section.icon}</div>
             <h1>{section.label}</h1>
             <div className={styles.soon}>Bientôt</div>
-            {view === "meals" ? (
-              <p>Des idées de repas, des recettes légères et, plus tard, des suggestions à partir de ce que vous avez à la maison.</p>
-            ) : (
-              <p>De petits exercices simples, adaptés au niveau scolaire de chaque enfant.</p>
-            )}
+            <p>De petits exercices simples, adaptés au niveau scolaire de chaque enfant.</p>
           </section>
         )}
       </div>

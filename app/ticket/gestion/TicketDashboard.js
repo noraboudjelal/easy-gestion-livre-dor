@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
+import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
@@ -59,6 +59,11 @@ export default function TicketDashboard() {
     router.replace("/ticket/connexion");
   }
 
+  function handleResetQueue() {
+    if (!window.confirm("Remettre la file à zéro ? Tous les tickets seront supprimés.")) return;
+    run(resetQueue);
+  }
+
   if (loading) return <main style={{ ...styles.page, placeItems: "center" }}>Chargement…</main>;
 
   return (
@@ -85,6 +90,7 @@ export default function TicketDashboard() {
             <button disabled={busy} onClick={() => run((id) => setQueueOpen(id, !queue.is_open))} style={queue.is_open ? styles.close : styles.open}>
               {queue.is_open ? "FERMER LA FILE" : "ROUVRIR LA FILE"}
             </button>
+            <button disabled={busy} onClick={handleResetQueue} style={styles.reset}>REMETTRE LA FILE À ZÉRO</button>
             <p style={{ ...styles.queueState, color: queue.is_open ? ticketColors.success : ticketColors.accent }}>{queue.is_open ? "● File ouverte" : "● File fermée"}</p>
           </div>
         )}
@@ -111,8 +117,8 @@ const styles = {
   secondary: { minHeight: "72px", border: `2px solid ${ticketColors.ink}`, borderRadius: "16px", background: "#FFF", color: ticketColors.ink, fontSize: "16px", fontWeight: 850 },
   close: { width: "100%", minHeight: "54px", marginTop: "14px", border: `1px solid ${ticketColors.accent}`, borderRadius: "14px", background: "#FFF", color: ticketColors.accent, fontWeight: 800 },
   open: { width: "100%", minHeight: "54px", marginTop: "14px", border: 0, borderRadius: "14px", background: ticketColors.success, color: "#FFF", fontWeight: 800 },
+  reset: { width: "100%", minHeight: "48px", marginTop: "10px", border: 0, background: "transparent", color: ticketColors.muted, fontWeight: 750 },
   queueState: { margin: "18px 0 0", fontSize: "13px", fontWeight: 700 },
   empty: { background: "#FFF", border: `1px solid ${ticketColors.border}`, borderRadius: "20px", padding: "30px", textAlign: "center", color: ticketColors.muted },
   error: { color: ticketColors.accent, textAlign: "center", fontSize: "13px" },
 };
-

@@ -29,7 +29,7 @@ export async function POST(request) {
   const business = await activeBusiness(request);
   if (!business) return unauthorized();
   const { action, isOpen } = await request.json();
-  const functions = { next: ["ticket_server_call_next", { p_business_id: business.id }], previous: ["ticket_server_call_previous", { p_business_id: business.id }], open: ["ticket_server_set_queue_open", { p_business_id: business.id, p_is_open: Boolean(isOpen) }] };
+  const functions = { next: ["ticket_server_call_next", { p_business_id: business.id }], previous: ["ticket_server_call_previous", { p_business_id: business.id }], open: ["ticket_server_set_queue_open", { p_business_id: business.id, p_is_open: Boolean(isOpen) }], reset: ["ticket_server_reset_queue", { p_business_id: business.id }] };
   if (!functions[action]) return NextResponse.json({ error: "Action invalide." }, { status: 400 });
   const [name, params] = functions[action];
   const { error } = await getSupabaseAdmin().rpc(name, params);

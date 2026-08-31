@@ -12,9 +12,10 @@ export default function MealsPlanner({ token }) {
   const [plan, setPlan] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
-  const [ingredients, setIngredients] = useState("");
+  const [ingredients, setIngredients] = useState([{ name: "", quantity: "", unit: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const loadMeals = useCallback(async () => {
     try {
@@ -49,7 +50,7 @@ export default function MealsPlanner({ token }) {
 
   async function createRecipe(event) {
     event.preventDefault();
-    const values = ingredients.split("\n").map((value) => value.trim()).filter(Boolean);
+    const values = ingredients.filter((item) => item.name.trim());
     if (!name.trim() || !values.length) return;
     setSaving(true);
     setError("");
@@ -62,7 +63,7 @@ export default function MealsPlanner({ token }) {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Ajout impossible.");
       setName("");
-      setIngredients("");
+      setIngredients([{ name: "", quantity: "", unit: "" }]);
       setShowForm(false);
       await loadMeals();
     } catch (saveError) {
@@ -70,6 +71,37 @@ export default function MealsPlanner({ token }) {
     } finally {
       setSaving(false);
     }
+  }
+
+  function updateIngredient(index, field, value) {
+    setIngredients((current) => current.map((item, itemIndex) =>
+      itemIndex === index ? { ...item, [field]: value } : item
+    ));
+  }
+
+  async function generateGroceries() {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch(`/api/maison/${token}/meals`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Génération impossible.");
+      setNotice(`${payload.generatedCount} article${payload.generatedCount === 1 ? "" : "s"} ajouté${payload.generatedCount === 1 ? "" : "s"} aux courses.`);
+    } catch (generateError) {
+      setError(generateError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function ingredientText(item) {
+    const amount = item.quantity == null ? "" : `${Number(item.quantity)}${item.unit ? ` ${item.unit}` : ""} `;
+    return `${amount}${item.name}`;
   }
 
   async function chooseMeal(dayIndex, recipeId) {
@@ -110,27 +142,47 @@ export default function MealsPlanner({ token }) {
             Nom de la recette
             <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Pâtes aux légumes" maxLength={100} />
           </label>
-          <label>
-            Ingrédients — un par ligne
-            <textarea value={ingredients} onChange={(event) => setIngredients(event.target.value)} placeholder={"Pâtes\nCourgettes\nTomates"} rows={5} />
-          </label>
-          <button disabled={saving || !name.trim() || !ingredients.trim()}>{saving ? "Ajout…" : "Ajouter la recette"}</button>
+          <div className={styles.ingredientsEditor}>
+            <span>Ingrédients</span>
+            {ingredients.map((item, index) => (
+              <div className={styles.ingredientRow} key={index}>
+                <input aria-label={`Ingrédient ${index + 1}`} value={item.name} onChange={(event) => updateIngredient(index, "name", event.target.value)} placeholder="Tomates" />
+                <input aria-label={`Quantité ${index + 1}`} value={item.quantity} onChange={(event) => updateIngredient(index, "quantity", event.target.value)} placeholder="2" inputMode="decimal" />
+                <input aria-label={`Unité ${index + 1}`} value={item.unit} onChange={(event) => updateIngredient(index, "unit", event.target.value)} placeholder="kg, g…" />
+              </div>
+            ))}
+            <button type="button" className={styles.addIngredientButton} onClick={() => setIngredients((current) => [...current, { name: "", quantity: "", unit: "" }])}>+ Ingrédient</button>
+          </div>
+          <button disabled={saving || !name.trim() || !ingredients.some((item) => item.name.trim())}>{saving ? "Ajout…" : "Ajouter la recette"}</button>
         </form>
       )}
 
       {error && <p className={styles.error}>{error}</p>}
+      {notice && <p className={styles.success}>{notice}</p>}
 
       <div className={styles.weekGrid}>
         {days.map((day, index) => (
-          <label className={styles.dayCard} key={day}>
-            <span>{day}</span>
-            <select value={planByDay[index] || ""} onChange={(event) => chooseMeal(index, event.target.value)}>
-              <option value="">Aucun repas</option>
-              {recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
-            </select>
-          </label>
+          <div className={styles.dayCard} key={day}>
+            <label>
+              <span>{day}</span>
+              <select value={planByDay[index] || ""} onChange={(event) => chooseMeal(index, event.target.value)}>
+                <option value="">Ajouter un repas…</option>
+                {recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name}</option>)}
+              </select>
+            </label>
+            {planByDay[index] && (
+              <div className={styles.plannedIngredients}>
+                <p>{recipes.find((recipe) => recipe.id === planByDay[index])?.maison_recipe_ingredients.map(ingredientText).join(" · ")}</p>
+                <button onClick={() => chooseMeal(index, "")}>Supprimer le repas</button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
+
+      <button className={styles.generateButton} disabled={saving || plan.length === 0} onClick={generateGroceries}>
+        Générer les courses de la semaine
+      </button>
 
       <section className={styles.recipeLibrary}>
         <h2>Mes recettes</h2>
@@ -141,7 +193,7 @@ export default function MealsPlanner({ token }) {
             {recipes.map((recipe) => (
               <article key={recipe.id}>
                 <h3>{recipe.name}</h3>
-                <p>{recipe.maison_recipe_ingredients.map((item) => item.name).join(" · ")}</p>
+                <p>{recipe.maison_recipe_ingredients.map(ingredientText).join(" · ")}</p>
               </article>
             ))}
           </div>

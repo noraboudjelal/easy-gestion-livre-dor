@@ -60,15 +60,25 @@
 .mealsIntro h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); letter-spacing: -.04em; }
 .mealsIntro p { margin: 9px 0 0; color: #758096; font-size: 18px; line-height: 1.5; max-width: 670px; }
 .newRecipeButton, .recipeForm button { border: 0; border-radius: 14px; background: #347fbd; color: white; padding: 15px 20px; font: inherit; font-weight: 750; font-size: 17px; cursor: pointer; white-space: nowrap; }
-.recipeForm { background: #fff; border: 1px solid #e4e8f0; border-radius: 18px; padding: 22px; display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 18px; align-items: end; box-shadow: 0 6px 20px rgba(31, 48, 78, .045); }
+.recipeForm { background: #fff; border: 1px solid #e4e8f0; border-radius: 18px; padding: 22px; display: grid; grid-template-columns: minmax(190px, .7fr) minmax(360px, 1.5fr) auto; gap: 18px; align-items: end; box-shadow: 0 6px 20px rgba(31, 48, 78, .045); }
 .recipeForm label { display: grid; gap: 8px; color: #465169; font-weight: 700; }
 .recipeForm input, .recipeForm textarea, .dayCard select { width: 100%; box-sizing: border-box; border: 1.5px solid #dfe4ed; border-radius: 12px; background: #fbfcfe; padding: 13px 14px; font: inherit; color: #1f2940; outline: none; }
 .recipeForm input:focus, .recipeForm textarea:focus, .dayCard select:focus { border-color: #6ca9db; box-shadow: 0 0 0 3px #e9f4fd; }
 .recipeForm textarea { resize: vertical; }
 .recipeForm button:disabled { opacity: .45; }
+.ingredientsEditor { display: grid; gap: 8px; color: #465169; font-weight: 700; }
+.ingredientRow { display: grid; grid-template-columns: minmax(130px, 1fr) 82px 90px; gap: 8px; }
+.addIngredientButton { justify-self: start; border: 1px solid #cdd9e8 !important; background: #f3f8fc !important; color: #347fbd !important; padding: 9px 13px !important; font-size: 14px !important; }
 .weekGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.dayCard { background: #fff; border: 1px solid #e5e9f0; border-radius: 16px; padding: 16px; display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 14px; box-shadow: 0 3px 12px rgba(31, 48, 78, .035); }
-.dayCard > span { font-weight: 800; color: #344057; }
+.dayCard { background: #fff; border: 1px solid #e5e9f0; border-radius: 16px; padding: 16px; display: grid; gap: 12px; box-shadow: 0 3px 12px rgba(31, 48, 78, .035); }
+.dayCard > label { display: grid; grid-template-columns: 105px 1fr; align-items: center; gap: 14px; }
+.dayCard > label > span { font-weight: 800; color: #344057; }
+.plannedIngredients { border-top: 1px solid #edf0f5; padding-top: 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.plannedIngredients p { margin: 0; color: #6f7a90; line-height: 1.45; }
+.plannedIngredients button { border: 0; background: transparent; color: #d05c62; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.generateButton { width: 100%; border: 0; border-radius: 15px; background: #347fbd; color: #fff; min-height: 60px; padding: 15px 22px; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; box-shadow: 0 7px 18px rgba(52, 127, 189, .18); }
+.generateButton:disabled { opacity: .45; cursor: default; }
+.success { margin: 0; padding: 14px 17px; border-radius: 13px; background: #eaf8f1; color: #28745a; font-weight: 750; }
 .recipeLibrary { background: #fff; border: 1px solid #e5e9f0; border-radius: 18px; padding: 22px; }
 .recipeLibrary h2 { margin: 0 0 16px; font-size: 26px; }
 .recipeLibrary > p { color: #788398; }
@@ -99,8 +109,10 @@
   .mealsIntro { display: grid; gap: 16px; }
   .newRecipeButton { width: 100%; }
   .recipeForm { grid-template-columns: 1fr; }
+  .ingredientRow { grid-template-columns: minmax(120px, 1fr) 70px 78px; }
   .weekGrid { grid-template-columns: 1fr; }
-  .dayCard { grid-template-columns: 82px 1fr; }
+  .dayCard > label { grid-template-columns: 82px 1fr; }
+  .plannedIngredients { align-items: flex-start; flex-direction: column; }
   .recipeCards { grid-template-columns: 1fr; }
 }
 

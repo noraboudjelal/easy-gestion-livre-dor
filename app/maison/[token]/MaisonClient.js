@@ -189,7 +189,6 @@ export default function MaisonClient({ token }) {
                   <span className={styles.tileLabel}>{entry.label}</span>
                   <span className={styles.tileDetail}>{sectionDetail(entry.id)}</span>
                 </span>
-                <span className={styles.tileArrow} aria-hidden="true">→</span>
               </button>
             ))}
           </section>

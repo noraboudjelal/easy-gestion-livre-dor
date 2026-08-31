@@ -1,0 +1,56 @@
+.page {
+  min-height: 100vh;
+  background: #f5f0e7;
+  color: #241f1a;
+  font-family: Arial, Helvetica, sans-serif;
+  padding: max(22px, env(safe-area-inset-top)) 22px max(22px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.shell { width: min(100%, 1050px); margin: 0 auto; }
+.header { min-height: 76px; display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+.brand { color: #a53d2c; font-weight: 900; letter-spacing: .14em; font-size: 20px; }
+.homeName { margin-top: 5px; font-size: 17px; color: #746a60; }
+.back { width: 62px; height: 62px; border: 0; border-radius: 19px; background: #fff; color: #241f1a; font-size: 34px; cursor: pointer; box-shadow: 0 5px 20px rgba(52, 40, 28, .08); }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; min-height: calc(100vh - 145px); }
+.tile { border: 0; border-radius: 30px; padding: 32px 20px; min-height: 230px; background: #fff; color: #241f1a; font-size: clamp(28px, 4vw, 45px); font-weight: 800; cursor: pointer; box-shadow: 0 8px 30px rgba(52, 40, 28, .09); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+.tile:active { transform: scale(.985); }
+.tileIcon { font-size: clamp(55px, 8vw, 86px); }
+
+.listView h1, .placeholder h1 { font-size: clamp(36px, 6vw, 64px); margin: 6px 0 28px; }
+.addForm { display: grid; grid-template-columns: 1fr auto; gap: 13px; }
+.addForm input { min-width: 0; border: 3px solid transparent; border-radius: 20px; background: #fff; padding: 20px 22px; font: inherit; font-size: 23px; outline: 0; box-shadow: 0 5px 20px rgba(52, 40, 28, .07); }
+.addForm input:focus { border-color: #b99b51; }
+.addForm button { border: 0; border-radius: 20px; padding: 0 27px; min-height: 70px; background: #a53d2c; color: #fff; font-size: 22px; font-weight: 800; cursor: pointer; }
+.addForm button:disabled { opacity: .45; cursor: default; }
+.list { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 12px; }
+.list li { display: flex; align-items: center; gap: 18px; background: #fff; border-radius: 20px; padding: 14px 20px 14px 14px; min-height: 64px; font-size: 25px; box-shadow: 0 4px 16px rgba(52, 40, 28, .06); }
+.check { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 16px; border: 3px solid #66856b; background: #fff; color: transparent; font-size: 28px; cursor: pointer; }
+.check:hover, .check:focus { background: #66856b; color: #fff; }
+.empty { padding: 45px 10px; color: #786e64; font-size: 22px; text-align: center; }
+.error { background: #fff0ed; color: #922f20; padding: 15px 18px; border-radius: 14px; font-weight: 700; }
+
+.placeholder { min-height: calc(100vh - 180px); background: #fff; border-radius: 30px; padding: 45px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 8px 30px rgba(52, 40, 28, .08); }
+.placeholderIcon { font-size: 90px; }
+.placeholder h1 { margin: 18px 0 12px; }
+.placeholder p { max-width: 650px; color: #6e645b; font-size: 23px; line-height: 1.55; }
+.soon { background: #efe3c2; color: #735e27; border-radius: 999px; padding: 9px 18px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+
+@media (max-width: 650px) {
+  .page { padding-left: 14px; padding-right: 14px; }
+  .header { min-height: 64px; }
+  .brand { font-size: 16px; }
+  .grid { grid-template-columns: 1fr; min-height: 0; gap: 14px; }
+  .tile { min-height: 145px; flex-direction: row; justify-content: flex-start; text-align: left; padding: 24px; border-radius: 23px; font-size: 28px; }
+  .tileIcon { font-size: 48px; }
+  .addForm { grid-template-columns: 1fr; }
+  .addForm button { min-height: 62px; }
+  .listView h1 { font-size: 38px; }
+  .list li { font-size: 21px; }
+  .placeholder { padding: 28px 22px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tile, .check { transition: transform .15s ease, background .15s ease, color .15s ease; }
+}

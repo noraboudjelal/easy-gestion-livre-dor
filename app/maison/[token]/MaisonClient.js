@@ -12,6 +12,53 @@ const sections = [
   { id: "kids", icon: "📚", label: "Enfants" },
 ];
 
+function SectionIcon({ type }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    viewBox: "0 0 24 24",
+    "aria-hidden": true,
+  };
+
+  if (type === "groceries") {
+    return (
+      <svg {...common}>
+        <path d="M3 4h2l2.1 9.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 7H6" />
+        <circle cx="9" cy="19" r="1.2" />
+        <circle cx="18" cy="19" r="1.2" />
+      </svg>
+    );
+  }
+
+  if (type === "todos") {
+    return (
+      <svg {...common}>
+        <rect x="5" y="3" width="14" height="18" rx="2.5" />
+        <path d="M9 3.5h6M8.5 9.5l1.6 1.6 3.1-3.2M8.5 15.5l1.6 1.6 3.1-3.2M15.5 10h1M15.5 16h1" />
+      </svg>
+    );
+  }
+
+  if (type === "meals") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="6.5" />
+        <path d="M12 5.5v13M4 4v7M6.5 4v7M4 8h2.5M19.5 4v16M17.5 8c0-2.2.8-4 2-4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...common}>
+      <path d="M4 5.5c2.8-.7 5.5-.1 8 1.8v12c-2.5-1.9-5.2-2.5-8-1.8zM20 5.5c-2.8-.7-5.5-.1-8 1.8v12c2.5-1.9 5.2-2.5 8-1.8z" />
+      <path d="M7 9h2M7 12h2M15 9h2M15 12h2" />
+    </svg>
+  );
+}
+
 export default function MaisonClient({ token }) {
   const [view, setView] = useState("home");
   const [homeName, setHomeName] = useState("Notre maison");
@@ -58,6 +105,27 @@ export default function MaisonClient({ token }) {
     [items, view]
   );
 
+  const itemCounts = useMemo(
+    () => ({
+      groceries: items.filter((item) => item.kind === "groceries").length,
+      todos: items.filter((item) => item.kind === "todos").length,
+    }),
+    [items]
+  );
+
+  function sectionDetail(id) {
+    if (loading) return id === "groceries" ? "Articles restants" : "Tâches restantes";
+    if (id === "groceries") {
+      const count = itemCounts.groceries;
+      return `${count} article${count === 1 ? "" : "s"}`;
+    }
+    if (id === "todos") {
+      const count = itemCounts.todos;
+      return `${count} tâche${count === 1 ? "" : "s"}`;
+    }
+    return id === "meals" ? "Idées & recettes" : "Apprendre en s’amusant";
+  }
+
   async function addItem(event) {
     event.preventDefault();
     const label = draft.trim();
@@ -98,15 +166,16 @@ export default function MaisonClient({ token }) {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <header className={styles.header}>
+        <header className={`${styles.header} ${view === "home" ? styles.homeHeader : ""}`}>
           {view !== "home" && (
             <button className={styles.back} onClick={() => setView("home")} aria-label="Retour à l’accueil">
               ←
             </button>
           )}
-          <div>
-            <div className={styles.brand}>LEHNOVA MAISON</div>
-            <div className={styles.homeName}>{homeName}</div>
+          <div className={styles.headingGroup}>
+            <div className={styles.brand}>Lehnova Maison</div>
+            <div className={styles.homeName}>{view === "home" ? "Notre maison" : homeName}</div>
+            {view === "home" && <div className={styles.welcome}>Le quotidien de toute la famille, au même endroit.</div>}
           </div>
         </header>
 
@@ -114,8 +183,12 @@ export default function MaisonClient({ token }) {
           <section className={styles.grid} aria-label="Menu principal">
             {sections.map((entry) => (
               <button key={entry.id} className={styles.tile} onClick={() => setView(entry.id)}>
-                <span className={styles.tileIcon}>{entry.icon}</span>
-                <span>{entry.label}</span>
+                <span className={styles.tileIcon}><SectionIcon type={entry.id} /></span>
+                <span className={styles.tileCopy}>
+                  <span className={styles.tileLabel}>{entry.label}</span>
+                  <span className={styles.tileDetail}>{sectionDetail(entry.id)}</span>
+                </span>
+                <span className={styles.tileArrow} aria-hidden="true">→</span>
               </button>
             ))}
           </section>

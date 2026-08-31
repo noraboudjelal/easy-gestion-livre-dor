@@ -7,16 +7,29 @@
   box-sizing: border-box;
 }
 
-.shell { width: min(100%, 1050px); margin: 0 auto; }
+.shell { width: min(100%, 1100px); margin: 0 auto; }
 .header { min-height: 76px; display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+.headingGroup { display: block; }
 .brand { color: #a53d2c; font-weight: 900; letter-spacing: .14em; font-size: 20px; }
 .homeName { margin-top: 5px; font-size: 17px; color: #746a60; }
+.homeHeader { min-height: 118px; margin-bottom: 26px; }
+.homeHeader .headingGroup { display: flex; flex-direction: column; align-items: flex-start; }
+.homeHeader .brand { font-weight: 800; letter-spacing: .13em; font-size: 14px; text-transform: uppercase; order: 2; margin-top: 10px; }
+.homeHeader .homeName { font-family: Georgia, "Times New Roman", serif; font-size: clamp(42px, 5.2vw, 65px); font-weight: 600; line-height: .98; letter-spacing: -.035em; color: #2c241e; order: 1; margin-top: 0; }
+.welcome { color: #796e64; font-size: 17px; line-height: 1.45; order: 3; margin-top: 7px; }
 .back { width: 62px; height: 62px; border: 0; border-radius: 19px; background: #fff; color: #241f1a; font-size: 34px; cursor: pointer; box-shadow: 0 5px 20px rgba(52, 40, 28, .08); }
 
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; min-height: calc(100vh - 145px); }
-.tile { border: 0; border-radius: 30px; padding: 32px 20px; min-height: 230px; background: #fff; color: #241f1a; font-size: clamp(28px, 4vw, 45px); font-weight: 800; cursor: pointer; box-shadow: 0 8px 30px rgba(52, 40, 28, .09); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
-.tile:active { transform: scale(.985); }
-.tileIcon { font-size: clamp(55px, 8vw, 86px); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-height: calc(100vh - 190px); }
+.tile { position: relative; overflow: hidden; border: 1px solid rgba(95, 72, 51, .08); border-radius: 30px; padding: clamp(28px, 4vw, 42px); min-height: 245px; background: rgba(255, 255, 255, .94); color: #2c241e; cursor: pointer; box-shadow: 0 14px 35px rgba(62, 45, 29, .075); display: grid; grid-template-columns: 94px minmax(0, 1fr) auto; align-items: center; gap: 27px; text-align: left; }
+.tile::after { content: ""; position: absolute; width: 150px; height: 150px; right: -65px; top: -65px; border-radius: 50%; background: #f4e8df; opacity: .7; }
+.tile:active { transform: scale(.988); }
+.tile:hover { box-shadow: 0 18px 42px rgba(62, 45, 29, .11); }
+.tileIcon { width: 94px; height: 94px; border-radius: 27px; display: grid; place-items: center; background: #f5e7df; color: #a53d2c; }
+.tileIcon svg { width: 52px; height: 52px; }
+.tileCopy { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.tileLabel { font-family: Georgia, "Times New Roman", serif; font-size: clamp(30px, 3.6vw, 43px); line-height: 1.05; font-weight: 600; letter-spacing: -.025em; }
+.tileDetail { color: #82766b; font-size: 17px; font-weight: 600; }
+.tileArrow { position: relative; z-index: 1; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #f7f0e9; color: #a53d2c; font-size: 22px; }
 
 .listView h1, .placeholder h1 { font-size: clamp(36px, 6vw, 64px); margin: 6px 0 28px; }
 .addForm { display: grid; grid-template-columns: 1fr auto; gap: 13px; }
@@ -41,9 +54,17 @@
   .page { padding-left: 14px; padding-right: 14px; }
   .header { min-height: 64px; }
   .brand { font-size: 16px; }
+  .homeHeader { min-height: 105px; margin-bottom: 18px; }
+  .homeHeader .homeName { font-size: 44px; }
+  .homeHeader .brand { font-size: 12px; margin-top: 7px; }
+  .welcome { font-size: 14px; }
   .grid { grid-template-columns: 1fr; min-height: 0; gap: 14px; }
-  .tile { min-height: 145px; flex-direction: row; justify-content: flex-start; text-align: left; padding: 24px; border-radius: 23px; font-size: 28px; }
-  .tileIcon { font-size: 48px; }
+  .tile { min-height: 148px; grid-template-columns: 70px minmax(0, 1fr) auto; padding: 22px; border-radius: 24px; gap: 18px; }
+  .tileIcon { width: 70px; height: 70px; border-radius: 21px; }
+  .tileIcon svg { width: 39px; height: 39px; }
+  .tileLabel { font-size: 29px; }
+  .tileDetail { font-size: 15px; }
+  .tileArrow { width: 36px; height: 36px; }
   .addForm { grid-template-columns: 1fr; }
   .addForm button { min-height: 62px; }
   .listView h1 { font-size: 38px; }
@@ -52,5 +73,12 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .tile, .check { transition: transform .15s ease, background .15s ease, color .15s ease; }
+  .tile, .check { transition: transform .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease; }
+}
+
+@media (min-width: 651px) and (max-width: 900px) {
+  .tile { grid-template-columns: 80px minmax(0, 1fr); gap: 20px; padding: 30px; }
+  .tileIcon { width: 80px; height: 80px; border-radius: 23px; }
+  .tileIcon svg { width: 44px; height: 44px; }
+  .tileArrow { display: none; }
 }

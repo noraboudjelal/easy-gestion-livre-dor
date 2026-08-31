@@ -114,7 +114,8 @@ export default function MaisonClient({ token }) {
   );
 
   function sectionDetail(id) {
-    if (loading) return id === "groceries" ? "Articles restants" : "Tâches restantes";
+    if (loading && id === "groceries") return "Articles restants";
+    if (loading && id === "todos") return "Tâches restantes";
     if (id === "groceries") {
       const count = itemCounts.groceries;
       return `${count} article${count === 1 ? "" : "s"}`;

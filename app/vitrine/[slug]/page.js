@@ -1,4 +1,3 @@
-// À placer dans : app/vitrine/[slug]/page.js
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -9,342 +8,73 @@ import { VITRINE_THEMES, DEFAULT_THEME } from "../../../lib/vitrineThemes";
 export default function PublicVitrinePage() {
   const params = useParams();
   const slug = params?.slug;
-
   const [showcase, setShowcase] = useState(null);
   const [realisations, setRealisations] = useState([]);
   const [prestations, setPrestations] = useState([]);
   const [transformations, setTransformations] = useState([]);
+  const [active, setActive] = useState("Tout");
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [openCardId, setOpenCardId] = useState(null);
-  const [activeSlideByCard, setActiveSlideByCard] = useState({});
-  const [avapValue, setAvapValue] = useState(50);
   const visitLogged = useRef(false);
 
   const load = useCallback(async () => {
     if (!supabase || !slug) return;
-    const { data: sc, error: scErr } = await supabase.from("showcases").select("*").eq("slug", slug).single();
-    if (scErr || !sc) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
+    const { data: sc, error } = await supabase.from("showcases").select("*").eq("slug", slug).single();
+    if (error || !sc) { setNotFound(true); setLoading(false); return; }
     setShowcase(sc);
-
-    const { data: items } = await supabase
-      .from("showcase_products")
-      .select("*")
-      .eq("showcase_id", sc.id)
-      .order("position", { ascending: true });
+    const { data: items } = await supabase.from("showcase_products").select("*").eq("showcase_id", sc.id).order("position", { ascending: true });
     setRealisations((items || []).filter((p) => (p.item_type || "realisation") === "realisation"));
     setPrestations((items || []).filter((p) => p.item_type === "prestation"));
-
-    const { data: transfos } = await supabase
-      .from("showcase_transformations")
-      .select("*")
-      .eq("showcase_id", sc.id)
-      .order("position", { ascending: true });
+    const { data: transfos } = await supabase.from("showcase_transformations").select("*").eq("showcase_id", sc.id).order("position", { ascending: true });
     setTransformations(transfos || []);
-
     setLoading(false);
-
-    if (!visitLogged.current) {
-      visitLogged.current = true;
-      supabase.from("showcase_visits").insert({ showcase_id: sc.id }).then(() => {});
-    }
+    if (!visitLogged.current) { visitLogged.current = true; supabase.from("showcase_visits").insert({ showcase_id: sc.id }).then(() => {}); }
   }, [slug]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  if (notFound) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Cette page n'existe pas.</p>;
-  if (loading || !showcase) return <p style={{ padding: "40px", fontFamily: "system-ui" }}>Chargement…</p>;
+  useEffect(() => { load(); }, [load]);
+  if (notFound) return <p style={{padding:40,fontFamily:"Arial"}}>Cette page n'existe pas.</p>;
+  if (loading || !showcase) return <p style={{padding:40,fontFamily:"Arial"}}>Chargement…</p>;
 
   const theme = VITRINE_THEMES[showcase.theme] || VITRINE_THEMES[DEFAULT_THEME];
   const v = theme.vars;
-
-  function photosFor(item) {
-    if (item.photo_urls && item.photo_urls.length > 0) return item.photo_urls;
-    if (item.photo_url) return [item.photo_url];
-    return [];
-  }
-
-  function toggleCard(id) {
-    setOpenCardId((prev) => (prev === id ? null : id));
-  }
-
-  function setSlide(cardId, index) {
-    setActiveSlideByCard((prev) => ({ ...prev, [cardId]: index }));
-  }
+  const firstPhoto = realisations.find(r => r.photo_url || r.photo_urls?.[0]);
+  const heroImage = firstPhoto?.photo_urls?.[0] || firstPhoto?.photo_url || "";
+  const categories = ["Tout", ...Array.from(new Set(realisations.map(r => r.category).filter(Boolean)))];
+  const visible = active === "Tout" ? realisations : realisations.filter(r => r.category === active);
+  const cleanPhone = (showcase.phone || "").replace(/\D/g, "");
+  const waPhone = (showcase.whatsapp || showcase.phone || "").replace(/\D/g, "").replace(/^0/, "33");
 
   return (
-    <div style={{ background: v["--bg"], color: v["--ink"], minHeight: "100vh", fontFamily: "'Work Sans', sans-serif", paddingBottom: "76px" }}>
+    <main className="vt">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Work+Sans:wght@400;500;600&display=swap');
-        * { box-sizing: border-box; }
-        .vt-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 2px; background: ${v["--bg-dim"]}; margin-bottom: 6px; }
-        .vt-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: ${v["--accent-2"]}; cursor: pointer; }
+        *{box-sizing:border-box}body{margin:0}.vt{--ink:${v["--ink"]};--paper:${v["--paper"]};--bg:${v["--bg"]};--accent:${v["--accent-2"]};min-height:100vh;background:var(--bg);color:var(--ink);font-family:Arial,sans-serif}.wrap{max-width:520px;margin:auto;background:var(--paper);min-height:100vh;box-shadow:0 0 50px rgba(0,0,0,.07)}.hero{min-height:500px;padding:28px 24px 38px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;background:linear-gradient(180deg,rgba(20,15,14,.08),rgba(20,15,14,.76))${heroImage ? `,url('${heroImage}') center/cover` : `,var(--ink)`}}.brand{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase}.badge{border:1px solid rgba(255,255,255,.55);padding:8px 11px;border-radius:999px}.hero h1{font-family:Georgia,serif;font-size:48px;line-height:.98;font-weight:400;margin:0 0 14px}.hero p{font-size:14px;line-height:1.6;max-width:370px;margin:0 0 22px}.cta{display:inline-block;background:#fff;color:#241c1b;padding:13px 18px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:700}.section{padding:42px 24px}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}.section h2,.contact h2{font-family:Georgia,serif;font-size:31px;font-weight:400;margin:0 0 20px}.about{font-size:14px;line-height:1.75;opacity:.7;margin:0}.filters{display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin-bottom:18px}.filter{border:1px solid rgba(0,0,0,.13);background:var(--paper);border-radius:999px;padding:9px 13px;white-space:nowrap;font-size:12px;color:var(--ink)}.filter.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--bg)}.card img{width:100%;height:100%;object-fit:cover;display:block}.caption{position:absolute;left:0;right:0;bottom:0;padding:36px 12px 12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7))}.caption strong{display:block;font-family:Georgia,serif;font-size:16px;font-weight:400}.caption span{font-size:9px;text-transform:uppercase;letter-spacing:.12em;opacity:.9}.prices{background:var(--ink);color:var(--paper)}.prices .eyebrow{color:var(--accent)}.price-row{display:flex;justify-content:space-between;gap:20px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.13);font-size:14px}.price-row span:last-child{color:var(--accent);white-space:nowrap}.before{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px}.before figure{margin:0;position:relative;aspect-ratio:3/4;overflow:hidden}.before img{width:100%;height:100%;object-fit:cover}.before b{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;padding:5px 7px;font-size:9px;text-transform:uppercase;letter-spacing:.1em}.contact{text-align:center;padding:46px 24px 34px;background:var(--bg)}.contact p{font-size:13px;line-height:1.8;opacity:.7}.buttons{display:grid;gap:10px;margin-top:22px}.button{padding:14px 18px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13px;background:var(--ink);color:var(--paper)}.button.alt{background:var(--paper);color:var(--ink);border:1px solid rgba(0,0,0,.15)}.socials{display:flex;justify-content:center;gap:8px;margin-top:18px}.socials a{font-size:11px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--accent);padding:4px}.footer{text-align:center;padding:18px;font-size:10px;opacity:.55;border-top:1px solid rgba(0,0,0,.08)}@media(max-width:420px){.hero{min-height:470px}.hero h1{font-size:43px}.section{padding:36px 20px}}
       `}</style>
-
-      <div style={{ maxWidth: "520px", margin: "0 auto" }}>
-        {/* HERO */}
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-start",
-            padding: "56px 26px 40px",
-            color: v["--paper"],
-            background: `linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.85) 88%), ${v["--ink"]}`,
-          }}
-        >
-          <p style={{ fontSize: "11px", letterSpacing: ".2em", fontWeight: 600, color: v["--accent"], textTransform: "uppercase", margin: "0 0 14px" }}>
-            {showcase.tagline || "Ma page"}
-          </p>
-          <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "38px", fontWeight: 700, lineHeight: 1.08, margin: 0 }}>
-            {showcase.business_name}
-          </h1>
-        </div>
-
-        {/* À PROPOS */}
-        {showcase.about_text && (
-          <div style={{ background: v["--paper"], padding: "34px 26px" }}>
-            <p style={{ fontSize: "14.5px", lineHeight: 1.65, margin: 0 }}>{showcase.about_text}</p>
+      <div className="wrap">
+        <section className="hero">
+          <div className="brand"><span>{showcase.business_name}</span>{showcase.address && <span className="badge">{showcase.address.split(",")[0]}</span>}</div>
+          <div>
+            <div className="eyebrow" style={{color:"#f3d9d0"}}>{showcase.tagline || "Portfolio professionnel"}</div>
+            <h1>{showcase.business_name}</h1>
+            {showcase.about_text && <p>{showcase.about_text}</p>}
+            {(showcase.booking_url || cleanPhone) && <a className="cta" href={showcase.booking_url || `tel:${cleanPhone}`}>{showcase.booking_url ? "Prendre rendez-vous" : "Nous contacter"}</a>}
           </div>
-        )}
+        </section>
 
-        {/* PORTFOLIO — cartes dépliables multi-photos */}
-        <div style={{ padding: "40px 26px 10px", background: v["--bg"] }}>
-          <p style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: ".18em", color: v["--accent-2"], textTransform: "uppercase", margin: "0 0 8px" }}>
-            Portfolio
-          </p>
-          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "24px", fontWeight: 600, margin: "0 0 18px" }}>Le travail, en détail</h2>
+        {showcase.about_text && <section className="section"><div className="eyebrow">À propos</div><h2>Bienvenue</h2><p className="about">{showcase.about_text}</p></section>}
 
-          {realisations.length === 0 && <p style={{ opacity: 0.6, fontSize: "13.5px" }}>Bientôt en ligne.</p>}
+        <section className="section" id="portfolio">
+          <div className="eyebrow">Portfolio</div><h2>Nos réalisations</h2>
+          {categories.length > 1 && <div className="filters">{categories.map(c => <button key={c} className={`filter ${active===c?"on":""}`} onClick={()=>setActive(c)}>{c}</button>)}</div>}
+          {visible.length ? <div className="grid">{visible.map(r => { const image=r.photo_urls?.[0]||r.photo_url; return <article className="card" key={r.id}>{image && <img src={image} alt={r.name}/>}<div className="caption">{r.category&&<span>{r.category}</span>}<strong>{r.name}</strong>{r.price&&<span>{r.price}</span>}</div></article>})}</div> : <p className="about">Les réalisations arrivent bientôt.</p>}
+        </section>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {realisations.map((item) => {
-              const photos = photosFor(item);
-              const activeSlide = activeSlideByCard[item.id] || 0;
-              const isOpen = openCardId === item.id;
-              return (
-                <div key={item.id} style={{ borderRadius: "2px", overflow: "hidden", background: v["--paper"] }}>
-                  <div
-                    onClick={() => toggleCard(item.id)}
-                    style={{
-                      position: "relative",
-                      height: "220px",
-                      cursor: "pointer",
-                      overflow: "hidden",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "flex-end",
-                      padding: "16px",
-                    }}
-                  >
-                    {photos.length > 0 ? (
-                      photos.map((url, i) => (
-                        <img
-                          key={i}
-                          src={url}
-                          alt={item.name}
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            opacity: i === activeSlide ? 1 : 0,
-                            transition: "opacity .35s ease",
-                          }}
-                        />
-                      ))
-                    ) : (
-                      <div style={{ position: "absolute", inset: 0, background: v["--accent"] }} />
-                    )}
-                    <div style={{ position: "absolute", inset: 0, zIndex: 1, background: "linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%)" }} />
+        {prestations.length > 0 && <section className="section prices"><div className="eyebrow">Prestations</div><h2>Ce que nous proposons</h2>{prestations.map(p=><div className="price-row" key={p.id}><span>{p.name}{p.description&&<small style={{display:"block",opacity:.6,marginTop:4}}>{p.description}</small>}</span><span>{p.price||"Sur devis"}</span></div>)}</section>}
 
-                    {photos.length > 1 && (
-                      <div style={{ position: "relative", zIndex: 2, display: "flex", gap: "5px", marginBottom: "10px" }}>
-                        {photos.map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSlide(item.id, i);
-                            }}
-                            style={{
-                              width: i === activeSlide ? "16px" : "6px",
-                              height: "6px",
-                              borderRadius: i === activeSlide ? "3px" : "50%",
-                              border: "none",
-                              padding: 0,
-                              background: i === activeSlide ? v["--accent"] : "rgba(255,255,255,.4)",
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
+        {transformations.length > 0 && <section className="section"><div className="eyebrow">Transformations</div><h2>Avant / Après</h2>{transformations.map(t=><div key={t.id} style={{marginBottom:24}}>{t.label&&<p className="about" style={{marginBottom:8}}>{t.label}</p>}<div className="before"><figure>{t.before_url&&<img src={t.before_url} alt="Avant"/>}<b>Avant</b></figure><figure>{t.after_url&&<img src={t.after_url} alt="Après"/>}<b>Après</b></figure></div></div>)}</section>}
 
-                    <div style={{ position: "relative", zIndex: 2, color: v["--paper"], display: "flex", justifyContent: "space-between", alignItems: "flex-end", width: "100%" }}>
-                      <span style={{ fontFamily: "'Fraunces', serif", fontSize: "19px", fontWeight: 600 }}>{item.name}</span>
-                      <span
-                        style={{
-                          width: "30px",
-                          height: "30px",
-                          borderRadius: "50%",
-                          border: `1px solid ${isOpen ? v["--accent"] : "rgba(255,255,255,.55)"}`,
-                          background: isOpen ? v["--accent"] : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "16px",
-                          flexShrink: 0,
-                          transform: isOpen ? "rotate(45deg)" : "none",
-                          transition: "transform .35s ease",
-                        }}
-                      >
-                        +
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ maxHeight: isOpen ? "220px" : "0px", overflow: "hidden", transition: "max-height .45s cubic-bezier(.4,0,.2,1)" }}>
-                    <div style={{ padding: "16px 18px 20px" }}>
-                      {item.category && (
-                        <span style={{ display: "inline-block", fontSize: "10px", fontWeight: 700, letterSpacing: ".1em", color: v["--accent-2"], textTransform: "uppercase", marginBottom: "8px" }}>
-                          {item.category}
-                        </span>
-                      )}
-                      {item.price && <div style={{ fontSize: "13px", fontWeight: 600, color: v["--accent-2"], marginBottom: "6px" }}>{item.price}</div>}
-                      {item.description && <p style={{ fontSize: "13.5px", lineHeight: 1.55, opacity: 0.75, margin: 0 }}>{item.description}</p>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* PRESTATIONS */}
-        {prestations.length > 0 && (
-          <div style={{ background: v["--paper"], padding: "40px 26px" }}>
-            <p style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: ".18em", color: v["--accent-2"], textTransform: "uppercase", margin: "0 0 8px" }}>
-              Prestations
-            </p>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "24px", fontWeight: 600, margin: "0 0 18px" }}>Ce que je propose</h2>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {prestations.map((p, i) => (
-                <div
-                  key={p.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    padding: "16px 0",
-                    borderBottom: i === prestations.length - 1 ? "none" : `1px solid ${v["--bg-dim"]}`,
-                    gap: "14px",
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontFamily: "'Fraunces', serif", fontSize: "16px", fontWeight: 600 }}>{p.name}</strong>
-                    {p.description && <div style={{ fontSize: "12px", opacity: 0.6, marginTop: "3px" }}>{p.description}</div>}
-                  </div>
-                  {p.price && <span style={{ fontSize: "14px", fontWeight: 600, color: v["--accent-2"], whiteSpace: "nowrap" }}>{p.price}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* AVANT / APRÈS */}
-        {transformations.length > 0 && (
-          <div style={{ background: v["--bg"], padding: "40px 26px" }}>
-            <p style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: ".18em", color: v["--accent-2"], textTransform: "uppercase", margin: "0 0 8px" }}>
-              Transformation
-            </p>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "24px", fontWeight: 600, margin: "0 0 18px" }}>Avant / après</h2>
-            {transformations.map((t) => (
-              <div key={t.id} style={{ marginBottom: "22px" }}>
-                <div style={{ position: "relative", height: "260px", borderRadius: "2px", overflow: "hidden", background: "#222", marginBottom: "10px" }}>
-                  {t.before_url && (
-                    <img src={t.before_url} alt="avant" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-                  )}
-                  {t.after_url && (
-                    <img
-                      src={t.after_url}
-                      alt="après"
-                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", clipPath: `inset(0 0 0 ${avapValue}%)` }}
-                    />
-                  )}
-                  <span style={{ position: "absolute", top: "12px", left: "12px", fontSize: "10px", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", background: "rgba(0,0,0,.55)", color: "#fff", padding: "5px 9px", borderRadius: "2px" }}>
-                    Avant
-                  </span>
-                  <span style={{ position: "absolute", top: "12px", right: "12px", fontSize: "10px", fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", background: "rgba(0,0,0,.55)", color: "#fff", padding: "5px 9px", borderRadius: "2px" }}>
-                    Après
-                  </span>
-                  <div style={{ position: "absolute", top: 0, bottom: 0, left: `${avapValue}%`, width: "2px", background: "#fff", boxShadow: "0 0 0 6px rgba(0,0,0,.15)" }}>
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%,-50%)",
-                        background: v["--accent"],
-                        color: v["--paper"],
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "14px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      ↔
-                    </span>
-                  </div>
-                </div>
-                <input type="range" className="vt-slider" min="0" max="100" value={avapValue} onChange={(e) => setAvapValue(Number(e.target.value))} />
-                {t.label && <div style={{ fontSize: "12px", opacity: 0.6, textAlign: "center" }}>{t.label}</div>}
-              </div>
-            ))}
-          </div>
-        )}
+        <section className="contact" id="contact"><div className="eyebrow">Contact</div><h2>On prend rendez-vous ?</h2>{(showcase.hours_text||showcase.address)&&<p>{showcase.hours_text}{showcase.hours_text&&showcase.address&&<br/>}{showcase.address}</p>}<div className="buttons">{showcase.booking_url&&<a className="button" href={showcase.booking_url} target="_blank" rel="noreferrer">Prendre rendez-vous</a>}{cleanPhone&&<a className="button" href={`tel:${cleanPhone}`}>Appeler</a>}{waPhone&&<a className="button alt" href={`https://wa.me/${waPhone}`} target="_blank" rel="noreferrer">WhatsApp</a>}</div><div className="socials">{showcase.instagram_url&&<a href={showcase.instagram_url} target="_blank" rel="noreferrer">Instagram</a>}{showcase.facebook_url&&<a href={showcase.facebook_url} target="_blank" rel="noreferrer">Facebook</a>}{showcase.tiktok_url&&<a href={showcase.tiktok_url} target="_blank" rel="noreferrer">TikTok</a>}</div></section>
+        <footer className="footer">Propulsé par Lehnova — Solutions numériques</footer>
       </div>
-
-      {/* FOOTER RÉSEAUX SOCIAUX */}
-      {(showcase.instagram_url || showcase.facebook_url || showcase.tiktok_url) && (
-        <div style={{ background: v["--paper"], padding: "28px 26px", textAlign: "center" }}>
-          <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
-            {showcase.instagram_url && (
-              <a href={showcase.instagram_url} target="_blank" rel="noreferrer" style={{ width: "36px", height: "36px", borderRadius: "50%", border: `1px solid ${v["--bg-dim"]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: v["--ink"] }}>
-                IG
-              </a>
-            )}
-            {showcase.facebook_url && (
-              <a href={showcase.facebook_url} target="_blank" rel="noreferrer" style={{ width: "36px", height: "36px", borderRadius: "50%", border: `1px solid ${v["--bg-dim"]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: v["--ink"] }}>
-                FB
-              </a>
-            )}
-            {showcase.tiktok_url && (
-              <a href={showcase.tiktok_url} target="_blank" rel="noreferrer" style={{ width: "36px", height: "36px", borderRadius: "50%", border: `1px solid ${v["--bg-dim"]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 600, color: v["--ink"] }}>
-                TT
-              </a>
-            )}
-          </div>
-        </div>
-      )}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, display: "flex", background: v["--ink"] }}>
-        <a href="tel:+33600000000" style={{ flex: 1, textAlign: "center", padding: "15px 4px", color: v["--paper"], fontSize: "12.5px", fontWeight: 600, textDecoration: "none", background: v["--accent-2"] }}>
-          ☎ Appeler
-        </a>
-        <a href="https://wa.me/33600000000" style={{ flex: 1, textAlign: "center", padding: "15px 4px", color: v["--paper"], fontSize: "12.5px", fontWeight: 600, textDecoration: "none", background: "#3c6b4b" }}>
-          ✆ WhatsApp
-        </a>
-      </div>
-    </div>
+    </main>
   );
 }

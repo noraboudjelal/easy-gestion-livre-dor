@@ -115,6 +115,7 @@ export default function AdminPage() {
   const [showcaseTheme, setShowcaseTheme] = useState("coiffure");
   const [creatingShowcase, setCreatingShowcase] = useState(false);
   const [copiedShowcaseId, setCopiedShowcaseId] = useState(null);
+  const [deletingShowcaseId, setDeletingShowcaseId] = useState(null);
 
   // --- Lehnova Ticket ---
   const [ticketBusinesses, setTicketBusinesses] = useState([]);
@@ -817,13 +818,20 @@ export default function AdminPage() {
   async function handleDeleteShowcase(id, name) {
     if (!window.confirm(`Supprimer la vitrine de "${name}" ? Cette action est définitive.`)) return;
     setShowcasesError("");
+    setDeletingShowcaseId(id);
     try {
-      const response = await fetch(`/api/admin/showcases/${encodeURIComponent(id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/showcases/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        cache: "no-store",
+      });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Suppression impossible.");
       setShowcases((current) => current.filter((showcase) => showcase.id !== id));
     } catch (error) {
       setShowcasesError("Suppression impossible : " + (error.message || "Erreur inconnue."));
+    } finally {
+      setDeletingShowcaseId(null);
     }
   }
 
@@ -2200,8 +2208,8 @@ export default function AdminPage() {
                             <a href={showcaseManageLinkFor(sc.slug)} target="_blank" rel="noreferrer" style={styles.iconButton}>
                               gérer
                             </a>
-                            <button style={styles.iconButtonDanger} onClick={() => handleDeleteShowcase(sc.id, sc.business_name)}>
-                              supprimer
+                            <button style={styles.iconButtonDanger} disabled={deletingShowcaseId === sc.id} onClick={() => handleDeleteShowcase(sc.id, sc.business_name)}>
+                              {deletingShowcaseId === sc.id ? "suppression…" : "supprimer"}
                             </button>
                           </div>
                         </td>
@@ -2256,8 +2264,8 @@ export default function AdminPage() {
                         <a href={showcaseManageLinkFor(sc.slug)} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
                           gérer
                         </a>
-                        <button style={styles.iconButtonDanger} onClick={() => handleDeleteShowcase(sc.id, sc.business_name)}>
-                          supprimer
+                        <button style={styles.iconButtonDanger} disabled={deletingShowcaseId === sc.id} onClick={() => handleDeleteShowcase(sc.id, sc.business_name)}>
+                          {deletingShowcaseId === sc.id ? "suppression…" : "supprimer"}
                         </button>
                       </div>
                     </div>
@@ -2595,4 +2603,5 @@ const styles = {
   removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
   addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };
+
 

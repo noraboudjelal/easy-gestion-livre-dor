@@ -426,18 +426,30 @@ export default function CatalogPage() {
         @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
       `}</style>
 
-      <header style={{ ...styles.header, borderBottomColor: accent }}>
-        <p style={{ ...styles.eyebrow, color: accent }}>MA VITRINE NUMÉRIQUE</p>
-        <h1
-          style={{
-            ...styles.title,
-            fontFamily: font.title,
-            fontWeight: font.titleWeight,
-            fontSize: font.titleSize,
-          }}
-        >
-          {loading ? "…" : catalog?.catalog_title}
-        </h1>
+      <header
+        style={{
+          ...styles.header,
+          borderBottomColor: accent,
+          ...(catalog?.cover_image_url ? styles.headerWithCover : {}),
+        }}
+      >
+        {catalog?.cover_image_url && (
+          <img src={catalog.cover_image_url} alt="" style={styles.coverImage} />
+        )}
+        <div style={{ ...styles.headerContent, ...(catalog?.cover_image_url ? styles.headerContentOnCover : {}) }}>
+          <p style={{ ...styles.eyebrow, color: catalog?.cover_image_url ? "#fff" : accent }}>MA VITRINE NUMÉRIQUE</p>
+          <h1
+            style={{
+              ...styles.title,
+              color: catalog?.cover_image_url ? "#fff" : styles.title.color,
+              fontFamily: font.title,
+              fontWeight: font.titleWeight,
+              fontSize: font.titleSize,
+            }}
+          >
+            {loading ? "…" : catalog?.catalog_title}
+          </h1>
+        </div>
       </header>
 
       {!loading && catalog?.offer_enabled && catalog?.offer_title && (
@@ -612,7 +624,13 @@ const styles = {
     paddingBottom: "16px",
     marginBottom: "24px",
     textAlign: "center",
+    position: "relative",
+    overflow: "hidden",
   },
+  headerWithCover: { minHeight: "clamp(230px, 46vw, 390px)", paddingBottom: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "#1E2A3A" },
+  coverImage: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "center", display: "block" },
+  headerContent: { position: "relative", zIndex: 1 },
+  headerContentOnCover: { width: "100%", padding: "64px 18px 20px", background: "linear-gradient(transparent, rgba(0,0,0,.62))" },
   eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", margin: "0 0 6px 0", fontWeight: 600 },
   title: { margin: 0, lineHeight: 1.1, color: "#1E2A3A" },
   main: { width: "100%", maxWidth: "900px", display: "flex", flexDirection: "column", gap: "28px" },
@@ -891,3 +909,4 @@ const styles = {
     alignSelf: "flex-start",
   },
 };
+

@@ -4,24 +4,43 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
+function formatFilterDate(value) {
+  if (!value) return "";
+  try {
+    return new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export default function PublicEventLayout({ children }) {
   const params = useParams();
   const slug = params?.slug;
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [eventMeta, setEventMeta] = useState({ title: "", date: "" });
 
   useEffect(() => {
     let active = true;
 
-    async function loadWelcomeMessage() {
+    async function loadEventData() {
       if (!supabase || !slug) return;
 
       const { data: event } = await supabase
         .from("events")
-        .select("id")
+        .select("id,title,event_date")
         .eq("slug", slug)
         .maybeSingle();
 
       if (!event?.id || !active) return;
+
+      setEventMeta({
+        title: (event.title || "").trim(),
+        date: formatFilterDate(event.event_date),
+      });
 
       const { data: settings } = await supabase
         .from("event_fil_settings")
@@ -32,7 +51,7 @@ export default function PublicEventLayout({ children }) {
       if (active) setWelcomeMessage((settings?.welcome_message || "").trim());
     }
 
-    loadWelcomeMessage();
+    loadEventData();
     return () => { active = false; };
   }, [slug]);
 
@@ -58,6 +77,48 @@ export default function PublicEventLayout({ children }) {
 
     node.textContent = welcomeMessage;
   }, [welcomeMessage]);
+
+  useEffect(() => {
+    if (!eventMeta.title && !eventMeta.date) return;
+
+    const decoratePhotos = () => {
+      document.querySelectorAll("img").forEach((img) => {
+        const src = img.currentSrc || img.src || "";
+        if (!src.includes("guestbook-photos")) return;
+        if (img.dataset.lehnovaPhotoFilter === "true") return;
+
+        const parent = img.parentElement;
+        if (!parent) return;
+        const computed = window.getComputedStyle(parent);
+        if (computed.position === "static") parent.style.position = "relative";
+        parent.classList.add("lehnova-filtered-photo");
+
+        const overlay = document.createElement("div");
+        overlay.className = "lehnova-photo-filter";
+        overlay.dataset.lehnovaPhotoFilterOverlay = "true";
+
+        const title = document.createElement("div");
+        title.className = "lehnova-photo-filter-title";
+        title.textContent = eventMeta.title;
+        overlay.appendChild(title);
+
+        if (eventMeta.date) {
+          const date = document.createElement("div");
+          date.className = "lehnova-photo-filter-date";
+          date.textContent = eventMeta.date;
+          overlay.appendChild(date);
+        }
+
+        parent.appendChild(overlay);
+        img.dataset.lehnovaPhotoFilter = "true";
+      });
+    };
+
+    decoratePhotos();
+    const observer = new MutationObserver(decoratePhotos);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [eventMeta.title, eventMeta.date]);
 
   return <>
     <style jsx global>{`
@@ -104,6 +165,37 @@ export default function PublicEventLayout({ children }) {
         padding-bottom: 0 !important;
         align-self: stretch !important;
       }
+      .lehnova-filtered-photo {
+        overflow: hidden;
+      }
+      .lehnova-photo-filter {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 4;
+        pointer-events: none;
+        padding: 30px 14px 11px;
+        text-align: center;
+        color: #fff;
+        background: linear-gradient(to top, rgba(20,15,12,.72), rgba(20,15,12,.28) 55%, transparent);
+        text-shadow: 0 1px 4px rgba(0,0,0,.55);
+      }
+      .lehnova-photo-filter-title {
+        font-family: 'Libre Baskerville', Georgia, serif;
+        font-style: italic;
+        font-weight: 700;
+        font-size: clamp(16px, 3.8vw, 25px);
+        line-height: 1.15;
+      }
+      .lehnova-photo-filter-date {
+        margin-top: 4px;
+        font-family: 'DM Sans', Arial, sans-serif;
+        font-size: clamp(9px, 2vw, 12px);
+        font-weight: 600;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
       @media (max-width: 599px) {
         .event-header-card {
           min-height: 265px !important;
@@ -124,6 +216,9 @@ export default function PublicEventLayout({ children }) {
         .event-nav {
           margin-top: auto !important;
           padding-top: 3px !important;
+        }
+        .lehnova-photo-filter {
+          padding: 24px 10px 8px;
         }
       }
     `}</style>

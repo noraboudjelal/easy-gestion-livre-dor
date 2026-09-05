@@ -407,7 +407,7 @@ const styles = {
   previewLabel: { color: "#000000", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.16em" },
   previewNumber: { fontFamily: "Georgia, serif", fontSize: "clamp(8rem, 15vw, 11.5rem)", lineHeight: 0.72, marginTop: "-8px" },
   previewEvent: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.45rem", lineHeight: 1.05, marginTop: "8px", whiteSpace: "nowrap" },
-  previewEventIntro: { fontSize: "0.9rem", marginTop: "8px" },
+  previewEventIntro: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.35rem", lineHeight: 1.05, marginTop: "8px" },
   previewGuests: { color: "#000000", lineHeight: 1.35, marginTop: "8px", width: "100%" },
   previewFilTitle: { fontFamily: "Georgia, serif", fontStyle: "italic", fontWeight: 700, fontSize: "2.35rem", lineHeight: 1.05, maxWidth: "230px" },
   previewCopy: { color: "#000000", fontSize: "1.25rem", lineHeight: 1.3, maxWidth: "220px" },

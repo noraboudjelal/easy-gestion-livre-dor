@@ -62,6 +62,7 @@ export default function PublicEventLayout({ children }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const modalRef = useRef(null);
+  const stageRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -201,12 +202,36 @@ export default function PublicEventLayout({ children }) {
 
   function capture() {
     const video = videoRef.current;
-    if (!video?.videoWidth) return;
+    const stage = stageRef.current;
+    if (!video?.videoWidth || !stage?.clientWidth || !stage?.clientHeight) return;
+
+    const sourceWidth = video.videoWidth;
+    const sourceHeight = video.videoHeight;
+    const stageRatio = stage.clientWidth / stage.clientHeight;
+    const sourceRatio = sourceWidth / sourceHeight;
+    let cropX = 0;
+    let cropY = 0;
+    let cropWidth = sourceWidth;
+    let cropHeight = sourceHeight;
+
+    if (sourceRatio > stageRatio) {
+      cropWidth = sourceHeight * stageRatio;
+      cropX = (sourceWidth - cropWidth) / 2;
+    } else {
+      cropHeight = sourceWidth / stageRatio;
+      cropY = (sourceHeight - cropHeight) / 2;
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = Math.round(cropWidth);
+    canvas.height = Math.round(cropHeight);
     const context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (cameraFacing === "user") {
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+    }
+    context.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+    if (cameraFacing === "user") context.setTransform(1, 0, 0, 1, 0, 0);
 
     const overlayHeight = Math.max(150, canvas.height * 0.25);
     const gradient = context.createLinearGradient(0, canvas.height - overlayHeight, 0, canvas.height);
@@ -288,7 +313,7 @@ export default function PublicEventLayout({ children }) {
   return <>
     <style jsx global>{`
       .event-header-card{box-sizing:border-box!important;min-height:265px!important;padding:20px 26px 8px!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important}.event-header{width:100%!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}.event-title-context{font-size:1.35rem!important;font-weight:800!important;margin-bottom:7px!important;letter-spacing:.15em!important}.event-title-names{font-size:clamp(3.6rem,7vw,5.5rem)!important;line-height:.98!important}.lehnova-welcome-message{max-width:720px;margin:22px auto 0!important;padding:0 8px;text-align:center;font-family:'Libre Baskerville',Georgia,serif;font-style:italic;font-size:.9rem;line-height:1.4;opacity:.82}.event-nav{margin-top:auto!important;margin-bottom:0!important;padding-top:4px!important;padding-bottom:0!important;align-self:stretch!important}
-      .lehnova-camera-mount{width:100%;display:flex;margin-top:8px}.lehnova-camera-button{width:100%;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer}.lehnova-camera-modal{position:fixed;inset:0;z-index:9999;background:#000;color:white;overflow:hidden;width:100vw;height:100dvh}.lehnova-camera-stage{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:#000}.lehnova-camera-stage video,.lehnova-camera-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.lehnova-camera-stage video.is-front{transform:scaleX(-1)}.lehnova-live-filter{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:90px 20px max(128px,calc(env(safe-area-inset-bottom) + 112px));text-align:center;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,0));text-shadow:0 2px 8px #000;pointer-events:none}.lehnova-live-ornament{display:flex;align-items:center;justify-content:center;gap:7px;width:90px;margin:0 auto 10px}.lehnova-live-ornament:before,.lehnova-live-ornament:after{content:'';height:1px;background:#fff;flex:1}.lehnova-live-ornament span{width:6px;height:6px;border:1px solid #fff;border-radius:50%}.lehnova-live-title{font:italic 700 clamp(28px,8vw,46px) Georgia,serif;line-height:1.08}.lehnova-live-date{margin-top:8px;font:600 clamp(12px,3.4vw,16px) Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}.lehnova-camera-topbar{position:absolute;z-index:5;top:max(12px,env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:space-between;padding:12px 18px}.lehnova-camera-icon{width:46px;height:46px;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(0,0,0,.38);color:#fff;font-size:22px;display:grid;place-items:center;backdrop-filter:blur(8px)}.lehnova-camera-actions{position:absolute;z-index:4;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));display:flex;gap:12px;padding:12px 16px;justify-content:center;align-items:center}.lehnova-shutter{width:76px!important;height:76px!important;border:5px solid #fff!important;border-radius:50%!important;padding:0!important;background:rgba(255,255,255,.18)!important;box-shadow:inset 0 0 0 4px #000,0 2px 12px rgba(0,0,0,.35)}.lehnova-camera-actions .review{border:1px solid rgba(255,255,255,.7);border-radius:999px;padding:13px 18px;background:#fff;color:#241d18;font-weight:800}.lehnova-camera-actions .review.secondary{background:rgba(0,0,0,.38);color:#fff;backdrop-filter:blur(8px)}.lehnova-camera-error{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:28px;text-align:center;background:#111}.lehnova-camera-error+.lehnova-camera-actions{z-index:6}
+      .lehnova-camera-mount{width:100%;display:flex;margin-top:8px}.lehnova-camera-button{width:100%;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer}.lehnova-camera-modal{position:fixed;inset:0;z-index:9999;background:#000;color:white;overflow:hidden;width:100vw;height:100dvh}.lehnova-camera-stage{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;background:#000}.lehnova-camera-stage video,.lehnova-camera-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}.lehnova-camera-stage video.is-front{transform:scaleX(-1)}.lehnova-live-filter{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:90px 20px max(128px,calc(env(safe-area-inset-bottom) + 112px));text-align:center;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,0));text-shadow:0 2px 8px #000;pointer-events:none}.lehnova-live-ornament{display:flex;align-items:center;justify-content:center;gap:7px;width:90px;margin:0 auto 10px}.lehnova-live-ornament:before,.lehnova-live-ornament:after{content:'';height:1px;background:#fff;flex:1}.lehnova-live-ornament span{width:6px;height:6px;border:1px solid #fff;border-radius:50%}.lehnova-live-title{font:italic 700 clamp(28px,8vw,46px) Georgia,serif;line-height:1.08}.lehnova-live-date{margin-top:8px;font:600 clamp(12px,3.4vw,16px) Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}.lehnova-camera-topbar{position:absolute;z-index:5;top:max(12px,env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:space-between;padding:12px 18px}.lehnova-camera-icon{width:46px;height:46px;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:rgba(0,0,0,.38);color:#fff;font-size:22px;display:grid;place-items:center;backdrop-filter:blur(8px)}.lehnova-camera-actions{position:absolute;z-index:4;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));display:flex;gap:12px;padding:12px 16px;justify-content:center;align-items:center}.lehnova-shutter{width:76px!important;height:76px!important;border:5px solid #fff!important;border-radius:50%!important;padding:0!important;background:rgba(255,255,255,.18)!important;box-shadow:inset 0 0 0 4px #000,0 2px 12px rgba(0,0,0,.35)}.lehnova-camera-actions .review{border:1px solid rgba(255,255,255,.7);border-radius:999px;padding:13px 18px;background:#fff;color:#241d18;font-weight:800}.lehnova-camera-actions .review.secondary{background:rgba(0,0,0,.38);color:#fff;backdrop-filter:blur(8px)}.lehnova-camera-error{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:28px;text-align:center;background:#111}.lehnova-camera-error+.lehnova-camera-actions{z-index:6}
       @media(max-width:599px){.event-header-card{min-height:265px!important;padding:14px 12px 6px!important}.event-title-context{font-size:1.12rem!important;margin-bottom:5px!important}.event-title-names{font-size:clamp(2.85rem,13.8vw,4rem)!important;letter-spacing:-.055em!important}.lehnova-welcome-message{margin-top:18px!important;font-size:.82rem}.event-nav{margin-top:auto!important;padding-top:3px!important}}
     `}</style>
     {children}
@@ -299,7 +324,7 @@ export default function PublicEventLayout({ children }) {
       photoArea
     )}
     {cameraOpen && <div className="lehnova-camera-modal" ref={modalRef}>
-      <div className="lehnova-camera-stage">
+      <div className="lehnova-camera-stage" ref={stageRef}>
         {!shot && <video ref={videoRef} className={cameraFacing === "user" ? "is-front" : ""} playsInline muted />}
         {shot && <img src={shot} alt="Aperçu" />}
         {!shot && eventMeta.title && <div className="lehnova-live-filter">

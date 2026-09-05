@@ -242,6 +242,26 @@ export default function EventFilAdminPage() {
 
         {error && <p style={styles.error}>{error}</p>}
 
+        <section id="phrase" style={styles.panel}>
+          <h2 style={styles.panelTitle}>Phrase d’accueil</h2>
+          <p style={styles.help}>Elle apparaît sous les noms dans le bandeau du Fil. Laissez vide pour ne rien afficher.</p>
+          <form onSubmit={saveWelcome} style={styles.form}>
+            <textarea
+              style={styles.textarea}
+              value={welcomeMessage}
+              onChange={(eventChange) => setWelcomeMessage(eventChange.target.value)}
+              maxLength={500}
+              placeholder="Votre doua, citation ou phrase personnelle…"
+            />
+            <div style={styles.actions}>
+              <span style={styles.counter}>{welcomeMessage.length}/500</span>
+              <button type="submit" style={styles.primary} disabled={savingWelcome}>
+                {savingWelcome ? "Enregistrement…" : welcomeMessage.trim() ? "Enregistrer" : "Supprimer la phrase"}
+              </button>
+            </div>
+          </form>
+        </section>
+
         <section id="faire-part" style={styles.panel}>
           <div style={styles.sectionHead}>
             <div>
@@ -265,26 +285,6 @@ export default function EventFilAdminPage() {
               </div>
             </div>
           </div>
-        </section>
-
-        <section id="phrase" style={styles.panel}>
-          <h2 style={styles.panelTitle}>Phrase d’accueil</h2>
-          <p style={styles.help}>Elle apparaît sous les noms dans le bandeau du Fil. Laissez vide pour ne rien afficher.</p>
-          <form onSubmit={saveWelcome} style={styles.form}>
-            <textarea
-              style={styles.textarea}
-              value={welcomeMessage}
-              onChange={(eventChange) => setWelcomeMessage(eventChange.target.value)}
-              maxLength={500}
-              placeholder="Votre doua, citation ou phrase personnelle…"
-            />
-            <div style={styles.actions}>
-              <span style={styles.counter}>{welcomeMessage.length}/500</span>
-              <button type="submit" style={styles.primary} disabled={savingWelcome}>
-                {savingWelcome ? "Enregistrement…" : welcomeMessage.trim() ? "Enregistrer" : "Supprimer la phrase"}
-              </button>
-            </div>
-          </form>
         </section>
 
         <section id="tables" style={styles.panel}>

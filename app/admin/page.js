@@ -815,13 +815,15 @@ export default function AdminPage() {
   }
 
   async function handleDeleteShowcase(id, name) {
-    if (!supabase) return;
     if (!window.confirm(`Supprimer la vitrine de "${name}" ? Cette action est définitive.`)) return;
-    const { error } = await supabase.from("showcases").delete().eq("id", id);
-    if (error) {
-      setShowcasesError("Suppression impossible : " + error.message);
-    } else {
-      loadShowcases();
+    setShowcasesError("");
+    try {
+      const response = await fetch(`/api/admin/showcases/${encodeURIComponent(id)}`, { method: "DELETE" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Suppression impossible.");
+      setShowcases((current) => current.filter((showcase) => showcase.id !== id));
+    } catch (error) {
+      setShowcasesError("Suppression impossible : " + (error.message || "Erreur inconnue."));
     }
   }
 

@@ -64,7 +64,7 @@ export default function PublicEventLayout({ children }) {
       .event-header-card {
         box-sizing: border-box !important;
         min-height: 265px !important;
-        padding: 28px 26px 24px !important;
+        padding: 24px 26px 18px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
@@ -72,25 +72,46 @@ export default function PublicEventLayout({ children }) {
       .event-header {
         width: 100% !important;
       }
+      .event-title-context {
+        font-size: .82rem !important;
+        margin-bottom: 5px !important;
+      }
+      .event-title-names {
+        font-size: clamp(2.35rem, 5vw, 3.7rem) !important;
+        line-height: 1.02 !important;
+      }
       .lehnova-welcome-message {
-        max-width: 620px;
-        margin: 12px auto 0;
+        max-width: 720px;
+        margin: 9px auto 0;
         padding: 0 8px;
         text-align: center;
         font-family: 'Libre Baskerville', Georgia, serif;
         font-style: italic;
-        font-size: 0.82rem;
-        line-height: 1.5;
+        font-size: 0.9rem;
+        line-height: 1.4;
         opacity: 0.82;
+      }
+      .event-nav {
+        margin-top: 10px !important;
+        padding-top: 0 !important;
       }
       @media (max-width: 599px) {
         .event-header-card {
           min-height: 265px !important;
-          padding: 24px 18px 22px !important;
+          padding: 20px 18px 16px !important;
+        }
+        .event-title-context {
+          font-size: .76rem !important;
+        }
+        .event-title-names {
+          font-size: clamp(2rem, 10vw, 2.8rem) !important;
         }
         .lehnova-welcome-message {
-          margin-top: 10px;
-          font-size: 0.78rem;
+          margin-top: 8px;
+          font-size: 0.82rem;
+        }
+        .event-nav {
+          margin-top: 8px !important;
         }
       }
     `}</style>

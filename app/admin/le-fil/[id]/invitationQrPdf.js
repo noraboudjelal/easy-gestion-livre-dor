@@ -18,6 +18,14 @@ function fitCenteredText(doc, text, centerX, y, maxWidth) {
   doc.text(lines.slice(0, 2), centerX, y, { align: "center", lineHeightFactor: 1.05 });
 }
 
+function drawMinimalOrnament(doc, centerX, y) {
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.18);
+  doc.line(centerX - 8, y, centerX - 2, y);
+  doc.circle(centerX, y, 0.8, "S");
+  doc.line(centerX + 2, y, centerX + 8, y);
+}
+
 export function addInvitationQrSheet(doc, event, qrData) {
   const eventTitle = String(event?.event_title || "").trim();
 
@@ -41,18 +49,23 @@ export function addInvitationQrSheet(doc, event, qrData) {
       const y = MARGIN + row * CARD_HEIGHT;
       const centerX = x + CARD_WIDTH / 2;
 
-      doc.setTextColor(0, 0, 0);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.text("LE FIL", centerX, y + 8, { align: "center" });
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.18);
+      doc.rect(x + 0.7, y + 0.7, CARD_WIDTH - 1.4, CARD_HEIGHT - 1.4);
 
-      fitCenteredText(doc, eventTitle, centerX, y + 16, CARD_WIDTH - 10);
-      doc.addImage(qrData, "PNG", centerX - 16, y + 25, 32, 32);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("times", "bold");
+      doc.setFontSize(9);
+      doc.text("LE FIL", centerX, y + 7.5, { align: "center", charSpace: 0.7 });
+      drawMinimalOrnament(doc, centerX, y + 11);
+
+      fitCenteredText(doc, eventTitle, centerX, y + 16.5, CARD_WIDTH - 10);
+      doc.addImage(qrData, "PNG", centerX - 17, y + 25, 34, 34);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
-      doc.text("Scannez pour confirmer", centerX, y + 63, { align: "center" });
-      doc.text("votre présence", centerX, y + 67, { align: "center" });
+      doc.text("Scannez pour confirmer", centerX, y + 63.5, { align: "center" });
+      doc.text("votre présence", centerX, y + 67.3, { align: "center" });
     }
   }
 }

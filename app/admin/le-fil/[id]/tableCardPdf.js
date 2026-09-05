@@ -16,6 +16,12 @@ function centeredLines(doc, text, centerX, y, maxWidth, options = {}) {
   return lines.length;
 }
 
+function getEventNames(event) {
+  const title = String(event.event_title || "").trim();
+  if (event.event_type !== "Mariage") return title;
+  return title.replace(/^mariage\s+de\s+/i, "").trim() || title;
+}
+
 export function addTableCardPage(doc, event, table, qrData) {
   const guests = table.guest_names || [];
   const centers = [PANEL_WIDTH / 2, PANEL_WIDTH * 1.5, PANEL_WIDTH * 2.5];
@@ -70,11 +76,14 @@ export function addTableCardPage(doc, event, table, qrData) {
   const tableNumber = String(table.table_number || "");
   doc.setFontSize(tableNumber.length > 4 ? 62 : tableNumber.length > 2 ? 86 : tableNumber.length > 1 ? 104 : 120);
   doc.text(tableNumber, centerX, 76, { align: "center", maxWidth: 82 });
-  let centerY = 96;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à", centerX, 94, { align: "center" });
+  let centerY = 108;
   doc.setTextColor(0, 0, 0);
   doc.setFont("times", "italic");
-  const eventTitle = String(event.event_title || "");
-  let eventSize = 22;
+  const eventTitle = getEventNames(event);
+  let eventSize = 25;
   doc.setFontSize(eventSize);
   while (doc.getTextWidth(eventTitle) > 82 && eventSize > 11) {
     eventSize -= 0.5;

@@ -38,7 +38,7 @@ export default function PublicVitrinePage() {
   const theme = VITRINE_THEMES[showcase.theme] || VITRINE_THEMES[DEFAULT_THEME];
   const v = theme.vars;
   const firstPhoto = realisations.find(r => r.photo_url || r.photo_urls?.[0]);
-  const heroImage = firstPhoto?.photo_urls?.[0] || firstPhoto?.photo_url || "";
+  const heroImage = showcase.cover_image_url || firstPhoto?.photo_urls?.[0] || firstPhoto?.photo_url || "";
   const categories = ["Tout", ...Array.from(new Set(realisations.map(r => r.category).filter(Boolean)))];
   const visible = active === "Tout" ? realisations : realisations.filter(r => r.category === active);
   const cleanPhone = (showcase.phone || "").replace(/\D/g, "");
@@ -78,3 +78,4 @@ export default function PublicVitrinePage() {
     </main>
   );
 }
+

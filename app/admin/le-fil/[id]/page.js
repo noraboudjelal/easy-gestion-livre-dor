@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { addTableCardPage } from "./tableCardPdf";
 
 const COLORS = {
   page: "#F7F4EF",
@@ -38,80 +39,6 @@ function imageData(url) {
           reader.readAsDataURL(blob);
         })
     );
-}
-
-function addTableCardPage(doc, event, table, qrData) {
-  const pageWidth = 297;
-  const pageHeight = 210;
-  const foldY = pageHeight / 2;
-  const centerX = pageWidth / 2;
-  const guests = table.guest_names || [];
-
-  doc.setFillColor(255, 250, 242);
-  doc.rect(0, 0, pageWidth, pageHeight, "F");
-  doc.setDrawColor(180, 134, 69);
-  doc.setLineWidth(0.35);
-  doc.rect(7, 7, pageWidth - 14, pageHeight - 14);
-  doc.setLineDashPattern([2, 2], 0);
-  doc.line(7, foldY, pageWidth - 7, foldY);
-  doc.setLineDashPattern([], 0);
-
-  doc.setTextColor(57, 47, 39);
-  doc.setFont("times", "italic");
-  doc.setFontSize(18);
-  doc.text("Faites vivre cette journée avec nous", 240, 30, { align: "center", angle: 180 });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text("Laissez un mot, une photo ou un souvenir sur Le Fil.", 240, 43, { align: "center", angle: 180 });
-  doc.text("Une envie musicale ? Envoyez votre titre au DJ.", 240, 52, { align: "center", angle: 180 });
-  doc.setTextColor(166, 121, 43);
-  doc.setFontSize(9);
-  doc.text("SCANNEZ LE QR CODE SUR L’AUTRE FACE", 240, 66, { align: "center", angle: 180 });
-
-  doc.setTextColor(166, 121, 43);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("TABLE", 91, 125, { align: "center" });
-  doc.setTextColor(57, 47, 39);
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(31);
-  doc.text(String(table.table_number), 91, 141, { align: "center" });
-
-  let cursorY = 153;
-  if (table.table_name) {
-    doc.setTextColor(166, 121, 43);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(String(table.table_name).toUpperCase(), 91, cursorY, { align: "center" });
-    cursorY += 10;
-  }
-
-  doc.setTextColor(57, 47, 39);
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(17);
-  doc.text(event.event_title, 91, cursorY, { align: "center", maxWidth: 150 });
-  cursorY += 9;
-
-  if (guests.length) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
-    const guestLines = doc.splitTextToSize(guests.join("  ·  "), 150);
-    doc.text(guestLines.slice(0, 4), 91, cursorY, { align: "center", lineHeightFactor: 1.35 });
-  }
-
-  doc.addImage(qrData, "PNG", 220, 124, 48, 48);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(166, 121, 43);
-  doc.text("LE FIL", 244, 179, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(118, 104, 91);
-  doc.text("Messages · photos · musique", 244, 185, { align: "center" });
-
-  doc.setFontSize(6);
-  doc.setTextColor(150, 135, 120);
-  doc.text("Plier sur la ligne pointillée · Format A4 paysage", centerX, 198, { align: "center" });
 }
 
 export default function EventFilAdminPage() {
@@ -274,10 +201,11 @@ export default function EventFilAdminPage() {
     <main style={styles.page}>
       <style>{`
         @media (max-width: 680px) {
-          .fil-admin-table-form, .fil-admin-preview { grid-template-columns: 1fr !important; }
+          .fil-admin-table-form { grid-template-columns: 1fr !important; }
           .fil-admin-table-row { align-items: flex-start !important; flex-wrap: wrap; }
           .fil-admin-row-actions { width: 100%; justify-content: flex-start !important; padding-left: 40px; }
         }
+        .fil-admin-preview-panel:last-child { border-right: 0 !important; }
       `}</style>
       <div style={styles.shell}>
         <div style={styles.topline}>
@@ -399,25 +327,39 @@ export default function EventFilAdminPage() {
         {previewTable && (
           <section style={styles.panel}>
             <h2 style={styles.panelTitle}>Aperçu du carton</h2>
-            <p style={styles.help}>Aperçu de la première table. Le PDF A4 paysage inclut la ligne de pliage et la seconde face.</p>
+            <p style={styles.help}>Aperçu de la première table. Le PDF A4 paysage comporte trois volets égaux et deux lignes de pliage verticales.</p>
+            <div style={styles.previewScroller}>
             <div className="fil-admin-preview" style={styles.preview}>
-              <div>
-                <span style={styles.previewLabel}>TABLE</span>
-                <div style={styles.previewNumber}>{previewTable.table_number}</div>
-                {previewTable.table_name && <div style={styles.previewTableName}>{previewTable.table_name}</div>}
-                <div style={styles.previewEvent}>{event.event_title}</div>
-                {previewTable.guest_names?.length > 0 && <div style={styles.previewGuests}>{previewTable.guest_names.join(" · ")}</div>}
-              </div>
-              <div style={styles.qrPreview}>
+              <div className="fil-admin-preview-panel" style={styles.previewPanel}>
+                <span style={styles.previewLabel}>LE FIL</span>
+                <div style={styles.previewFilTitle}>Partagez vos plus beaux souvenirs</div>
+                <small style={styles.previewCopy}>Envoyez vos messages, photos et vidéos en direct !</small>
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(filUrl(event.slug))}`}
                   alt="QR code du Fil"
-                  width={120}
-                  height={120}
+                  width={104}
+                  height={104}
                 />
-                <strong>LE FIL</strong>
-                <small>Messages · photos · musique</small>
+                <strong style={styles.previewScan}>SCANNEZ-MOI</strong>
               </div>
+              <div className="fil-admin-preview-panel" style={styles.previewPanel}>
+                <span style={styles.previewLabel}>TABLE</span>
+                <div style={styles.previewNumber}>{previewTable.table_number}</div>
+                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2, 42 / Math.max(String(event.event_title || "").length, 1))}rem` }}>{event.event_title}</div>
+                {previewTable.guest_names?.length > 0 && (
+                  <div style={{ ...styles.previewGuests, fontSize: `${Math.min(0.9, 7 / previewTable.guest_names.length)}rem` }}>
+                    {previewTable.guest_names.map((guestName, index) => <div key={`${guestName}-${index}`}>{guestName}</div>)}
+                  </div>
+                )}
+              </div>
+              <div className="fil-admin-preview-panel" style={styles.previewPanel}>
+                <span style={styles.previewLabel}>LE FIL / DJ</span>
+                <div style={styles.previewFilTitle}>Demandez votre musique</div>
+                <small style={styles.previewCopy}>Proposez un titre au DJ et participez au Fil de l’événement.</small>
+                <div style={styles.previewHeadphones}>◡</div>
+                <div style={styles.previewEvent}>À vous de jouer !</div>
+              </div>
+            </div>
             </div>
           </section>
         )}
@@ -456,11 +398,15 @@ const styles = {
   guestSummary: { color: COLORS.muted, fontSize: "0.74rem", marginTop: "4px" },
   rowActions: { display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" },
   empty: { textAlign: "center", color: COLORS.muted, padding: "18px" },
-  preview: { display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center", gap: "24px", minHeight: "300px", background: "#FFFAF2", border: "1px solid #DEB982", borderRadius: "15px", padding: "34px", textAlign: "center" },
-  previewLabel: { color: COLORS.gold, fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.16em" },
-  previewNumber: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "4rem", lineHeight: 1 },
-  previewTableName: { color: COLORS.gold, fontSize: "0.82rem", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "8px" },
-  previewEvent: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.45rem", marginTop: "12px" },
-  previewGuests: { color: COLORS.muted, fontSize: "0.78rem", lineHeight: 1.6, marginTop: "12px" },
-  qrPreview: { display: "grid", justifyItems: "center", gap: "5px", color: COLORS.gold },
+  previewScroller: { width: "100%", overflowX: "auto", paddingBottom: "4px" },
+  preview: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", alignItems: "stretch", minWidth: "720px", aspectRatio: "297 / 210", background: "#FFFFFF", color: "#000000", border: "1px solid #000000", borderRadius: "4px", textAlign: "center", overflow: "hidden" },
+  previewPanel: { display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "10px", padding: "24px 18px", borderRight: "1px dashed #000000" },
+  previewLabel: { color: "#000000", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.16em" },
+  previewNumber: { fontFamily: "Georgia, serif", fontSize: "clamp(8rem, 15vw, 11.5rem)", lineHeight: 0.72, marginTop: "-8px" },
+  previewEvent: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.45rem", lineHeight: 1.05, marginTop: "8px", whiteSpace: "nowrap" },
+  previewGuests: { color: "#000000", lineHeight: 1.35, marginTop: "8px", width: "100%" },
+  previewFilTitle: { fontFamily: "Georgia, serif", fontStyle: "italic", fontWeight: 700, fontSize: "2.35rem", lineHeight: 1.05, maxWidth: "230px" },
+  previewCopy: { color: "#000000", fontSize: "1.25rem", lineHeight: 1.3, maxWidth: "220px" },
+  previewScan: { color: "#000000", fontSize: "1.1rem", letterSpacing: "0.1em" },
+  previewHeadphones: { width: "62px", height: "48px", border: "5px solid #000000", borderBottom: 0, borderRadius: "34px 34px 0 0", fontSize: 0, marginTop: "10px" },
 };

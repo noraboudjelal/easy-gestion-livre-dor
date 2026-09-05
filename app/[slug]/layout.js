@@ -64,7 +64,7 @@ export default function PublicEventLayout({ children }) {
       .event-header-card {
         box-sizing: border-box !important;
         min-height: 265px !important;
-        padding: 24px 26px 10px !important;
+        padding: 20px 26px 8px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
@@ -77,17 +77,18 @@ export default function PublicEventLayout({ children }) {
         justify-content: center !important;
       }
       .event-title-context {
-        font-size: 1.05rem !important;
-        margin-bottom: 6px !important;
-        letter-spacing: .16em !important;
+        font-size: 1.35rem !important;
+        font-weight: 800 !important;
+        margin-bottom: 7px !important;
+        letter-spacing: .15em !important;
       }
       .event-title-names {
-        font-size: clamp(2.8rem, 5.8vw, 4.35rem) !important;
-        line-height: 1 !important;
+        font-size: clamp(3.6rem, 7vw, 5.5rem) !important;
+        line-height: .98 !important;
       }
       .lehnova-welcome-message {
         max-width: 720px;
-        margin: 9px auto 0;
+        margin: 8px auto 0;
         padding: 0 8px;
         text-align: center;
         font-family: 'Libre Baskerville', Georgia, serif;
@@ -99,28 +100,30 @@ export default function PublicEventLayout({ children }) {
       .event-nav {
         margin-top: auto !important;
         margin-bottom: 0 !important;
-        padding-top: 6px !important;
+        padding-top: 4px !important;
         padding-bottom: 0 !important;
         align-self: stretch !important;
       }
       @media (max-width: 599px) {
         .event-header-card {
           min-height: 265px !important;
-          padding: 18px 18px 8px !important;
+          padding: 14px 12px 6px !important;
         }
         .event-title-context {
-          font-size: .9rem !important;
+          font-size: 1.12rem !important;
+          margin-bottom: 5px !important;
         }
         .event-title-names {
-          font-size: clamp(2.35rem, 11.5vw, 3.25rem) !important;
+          font-size: clamp(2.85rem, 13.8vw, 4rem) !important;
+          letter-spacing: -.055em !important;
         }
         .lehnova-welcome-message {
-          margin-top: 8px;
+          margin-top: 7px;
           font-size: 0.82rem;
         }
         .event-nav {
           margin-top: auto !important;
-          padding-top: 5px !important;
+          padding-top: 3px !important;
         }
       }
     `}</style>

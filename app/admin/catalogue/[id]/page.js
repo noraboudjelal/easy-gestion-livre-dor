@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 
@@ -36,6 +36,10 @@ export default function ManageCatalogPage() {
   const [catalogTitle, setCatalogTitle] = useState("");
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleSaved, setStyleSaved] = useState(false);
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverPreview, setCoverPreview] = useState("");
+  const [savingCover, setSavingCover] = useState(false);
+  const coverInputRef = useRef(null);
 
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
@@ -94,6 +98,8 @@ export default function ManageCatalogPage() {
     setAccentColor(cat.accent_color || "#B5402D");
     setCatalogTitle(cat.catalog_title || "");
     setFontStyle(cat.font_style || "manuscrite");
+    setCoverImageUrl(cat.cover_image_url || "");
+    setCoverPreview("");
     setQuizEnabled(!!cat.quiz_enabled);
     setAvantApresEnabled(!!cat.avant_apres_enabled);
     setOfferEnabled(!!cat.offer_enabled);
@@ -271,6 +277,64 @@ export default function ManageCatalogPage() {
       setStyleSaved(true);
       setTimeout(() => setStyleSaved(false), 1800);
       load();
+    }
+  }
+
+  async function handleCoverChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !supabase || !catalogId) return;
+
+    const localPreview = URL.createObjectURL(file);
+    setCoverPreview(localPreview);
+    setSavingCover(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `covers/${catalogId}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("catalog-photos")
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      setLoadError("Impossible d'envoyer la photo de couverture : " + uploadError.message);
+      setSavingCover(false);
+      URL.revokeObjectURL(localPreview);
+      setCoverPreview("");
+      return;
+    }
+
+    const { data: publicData } = supabase.storage.from("catalog-photos").getPublicUrl(path);
+    const nextUrl = publicData?.publicUrl || "";
+    const { error: updateError } = await supabase
+      .from("catalogs")
+      .update({ cover_image_url: nextUrl || null })
+      .eq("id", catalogId);
+
+    if (updateError) {
+      await supabase.storage.from("catalog-photos").remove([path]);
+      setLoadError("Impossible d'enregistrer la photo de couverture : " + updateError.message);
+    } else {
+      setCoverImageUrl(nextUrl);
+      setLoadError("");
+    }
+    setSavingCover(false);
+    URL.revokeObjectURL(localPreview);
+    setCoverPreview("");
+  }
+
+  async function handleRemoveCover() {
+    if (!supabase || !catalogId || !coverImageUrl) return;
+    setSavingCover(true);
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ cover_image_url: null })
+      .eq("id", catalogId);
+    setSavingCover(false);
+    if (error) {
+      setLoadError("Impossible de supprimer la photo de couverture : " + error.message);
+    } else {
+      setCoverImageUrl("");
+      setCoverPreview("");
+      setLoadError("");
     }
   }
 
@@ -753,6 +817,29 @@ export default function ManageCatalogPage() {
                 placeholder="ex. Nos soins, Notre carte, Nos prestations…"
               />
             </label>
+            <div style={styles.coverField}>
+              <span style={styles.label}>Photo de couverture</span>
+              {(coverPreview || coverImageUrl) && (
+                <img src={coverPreview || coverImageUrl} alt="Couverture actuelle" style={styles.coverPreview} />
+              )}
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverChange}
+                style={{ display: "none" }}
+              />
+              <div style={styles.coverActions}>
+                <button type="button" style={styles.cancelButton} onClick={() => coverInputRef.current?.click()} disabled={savingCover}>
+                  {coverImageUrl ? "Remplacer" : "Choisir une photo"}
+                </button>
+                {coverImageUrl && (
+                  <button type="button" style={styles.iconButtonDanger} onClick={handleRemoveCover} disabled={savingCover}>
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            </div>
             <div style={styles.formRow2}>
               <label style={styles.label}>
                 Couleur principale
@@ -1336,6 +1423,9 @@ const styles = {
   label: { display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636", flex: "1 1 200px" },
   input: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D" },
   colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff" },
+  coverField: { display: "flex", flexDirection: "column", gap: "8px" },
+  coverPreview: { width: "100%", maxHeight: "230px", objectFit: "contain", objectPosition: "center", borderRadius: "6px", background: "#EFE9DA", border: "1px solid #D8CCAB" },
+  coverActions: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" },
   swatchRow: { display: "flex", gap: "8px" },
   swatch: { width: "28px", height: "28px", borderRadius: "50%", border: "none", cursor: "pointer" },
   textarea: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D", resize: "vertical" },
@@ -1413,3 +1503,4 @@ const styles = {
     lineHeight: 1,
   },
 };
+

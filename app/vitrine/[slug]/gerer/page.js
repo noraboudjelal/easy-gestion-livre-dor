@@ -1,7 +1,7 @@
 // À placer dans : app/vitrine/[slug]/gerer/page.js
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { VITRINE_THEMES } from "../../../../lib/vitrineThemes";
@@ -25,6 +25,9 @@ export default function ClientManageVitrinePage() {
   const [visitCount, setVisitCount] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [themeSaving, setThemeSaving] = useState(false);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [coverSaving, setCoverSaving] = useState(false);
+  const coverInputRef = useRef(null);
 
   // --- Réseaux sociaux ---
   const [instagramUrl, setInstagramUrl] = useState("");
@@ -161,6 +164,59 @@ export default function ClientManageVitrinePage() {
     const { error } = await supabase.from("showcases").update({ about_text: aboutText.trim() || null }).eq("id", showcase.id);
     setAboutSaving(false);
     if (error) setLoadError("Enregistrement impossible : " + error.message);
+  }
+
+  async function handleCoverChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !supabase || !showcase) return;
+
+    const preview = URL.createObjectURL(file);
+    setCoverPreview(preview);
+    setCoverSaving(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `covers/${showcase.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("vitrine-photos")
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      setLoadError("Envoi de la couverture impossible : " + uploadError.message);
+    } else {
+      const { data } = supabase.storage.from("vitrine-photos").getPublicUrl(path);
+      const nextUrl = data?.publicUrl || "";
+      const { error: updateError } = await supabase
+        .from("showcases")
+        .update({ cover_image_url: nextUrl || null })
+        .eq("id", showcase.id);
+      if (updateError) {
+        await supabase.storage.from("vitrine-photos").remove([path]);
+        setLoadError("Enregistrement de la couverture impossible : " + updateError.message);
+      } else {
+        setShowcase((current) => ({ ...current, cover_image_url: nextUrl }));
+        setLoadError("");
+      }
+    }
+    setCoverSaving(false);
+    URL.revokeObjectURL(preview);
+    setCoverPreview("");
+  }
+
+  async function handleRemoveCover() {
+    if (!supabase || !showcase?.cover_image_url) return;
+    setCoverSaving(true);
+    const { error } = await supabase
+      .from("showcases")
+      .update({ cover_image_url: null })
+      .eq("id", showcase.id);
+    setCoverSaving(false);
+    if (error) {
+      setLoadError("Suppression de la couverture impossible : " + error.message);
+    } else {
+      setShowcase((current) => ({ ...current, cover_image_url: null }));
+      setCoverPreview("");
+      setLoadError("");
+    }
   }
 
   function resetForm() {
@@ -346,6 +402,28 @@ export default function ClientManageVitrinePage() {
         </div>
 
         {loadError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{loadError}</p>}
+
+        <section style={styles.themeBlock}>
+          <h2 style={styles.blockTitle}>Photo de couverture</h2>
+          <div style={styles.coverContent}>
+            {(coverPreview || showcase?.cover_image_url) ? (
+              <img src={coverPreview || showcase.cover_image_url} alt="Couverture actuelle" style={styles.coverPreview} />
+            ) : (
+              <p style={styles.coverEmpty}>Aucune photo de couverture.</p>
+            )}
+            <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverChange} style={{ display: "none" }} />
+            <div style={styles.coverActions}>
+              <button type="button" style={styles.primaryButton} onClick={() => coverInputRef.current?.click()} disabled={coverSaving}>
+                {coverSaving ? "Enregistrement…" : showcase?.cover_image_url ? "Remplacer la photo" : "Choisir une photo"}
+              </button>
+              {showcase?.cover_image_url && (
+                <button type="button" style={styles.iconButtonDanger} onClick={handleRemoveCover} disabled={coverSaving}>
+                  Supprimer la photo
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
 
         <section style={styles.themeBlock}>
           <h2 style={styles.blockTitle}>À propos</h2>
@@ -567,6 +645,10 @@ const styles = {
   statLabel: { fontSize: "0.78rem", color: "#8A7F66" },
   themeBlock: { background: "#FCFAF2", borderRadius: "10px", padding: "18px", border: "1px solid #E6DCC2" },
   blockTitle: { fontSize: "1.05rem", fontFamily: "'Fraunces', serif", fontWeight: 600, margin: 0, color: "#1E2A3A" },
+  coverContent: { display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" },
+  coverPreview: { width: "100%", maxHeight: "280px", objectFit: "contain", objectPosition: "center", borderRadius: "8px", background: "#EFE9DA", border: "1px solid #E6DCC2" },
+  coverEmpty: { margin: 0, color: "#8A7F66", fontSize: "0.8rem" },
+  coverActions: { display: "flex", gap: "8px", flexWrap: "wrap" },
   themeRow: { display: "flex", gap: "12px", marginTop: "10px" },
   themeSwatch: { width: "38px", height: "38px", borderRadius: "50%", border: "none", padding: 0 },
   tabs: { display: "flex", gap: "8px", flexWrap: "wrap" },
@@ -598,3 +680,4 @@ const styles = {
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
   iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
 };
+

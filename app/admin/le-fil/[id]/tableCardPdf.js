@@ -16,10 +16,30 @@ function centeredLines(doc, text, centerX, y, maxWidth, options = {}) {
   return lines.length;
 }
 
-function getEventNames(event) {
-  const title = String(event.event_title || "").trim();
-  if (event.event_type !== "Mariage") return title;
-  return title.replace(/^mariage\s+de\s+/i, "").trim() || title;
+const EVENT_WORDINGS = {
+  Mariage: { intro: "Bienvenue au mariage", link: "de", prefix: /^mariage\s+de\s+/i },
+  Anniversaire: { intro: "Bienvenue à l’anniversaire", link: "de", prefix: /^anniversaire\s+de\s+/i },
+  Baptême: { intro: "Bienvenue au baptême", link: "de", prefix: /^baptême\s+de\s+/i },
+  "Baby Shower": { intro: "Bienvenue à la Baby Shower", link: "de", prefix: /^baby\s*shower\s+de\s+/i },
+  "Pot de départ": { intro: "Bienvenue au pot de départ", link: "de", prefix: /^pot\s+de\s+départ\s+de\s+/i },
+  "Départ en retraite": { intro: "Bienvenue au départ en retraite", link: "de", prefix: /^départ\s+en\s+retraite\s+de\s+/i },
+  Henné: { intro: "Bienvenue à la cérémonie du henné", link: "de", prefix: /^(?:cérémonie\s+du\s+)?henné\s+de\s+/i },
+  Circoncision: { intro: "Bienvenue à la circoncision", link: "de", prefix: /^circoncision\s+de\s+/i },
+  Fiançailles: { intro: "Bienvenue aux fiançailles", link: "de", prefix: /^fiançailles\s+de\s+/i },
+  Inauguration: { intro: "Bienvenue à l’inauguration", link: "de", prefix: /^inauguration\s+de\s+/i },
+  "Lancement de produit": { intro: "Bienvenue au lancement", link: "de", prefix: /^lancement(?:\s+de\s+produit)?\s+de\s+/i },
+  "Fête d'entreprise": { intro: "Bienvenue à la fête d’entreprise", link: "de", prefix: /^fête\s+d['’]entreprise\s+de\s+/i },
+  "Vos avis": { intro: "Bienvenue dans", link: "", prefix: /^vos\s+avis\s*[-:]?\s*/i },
+  "Entre Nous": { intro: "Bienvenue dans", link: "", prefix: /^entre\s+nous\s*[-:]?\s*/i },
+  "Notre Journal": { intro: "Bienvenue dans", link: "", prefix: /^notre\s+journal\s*[-:]?\s*/i },
+  Autre: { intro: "Bienvenue pour", link: "", prefix: null },
+};
+
+export function getTableCardEventWording(event = {}) {
+  const wording = EVENT_WORDINGS[event.event_type] || EVENT_WORDINGS.Autre;
+  const originalTitle = String(event.event_title || "").trim();
+  const title = wording.prefix ? originalTitle.replace(wording.prefix, "").trim() || originalTitle : originalTitle;
+  return { intro: wording.intro, link: wording.link, title };
 }
 
 export function addTableCardPage(doc, event, table, qrData) {
@@ -77,9 +97,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFontSize(tableNumber.length > 4 ? 62 : tableNumber.length > 2 ? 86 : tableNumber.length > 1 ? 104 : 120);
   doc.text(tableNumber, centerX, 76, { align: "center", maxWidth: 82 });
   doc.setFont("times", "italic");
-  const eventIntro = event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à";
-  const eventLink = event.event_type === "Mariage" ? "de" : "";
-  const eventTitle = getEventNames(event);
+  const { intro: eventIntro, link: eventLink, title: eventTitle } = getTableCardEventWording(event);
   let eventSize = 25;
   doc.setFontSize(eventSize);
   while ((doc.getTextWidth(eventIntro) > 82 || doc.getTextWidth(eventTitle) > 82) && eventSize > 11) {

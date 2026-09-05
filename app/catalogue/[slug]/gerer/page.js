@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 
@@ -29,6 +29,9 @@ export default function ClientManageCatalogPage() {
   const [existingPhotoUrls, setExistingPhotoUrls] = useState([]);
   const [saving, setSaving] = useState(false);
   const [reorderingId, setReorderingId] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [savingCover, setSavingCover] = useState(false);
+  const coverInputRef = useRef(null);
 
   const loadCatalog = useCallback(async () => {
     if (!supabase || !slug) return;
@@ -201,6 +204,64 @@ export default function ClientManageCatalogPage() {
     loadProducts();
   }
 
+  async function handleCoverChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !supabase || !catalog) return;
+
+    const localPreview = URL.createObjectURL(file);
+    setCoverPreview(localPreview);
+    setSavingCover(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `covers/${catalog.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("catalog-photos")
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+
+    if (uploadError) {
+      setLoadError("Impossible d'envoyer la photo de couverture : " + uploadError.message);
+      setSavingCover(false);
+      URL.revokeObjectURL(localPreview);
+      setCoverPreview("");
+      return;
+    }
+
+    const { data: publicData } = supabase.storage.from("catalog-photos").getPublicUrl(path);
+    const nextUrl = publicData?.publicUrl || "";
+    const { error: updateError } = await supabase
+      .from("catalogs")
+      .update({ cover_image_url: nextUrl || null })
+      .eq("id", catalog.id);
+
+    if (updateError) {
+      await supabase.storage.from("catalog-photos").remove([path]);
+      setLoadError("Impossible d'enregistrer la photo de couverture : " + updateError.message);
+    } else {
+      setCatalog((current) => ({ ...current, cover_image_url: nextUrl }));
+      setLoadError("");
+    }
+    setSavingCover(false);
+    URL.revokeObjectURL(localPreview);
+    setCoverPreview("");
+  }
+
+  async function handleRemoveCover() {
+    if (!supabase || !catalog?.cover_image_url) return;
+    setSavingCover(true);
+    const { error } = await supabase
+      .from("catalogs")
+      .update({ cover_image_url: null })
+      .eq("id", catalog.id);
+    setSavingCover(false);
+    if (error) {
+      setLoadError("Impossible de supprimer la photo de couverture : " + error.message);
+    } else {
+      setCatalog((current) => ({ ...current, cover_image_url: null }));
+      setCoverPreview("");
+      setLoadError("");
+    }
+  }
+
   function catalogLink() {
     if (typeof window === "undefined" || !catalog) return "";
     return `${window.location.origin}/catalogue/${catalog.slug}`;
@@ -255,6 +316,23 @@ export default function ClientManageCatalogPage() {
           <a href={catalogLink()} target="_blank" rel="noreferrer" style={styles.viewLink}>
             Voir mon catalogue en ligne ↗
           </a>
+          <div style={styles.coverControls}>
+            <span style={styles.coverLabel}>Photo de couverture</span>
+            {(coverPreview || catalog?.cover_image_url) && (
+              <img src={coverPreview || catalog.cover_image_url} alt="Couverture actuelle" style={styles.coverPreview} />
+            )}
+            <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverChange} style={{ display: "none" }} />
+            <div style={styles.coverActions}>
+              <button type="button" style={styles.cancelButton} onClick={() => coverInputRef.current?.click()} disabled={savingCover}>
+                {savingCover ? "Enregistrement…" : catalog?.cover_image_url ? "Remplacer" : "Choisir une photo"}
+              </button>
+              {catalog?.cover_image_url && (
+                <button type="button" style={styles.iconButtonDanger} onClick={handleRemoveCover} disabled={savingCover}>
+                  Supprimer
+                </button>
+              )}
+            </div>
+          </div>
         </header>
 
         {loadError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{loadError}</p>}
@@ -382,6 +460,10 @@ const styles = {
   page: { minHeight: "100vh", background: "#EFE9DA", fontFamily: "'Inter', sans-serif", color: "#2A241D", padding: "24px 16px", display: "flex", justifyContent: "center" },
   shell: { width: "100%", maxWidth: "720px", display: "flex", flexDirection: "column", gap: "18px" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" },
+  coverControls: { width: "100%", display: "flex", flexDirection: "column", gap: "8px" },
+  coverLabel: { fontSize: "0.78rem", fontWeight: 600, color: "#5B4636" },
+  coverPreview: { width: "100%", maxHeight: "230px", objectFit: "contain", objectPosition: "center", borderRadius: "6px", background: "#EFE9DA", border: "1px solid #D8CCAB" },
+  coverActions: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" },
   kicker: { fontSize: "0.65rem", letterSpacing: "0.14em", color: "#A6792B", margin: 0, fontWeight: 600 },
   title: { fontSize: "1.5rem", fontWeight: 700, margin: 0, color: "#1E2A3A" },
   viewLink: { fontSize: "0.8rem", color: "#B5402D", fontWeight: 600, textDecoration: "none" },
@@ -414,3 +496,4 @@ const styles = {
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
   iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
 };
+

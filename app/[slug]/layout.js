@@ -62,8 +62,15 @@ export default function PublicEventLayout({ children }) {
   return <>
     <style jsx global>{`
       .event-header-card {
-        padding-top: 38px !important;
-        padding-bottom: 32px !important;
+        box-sizing: border-box !important;
+        min-height: 265px !important;
+        padding: 28px 26px 24px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+      }
+      .event-header {
+        width: 100% !important;
       }
       .lehnova-welcome-message {
         max-width: 620px;
@@ -78,8 +85,8 @@ export default function PublicEventLayout({ children }) {
       }
       @media (max-width: 599px) {
         .event-header-card {
-          padding-top: 34px !important;
-          padding-bottom: 29px !important;
+          min-height: 265px !important;
+          padding: 24px 18px 22px !important;
         }
         .lehnova-welcome-message {
           margin-top: 10px;

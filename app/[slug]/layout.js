@@ -57,7 +57,7 @@ export default function PublicEventLayout({ children }) {
   async function openCamera(){
     setCameraOpen(true);setShot("");setShotFile(null);setCameraError("");
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1080},height:{ideal:1440}},audio:false});
+      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1080},height:{ideal:1920}},audio:false});
       streamRef.current=stream;
       setTimeout(()=>{if(videoRef.current){videoRef.current.srcObject=stream;videoRef.current.play().catch(()=>{})}},0);
     }catch{setCameraError("Impossible d’ouvrir la caméra. Autorisez l’accès à la caméra dans votre navigateur.")}
@@ -67,10 +67,10 @@ export default function PublicEventLayout({ children }) {
     const v=videoRef.current;if(!v?.videoWidth)return;
     const c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;const x=c.getContext("2d");
     x.drawImage(v,0,0,c.width,c.height);
-    const h=Math.max(150,c.height*.22);const g=x.createLinearGradient(0,c.height-h,0,c.height);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.68)");x.fillStyle=g;x.fillRect(0,c.height-h,c.width,h);
-    x.textAlign="center";x.fillStyle="#fff";x.shadowColor="rgba(0,0,0,.55)";x.shadowBlur=8;
-    x.font=`italic 700 ${Math.max(34,Math.round(c.width*.055))}px Georgia`;x.fillText(eventMeta.title||"Le Fil",c.width/2,c.height-Math.max(65,c.height*.075));
-    if(eventMeta.date){x.font=`600 ${Math.max(18,Math.round(c.width*.025))}px Arial`;x.fillText(eventMeta.date.toUpperCase(),c.width/2,c.height-Math.max(30,c.height*.035))}
+    const h=Math.max(180,c.height*.24);const g=x.createLinearGradient(0,c.height-h,0,c.height);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,"rgba(0,0,0,.72)");x.fillStyle=g;x.fillRect(0,c.height-h,c.width,h);
+    x.textAlign="center";x.fillStyle="#fff";x.shadowColor="rgba(0,0,0,.6)";x.shadowBlur=8;
+    x.font=`italic 700 ${Math.max(34,Math.round(c.width*.055))}px Georgia`;x.fillText(eventMeta.title,c.width/2,c.height-Math.max(72,c.height*.078));
+    if(eventMeta.date){x.font=`600 ${Math.max(18,Math.round(c.width*.025))}px Arial`;x.fillText(eventMeta.date.toUpperCase(),c.width/2,c.height-Math.max(34,c.height*.037))}
     c.toBlob(blob=>{if(!blob)return;const file=new File([blob],`le-fil-${Date.now()}.jpg`,{type:"image/jpeg"});setShotFile(file);setShot(URL.createObjectURL(blob));streamRef.current?.getTracks().forEach(t=>t.stop())},"image/jpeg",.92);
   }
   function retake(){setShot("");setShotFile(null);openCamera()}
@@ -86,15 +86,15 @@ export default function PublicEventLayout({ children }) {
   return <>
     <style jsx global>{`
       .event-header-card{box-sizing:border-box!important;min-height:265px!important;padding:20px 26px 8px!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important}.event-header{width:100%!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}.event-title-context{font-size:1.35rem!important;font-weight:800!important;margin-bottom:7px!important;letter-spacing:.15em!important}.event-title-names{font-size:clamp(3.6rem,7vw,5.5rem)!important;line-height:.98!important}.lehnova-welcome-message{max-width:720px;margin:22px auto 0!important;padding:0 8px;text-align:center;font-family:'Libre Baskerville',Georgia,serif;font-style:italic;font-size:.9rem;line-height:1.4;opacity:.82}.event-nav{margin-top:auto!important;margin-bottom:0!important;padding-top:4px!important;padding-bottom:0!important;align-self:stretch!important}
-      .lehnova-camera-button{width:100%;margin-top:8px;border:1px solid #d8b57a;border-radius:14px;background:#fffdf9;color:#3d3128;padding:12px 15px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.06);cursor:pointer}.lehnova-camera-modal{position:fixed;inset:0;z-index:9999;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white}.lehnova-camera-stage{position:relative;width:min(100vw,520px);height:min(76vh,700px);overflow:hidden;background:#000}.lehnova-camera-stage video,.lehnova-camera-stage img{width:100%;height:100%;object-fit:cover}.lehnova-live-filter{position:absolute;left:0;right:0;bottom:0;padding:80px 16px 24px;text-align:center;background:linear-gradient(to top,rgba(0,0,0,.7),transparent);text-shadow:0 2px 6px #000;pointer-events:none}.lehnova-live-title{font:italic 700 clamp(25px,7vw,38px) Georgia,serif}.lehnova-live-date{margin-top:7px;font:600 12px Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}.lehnova-camera-actions{display:flex;gap:12px;padding:18px;flex-wrap:wrap;justify-content:center}.lehnova-camera-actions button{border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:12px 18px;background:white;color:#241d18;font-weight:800}.lehnova-camera-actions .secondary{background:transparent;color:white}.lehnova-camera-error{padding:20px;text-align:center;max-width:420px}
+      .lehnova-camera-button{width:100%;margin-top:8px;border:1px solid #d8b57a;border-radius:14px;background:#fffdf9;color:#3d3128;padding:12px 15px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.06);cursor:pointer}.lehnova-camera-modal{position:fixed;inset:0;z-index:9999;background:#000;color:white;overflow:hidden}.lehnova-camera-stage{position:absolute;inset:0;width:100vw;height:100dvh;overflow:hidden;background:#000}.lehnova-camera-stage video,.lehnova-camera-stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.lehnova-live-filter{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:120px 20px max(125px,calc(env(safe-area-inset-bottom) + 110px));text-align:center;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,0));text-shadow:0 2px 8px #000;pointer-events:none}.lehnova-live-title{font:italic 700 clamp(28px,8vw,46px) Georgia,serif}.lehnova-live-date{margin-top:8px;font:600 clamp(12px,3.4vw,16px) Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}.lehnova-camera-actions{position:absolute;z-index:4;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;gap:10px;padding:12px 16px;flex-wrap:wrap;justify-content:center}.lehnova-camera-actions button{border:1px solid rgba(255,255,255,.65);border-radius:999px;padding:12px 18px;background:white;color:#241d18;font-weight:800}.lehnova-camera-actions .secondary{background:rgba(0,0,0,.35);color:white;backdrop-filter:blur(8px)}.lehnova-camera-error{position:absolute;z-index:5;inset:0;display:grid;place-items:center;padding:28px;text-align:center;background:#111}.lehnova-camera-error+ .lehnova-camera-actions{z-index:6}
       @media(max-width:599px){.event-header-card{min-height:265px!important;padding:14px 12px 6px!important}.event-title-context{font-size:1.12rem!important;margin-bottom:5px!important}.event-title-names{font-size:clamp(2.85rem,13.8vw,4rem)!important;letter-spacing:-.055em!important}.lehnova-welcome-message{margin-top:18px!important;font-size:.82rem}.event-nav{margin-top:auto!important;padding-top:3px!important}}
     `}</style>
     {children}
-    {photoArea&&createPortal(<button type="button" className="lehnova-camera-button" onClick={openCamera}>📸 Prendre une photo avec le filtre</button>,photoArea)}
+    {photoArea&&createPortal(<button type="button" className="lehnova-camera-button" onClick={openCamera}>📸 Prendre une photo avec un filtre</button>,photoArea)}
     {cameraOpen&&<div className="lehnova-camera-modal">
       <div className="lehnova-camera-stage">
         {!shot&&<video ref={videoRef} playsInline muted/>}{shot&&<img src={shot} alt="Aperçu"/>}
-        {!shot&&<div className="lehnova-live-filter"><div className="lehnova-live-title">{eventMeta.title||"Le Fil"}</div>{eventMeta.date&&<div className="lehnova-live-date">{eventMeta.date}</div>}</div>}
+        {!shot&&eventMeta.title&&<div className="lehnova-live-filter"><div className="lehnova-live-title">{eventMeta.title}</div>{eventMeta.date&&<div className="lehnova-live-date">{eventMeta.date}</div>}</div>}
       </div>
       {cameraError&&<div className="lehnova-camera-error">{cameraError}</div>}
       <div className="lehnova-camera-actions">

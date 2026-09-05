@@ -76,10 +76,10 @@ export function addTableCardPage(doc, event, table, qrData) {
   const tableNumber = String(table.table_number || "");
   doc.setFontSize(tableNumber.length > 4 ? 62 : tableNumber.length > 2 ? 86 : tableNumber.length > 1 ? 104 : 120);
   doc.text(tableNumber, centerX, 76, { align: "center", maxWidth: 82 });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
+  doc.setFont("times", "italic");
+  doc.setFontSize(16);
   doc.text(event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à", centerX, 94, { align: "center" });
-  let centerY = 108;
+  let centerY = 109;
   doc.setTextColor(0, 0, 0);
   doc.setFont("times", "italic");
   const eventTitle = getEventNames(event);

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { addTableCardPage, getTableCardEventWording } from "./tableCardPdf";
+import { addInvitationQrSheet } from "./invitationQrPdf";
 
 const COLORS = {
   page: "#F7F4EF",
@@ -192,6 +193,26 @@ export default function EventFilAdminPage() {
     }
   }
 
+  async function downloadInvitationQr() {
+    if (!event) return;
+    const fileName = `qr-faire-part-${event.slug}.pdf`;
+    setPdfBusy(fileName);
+    setError("");
+    try {
+      const [{ jsPDF }, qrData] = await Promise.all([
+        import("jspdf"),
+        imageData(`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=24&data=${encodeURIComponent(filUrl(event.slug))}`),
+      ]);
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      addInvitationQrSheet(doc, event, qrData);
+      doc.save(fileName);
+    } catch (pdfError) {
+      setError(pdfError.message || "Génération du PDF impossible.");
+    } finally {
+      setPdfBusy("");
+    }
+  }
+
   const previewTable = useMemo(() => tables[0] || null, [tables]);
   const previewEventWording = useMemo(() => getTableCardEventWording(event || {}), [event]);
   const previewEventFontSize = `${Math.min(2.2, 42 / Math.max(previewEventWording.intro.length, previewEventWording.title.length, 1))}rem`;
@@ -206,6 +227,7 @@ export default function EventFilAdminPage() {
           .fil-admin-table-form { grid-template-columns: 1fr !important; }
           .fil-admin-table-row { align-items: flex-start !important; flex-wrap: wrap; }
           .fil-admin-row-actions { width: 100%; justify-content: flex-start !important; padding-left: 40px; }
+          .fil-admin-invitation-previews { grid-template-columns: 1fr !important; }
         }
         .fil-admin-preview-panel:last-child { border-right: 0 !important; }
       `}</style>
@@ -219,6 +241,31 @@ export default function EventFilAdminPage() {
         <p style={styles.subtitle}>Phrase d’accueil et cartons de table</p>
 
         {error && <p style={styles.error}>{error}</p>}
+
+        <section id="faire-part" style={styles.panel}>
+          <div style={styles.sectionHead}>
+            <div>
+              <h2 style={styles.panelTitle}>QR pour faire-part</h2>
+              <p style={styles.help}>12 vignettes identiques sur une feuille A4, prêtes à découper et à glisser dans vos faire-part.</p>
+            </div>
+            <button type="button" style={styles.primary} disabled={Boolean(pdfBusy)} onClick={downloadInvitationQr}>
+              {pdfBusy === `qr-faire-part-${event.slug}.pdf` ? "Génération…" : "Télécharger le PDF A4"}
+            </button>
+          </div>
+
+          <div className="fil-admin-invitation-previews" style={styles.invitationPreviews}>
+            <div>
+              <h3 style={styles.previewSubtitle}>Aperçu d’une vignette</h3>
+              <InvitationQrCard event={event} />
+            </div>
+            <div>
+              <h3 style={styles.previewSubtitle}>Aperçu de la feuille</h3>
+              <div style={styles.sheetPreview}>
+                {Array.from({ length: 12 }, (_, index) => <InvitationQrCard event={event} compact key={index} />)}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section id="phrase" style={styles.panel}>
           <h2 style={styles.panelTitle}>Phrase d’accueil</h2>
@@ -413,5 +460,29 @@ const styles = {
   previewCopy: { color: "#000000", fontSize: "1.25rem", lineHeight: 1.3, maxWidth: "220px" },
   previewScan: { color: "#000000", fontSize: "1.1rem", letterSpacing: "0.1em" },
   previewHeadphones: { width: "62px", height: "48px", border: "5px solid #000000", borderBottom: 0, borderRadius: "34px 34px 0 0", fontSize: 0, marginTop: "10px" },
+  invitationPreviews: { display: "grid", gridTemplateColumns: "minmax(220px, 0.7fr) minmax(360px, 1.3fr)", gap: "22px", alignItems: "start" },
+  previewSubtitle: { fontSize: "0.78rem", color: COLORS.muted, margin: "0 0 8px" },
+  invitationCard: { aspectRatio: "194 / 210.75", border: "1px solid #D7D7D7", background: "#FFFFFF", color: "#000000", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "10px", overflow: "hidden" },
+  invitationBrand: { fontSize: "0.67rem", fontWeight: 800, letterSpacing: "0.14em" },
+  invitationTitle: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.15rem", lineHeight: 1.05, margin: "7px 0" },
+  invitationCopy: { fontSize: "0.66rem", lineHeight: 1.2, marginTop: "7px" },
+  sheetPreview: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "#fff", border: "1px solid #D7D7D7", aspectRatio: "210 / 297", overflow: "hidden" },
 };
+
+function InvitationQrCard({ event, compact = false }) {
+  const qrSize = compact ? 34 : 104;
+  return (
+    <div style={{ ...styles.invitationCard, border: compact ? "0.5px solid #D7D7D7" : styles.invitationCard.border, padding: compact ? "3px" : "10px" }}>
+      <strong style={{ ...styles.invitationBrand, fontSize: compact ? "0.26rem" : styles.invitationBrand.fontSize }}>LE FIL</strong>
+      <div style={{ ...styles.invitationTitle, fontSize: compact ? "0.42rem" : styles.invitationTitle.fontSize }}>{event.event_title}</div>
+      <img
+        src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(filUrl(event.slug))}`}
+        alt={`QR du Fil ${event.event_title}`}
+        width={qrSize}
+        height={qrSize}
+      />
+      <span style={{ ...styles.invitationCopy, fontSize: compact ? "0.24rem" : styles.invitationCopy.fontSize }}>Scannez pour confirmer votre présence</span>
+    </div>
+  );
+}
 

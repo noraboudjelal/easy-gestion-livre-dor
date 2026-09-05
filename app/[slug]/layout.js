@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
+import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
 function formatDate(value) {
@@ -12,7 +13,6 @@ function formatDate(value) {
 
 export default function PublicEventLayout({ children }) {
   const params = useParams();
-  const pathname = usePathname();
   const slug = params?.slug;
   const [welcomeMessage,setWelcomeMessage]=useState("");
   const [eventMeta,setEventMeta]=useState({title:"",date:""});
@@ -20,8 +20,8 @@ export default function PublicEventLayout({ children }) {
   const [shot,setShot]=useState("");
   const [shotFile,setShotFile]=useState(null);
   const [cameraError,setCameraError]=useState("");
+  const [photoArea,setPhotoArea]=useState(null);
   const videoRef=useRef(null); const streamRef=useRef(null);
-  const isFil = pathname?.includes("/le-fil/");
 
   useEffect(()=>{ let active=true; (async()=>{
     if(!supabase||!slug)return;
@@ -39,6 +39,20 @@ export default function PublicEventLayout({ children }) {
     if(!node){node=document.createElement("p");node.dataset.lehnovaWelcome="true";node.className="lehnova-welcome-message";const title=header.querySelector(".event-title-names");if(title)title.insertAdjacentElement("afterend",node);else header.prepend(node)}
     node.textContent=welcomeMessage;
   },[welcomeMessage]);
+
+  useEffect(()=>{
+    let cancelled=false;
+    const findPhotoArea=()=>{
+      const inputs=[...document.querySelectorAll('input[type="file"]')];
+      const input=inputs.find(i=>(i.accept||"").includes("image"));
+      if(input&&!cancelled){setPhotoArea(input.parentElement||input.closest("label")||null);return true}
+      return false;
+    };
+    if(findPhotoArea())return()=>{cancelled=true};
+    const observer=new MutationObserver(()=>{if(findPhotoArea())observer.disconnect()});
+    observer.observe(document.body,{childList:true,subtree:true});
+    return()=>{cancelled=true;observer.disconnect()};
+  },[]);
 
   async function openCamera(){
     setCameraOpen(true);setShot("");setShotFile(null);setCameraError("");
@@ -72,11 +86,11 @@ export default function PublicEventLayout({ children }) {
   return <>
     <style jsx global>{`
       .event-header-card{box-sizing:border-box!important;min-height:265px!important;padding:20px 26px 8px!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important}.event-header{width:100%!important;flex:1 1 auto!important;display:flex!important;flex-direction:column!important;justify-content:center!important}.event-title-context{font-size:1.35rem!important;font-weight:800!important;margin-bottom:7px!important;letter-spacing:.15em!important}.event-title-names{font-size:clamp(3.6rem,7vw,5.5rem)!important;line-height:.98!important}.lehnova-welcome-message{max-width:720px;margin:22px auto 0!important;padding:0 8px;text-align:center;font-family:'Libre Baskerville',Georgia,serif;font-style:italic;font-size:.9rem;line-height:1.4;opacity:.82}.event-nav{margin-top:auto!important;margin-bottom:0!important;padding-top:4px!important;padding-bottom:0!important;align-self:stretch!important}
-      .lehnova-camera-button{position:fixed;right:18px;bottom:18px;z-index:90;border:0;border-radius:999px;background:#3d3128;color:white;padding:13px 17px;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.25);cursor:pointer}.lehnova-camera-modal{position:fixed;inset:0;z-index:9999;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white}.lehnova-camera-stage{position:relative;width:min(100vw,520px);height:min(76vh,700px);overflow:hidden;background:#000}.lehnova-camera-stage video,.lehnova-camera-stage img{width:100%;height:100%;object-fit:cover}.lehnova-live-filter{position:absolute;left:0;right:0;bottom:0;padding:80px 16px 24px;text-align:center;background:linear-gradient(to top,rgba(0,0,0,.7),transparent);text-shadow:0 2px 6px #000;pointer-events:none}.lehnova-live-title{font:italic 700 clamp(25px,7vw,38px) Georgia,serif}.lehnova-live-date{margin-top:7px;font:600 12px Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}.lehnova-camera-actions{display:flex;gap:12px;padding:18px;flex-wrap:wrap;justify-content:center}.lehnova-camera-actions button{border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:12px 18px;background:white;color:#241d18;font-weight:800}.lehnova-camera-actions .secondary{background:transparent;color:white}.lehnova-camera-error{padding:20px;text-align:center;max-width:420px}
-      @media(max-width:599px){.event-header-card{min-height:265px!important;padding:14px 12px 6px!important}.event-title-context{font-size:1.12rem!important;margin-bottom:5px!important}.event-title-names{font-size:clamp(2.85rem,13.8vw,4rem)!important;letter-spacing:-.055em!important}.lehnova-welcome-message{margin-top:18px!important;font-size:.82rem}.event-nav{margin-top:auto!important;padding-top:3px!important}.lehnova-camera-button{right:12px;bottom:12px}}
+      .lehnova-camera-button{width:100%;margin-top:8px;border:1px solid #d8b57a;border-radius:14px;background:#fffdf9;color:#3d3128;padding:12px 15px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,.06);cursor:pointer}.lehnova-camera-modal{position:fixed;inset:0;z-index:9999;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white}.lehnova-camera-stage{position:relative;width:min(100vw,520px);height:min(76vh,700px);overflow:hidden;background:#000}.lehnova-camera-stage video,.lehnova-camera-stage img{width:100%;height:100%;object-fit:cover}.lehnova-live-filter{position:absolute;left:0;right:0;bottom:0;padding:80px 16px 24px;text-align:center;background:linear-gradient(to top,rgba(0,0,0,.7),transparent);text-shadow:0 2px 6px #000;pointer-events:none}.lehnova-live-title{font:italic 700 clamp(25px,7vw,38px) Georgia,serif}.lehnova-live-date{margin-top:7px;font:600 12px Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase}.lehnova-camera-actions{display:flex;gap:12px;padding:18px;flex-wrap:wrap;justify-content:center}.lehnova-camera-actions button{border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:12px 18px;background:white;color:#241d18;font-weight:800}.lehnova-camera-actions .secondary{background:transparent;color:white}.lehnova-camera-error{padding:20px;text-align:center;max-width:420px}
+      @media(max-width:599px){.event-header-card{min-height:265px!important;padding:14px 12px 6px!important}.event-title-context{font-size:1.12rem!important;margin-bottom:5px!important}.event-title-names{font-size:clamp(2.85rem,13.8vw,4rem)!important;letter-spacing:-.055em!important}.lehnova-welcome-message{margin-top:18px!important;font-size:.82rem}.event-nav{margin-top:auto!important;padding-top:3px!important}}
     `}</style>
     {children}
-    {isFil&&<button type="button" className="lehnova-camera-button" onClick={openCamera}>📸 Prendre une photo</button>}
+    {photoArea&&createPortal(<button type="button" className="lehnova-camera-button" onClick={openCamera}>📸 Prendre une photo avec le filtre</button>,photoArea)}
     {cameraOpen&&<div className="lehnova-camera-modal">
       <div className="lehnova-camera-stage">
         {!shot&&<video ref={videoRef} playsInline muted/>}{shot&&<img src={shot} alt="Aperçu"/>}

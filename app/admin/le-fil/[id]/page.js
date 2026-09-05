@@ -462,18 +462,26 @@ const styles = {
   previewHeadphones: { width: "62px", height: "48px", border: "5px solid #000000", borderBottom: 0, borderRadius: "34px 34px 0 0", fontSize: 0, marginTop: "10px" },
   invitationPreviews: { display: "grid", gridTemplateColumns: "minmax(220px, 0.7fr) minmax(360px, 1.3fr)", gap: "22px", alignItems: "start" },
   previewSubtitle: { fontSize: "0.78rem", color: COLORS.muted, margin: "0 0 8px" },
-  invitationCard: { aspectRatio: "194 / 210.75", border: "1px solid #D7D7D7", background: "#FFFFFF", color: "#000000", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "10px", overflow: "hidden" },
-  invitationBrand: { fontSize: "0.67rem", fontWeight: 800, letterSpacing: "0.14em" },
-  invitationTitle: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.15rem", lineHeight: 1.05, margin: "7px 0" },
-  invitationCopy: { fontSize: "0.66rem", lineHeight: 1.2, marginTop: "7px" },
+  invitationCard: { aspectRatio: "194 / 210.75", border: "1px solid #000000", background: "#FFFFFF", color: "#000000", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "9px", overflow: "hidden" },
+  invitationBrand: { fontFamily: "Georgia, serif", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.18em" },
+  invitationOrnament: { display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", width: "46px", margin: "4px 0" },
+  invitationOrnamentLine: { height: "1px", background: "#000000", flex: 1 },
+  invitationOrnamentDot: { width: "5px", height: "5px", border: "1px solid #000000", borderRadius: "50%" },
+  invitationTitle: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.15rem", lineHeight: 1.05, margin: "2px 0 6px" },
+  invitationCopy: { fontSize: "0.66rem", lineHeight: 1.2, marginTop: "5px" },
   sheetPreview: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "#fff", border: "1px solid #D7D7D7", aspectRatio: "210 / 297", overflow: "hidden" },
 };
 
 function InvitationQrCard({ event, compact = false }) {
   const qrSize = compact ? 34 : 104;
   return (
-    <div style={{ ...styles.invitationCard, border: compact ? "0.5px solid #D7D7D7" : styles.invitationCard.border, padding: compact ? "3px" : "10px" }}>
+    <div style={{ ...styles.invitationCard, border: compact ? "0.5px solid #000000" : styles.invitationCard.border, padding: compact ? "3px" : "10px" }}>
       <strong style={{ ...styles.invitationBrand, fontSize: compact ? "0.26rem" : styles.invitationBrand.fontSize }}>LE FIL</strong>
+      <span style={{ ...styles.invitationOrnament, width: compact ? "18px" : styles.invitationOrnament.width, gap: compact ? "1px" : styles.invitationOrnament.gap, margin: compact ? "1px 0" : styles.invitationOrnament.margin }}>
+        <span style={styles.invitationOrnamentLine} />
+        <span style={{ ...styles.invitationOrnamentDot, width: compact ? "2px" : "5px", height: compact ? "2px" : "5px" }} />
+        <span style={styles.invitationOrnamentLine} />
+      </span>
       <div style={{ ...styles.invitationTitle, fontSize: compact ? "0.42rem" : styles.invitationTitle.fontSize }}>{event.event_title}</div>
       <img
         src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=12&data=${encodeURIComponent(filUrl(event.slug))}`}

@@ -1526,6 +1526,12 @@ export default function AdminPage() {
                             <button style={styles.iconButton} onClick={() => handleToggleWordCloud(ev)}>
                               nuage de mots {ev.word_cloud_enabled ? "✓" : ""}
                             </button>
+                            <a href={`/admin/le-fil/${ev.id}#phrase`} style={styles.iconButton}>
+                              phrase d’accueil
+                            </a>
+                            <a href={`/admin/le-fil/${ev.id}#tables`} style={styles.iconButton}>
+                              cartons de table
+                            </a>
                             {ev.playlist_enabled && (
                               <button style={styles.iconButton} onClick={() => handleCopyDjLink(ev)}>
                                 {copiedDjFor === ev.id ? "✓ copié" : "lien DJ"}
@@ -1619,6 +1625,12 @@ export default function AdminPage() {
                         <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleToggleWordCloud(ev)}>
                           nuage de mots {ev.word_cloud_enabled ? "✓" : ""}
                         </button>
+                        <a href={`/admin/le-fil/${ev.id}#phrase`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
+                          phrase d’accueil
+                        </a>
+                        <a href={`/admin/le-fil/${ev.id}#tables`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
+                          cartons de table
+                        </a>
                         {ev.playlist_enabled && (
                           <button style={{ ...styles.iconButton, flex: 1 }} onClick={() => handleCopyDjLink(ev)}>
                             {copiedDjFor === ev.id ? "✓ copié" : "lien DJ"}

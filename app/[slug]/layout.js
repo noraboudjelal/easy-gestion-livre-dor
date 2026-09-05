@@ -62,12 +62,12 @@ export default function PublicEventLayout({ children }) {
   return <>
     <style jsx global>{`
       .event-header-card {
-        padding-top: 24px !important;
-        padding-bottom: 20px !important;
+        padding-top: 38px !important;
+        padding-bottom: 32px !important;
       }
       .lehnova-welcome-message {
         max-width: 620px;
-        margin: 10px auto 0;
+        margin: 12px auto 0;
         padding: 0 8px;
         text-align: center;
         font-family: 'Libre Baskerville', Georgia, serif;
@@ -78,11 +78,11 @@ export default function PublicEventLayout({ children }) {
       }
       @media (max-width: 599px) {
         .event-header-card {
-          padding-top: 25px !important;
-          padding-bottom: 21px !important;
+          padding-top: 34px !important;
+          padding-bottom: 29px !important;
         }
         .lehnova-welcome-message {
-          margin-top: 9px;
+          margin-top: 10px;
           font-size: 0.78rem;
         }
       }

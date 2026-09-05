@@ -77,18 +77,19 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFontSize(tableNumber.length > 4 ? 62 : tableNumber.length > 2 ? 86 : tableNumber.length > 1 ? 104 : 120);
   doc.text(tableNumber, centerX, 76, { align: "center", maxWidth: 82 });
   doc.setFont("times", "italic");
-  doc.setFontSize(16);
-  doc.text(event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à", centerX, 94, { align: "center" });
-  let centerY = 109;
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("times", "italic");
+  const eventIntro = event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à";
   const eventTitle = getEventNames(event);
   let eventSize = 25;
   doc.setFontSize(eventSize);
-  while (doc.getTextWidth(eventTitle) > 82 && eventSize > 11) {
+  while ((doc.getTextWidth(eventIntro) > 82 || doc.getTextWidth(eventTitle) > 82) && eventSize > 11) {
     eventSize -= 0.5;
     doc.setFontSize(eventSize);
   }
+  doc.text(eventIntro, centerX, 94, { align: "center" });
+  let centerY = 94 + eventSize * 0.3528 + 6;
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("times", "italic");
+  doc.setFontSize(eventSize);
   doc.text(eventTitle, centerX, centerY, { align: "center" });
   centerY += eventSize * 0.3528 + 8;
   drawOrnament(doc, centerX, centerY, 24);
@@ -141,3 +142,4 @@ export function addTableCardPage(doc, event, table, qrData) {
 }
 
 export const TABLE_CARD_DIMENSIONS = { pageWidth: PAGE_WIDTH, pageHeight: PAGE_HEIGHT, panelWidth: PANEL_WIDTH };
+

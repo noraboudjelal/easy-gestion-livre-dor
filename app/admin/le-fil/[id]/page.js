@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { addTableCardPage } from "./tableCardPdf";
+import { addTableCardPage, getTableCardEventWording } from "./tableCardPdf";
 
 const COLORS = {
   page: "#F7F4EF",
@@ -193,6 +193,8 @@ export default function EventFilAdminPage() {
   }
 
   const previewTable = useMemo(() => tables[0] || null, [tables]);
+  const previewEventWording = useMemo(() => getTableCardEventWording(event || {}), [event]);
+  const previewEventFontSize = `${Math.min(2.2, 42 / Math.max(previewEventWording.intro.length, previewEventWording.title.length, 1))}rem`;
 
   if (loading) return <main style={styles.page}><div style={styles.shell}>Chargement…</div></main>;
   if (!event) return <main style={styles.page}><div style={styles.shell}><p>{error || "Événement introuvable."}</p><a href="/admin">Retour à l’admin</a></div></main>;
@@ -345,15 +347,9 @@ export default function EventFilAdminPage() {
               <div className="fil-admin-preview-panel" style={styles.previewPanel}>
                 <span style={styles.previewLabel}>TABLE</span>
                 <div style={styles.previewNumber}>{previewTable.table_number}</div>
-                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max((event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à").length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
-                  {event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à"}
-                </div>
-                {event.event_type === "Mariage" && (
-                  <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max("Bienvenue au mariage".length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>de</div>
-                )}
-                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max((event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à").length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
-                  {event.event_type === "Mariage" ? String(event.event_title || "").replace(/^mariage\s+de\s+/i, "") : event.event_title}
-                </div>
+                <div style={{ ...styles.previewEvent, fontSize: previewEventFontSize }}>{previewEventWording.intro}</div>
+                {previewEventWording.link && <div style={{ ...styles.previewEvent, fontSize: previewEventFontSize }}>{previewEventWording.link}</div>}
+                <div style={{ ...styles.previewEvent, fontSize: previewEventFontSize }}>{previewEventWording.title}</div>
                 {previewTable.guest_names?.length > 0 && (
                   <div style={{ ...styles.previewGuests, fontSize: `${Math.min(0.9, 7 / previewTable.guest_names.length)}rem` }}>
                     {previewTable.guest_names.map((guestName, index) => <div key={`${guestName}-${index}`}>{guestName}</div>)}

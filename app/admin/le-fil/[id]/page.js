@@ -345,10 +345,13 @@ export default function EventFilAdminPage() {
               <div className="fil-admin-preview-panel" style={styles.previewPanel}>
                 <span style={styles.previewLabel}>TABLE</span>
                 <div style={styles.previewNumber}>{previewTable.table_number}</div>
-                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max((event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à").length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
-                  {event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à"}
+                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max((event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à").length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
+                  {event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à"}
                 </div>
-                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max((event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à").length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
+                {event.event_type === "Mariage" && (
+                  <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max("Bienvenue au mariage".length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>de</div>
+                )}
+                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max((event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à").length, String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
                   {event.event_type === "Mariage" ? String(event.event_title || "").replace(/^mariage\s+de\s+/i, "") : event.event_title}
                 </div>
                 {previewTable.guest_names?.length > 0 && (

@@ -345,7 +345,10 @@ export default function EventFilAdminPage() {
               <div className="fil-admin-preview-panel" style={styles.previewPanel}>
                 <span style={styles.previewLabel}>TABLE</span>
                 <div style={styles.previewNumber}>{previewTable.table_number}</div>
-                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2, 42 / Math.max(String(event.event_title || "").length, 1))}rem` }}>{event.event_title}</div>
+                <div style={styles.previewEventIntro}>{event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à"}</div>
+                <div style={{ ...styles.previewEvent, fontSize: `${Math.min(2.2, 42 / Math.max(String(event.event_title || "").replace(/^mariage\s+de\s+/i, "").length, 1))}rem` }}>
+                  {event.event_type === "Mariage" ? String(event.event_title || "").replace(/^mariage\s+de\s+/i, "") : event.event_title}
+                </div>
                 {previewTable.guest_names?.length > 0 && (
                   <div style={{ ...styles.previewGuests, fontSize: `${Math.min(0.9, 7 / previewTable.guest_names.length)}rem` }}>
                     {previewTable.guest_names.map((guestName, index) => <div key={`${guestName}-${index}`}>{guestName}</div>)}
@@ -404,6 +407,7 @@ const styles = {
   previewLabel: { color: "#000000", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.16em" },
   previewNumber: { fontFamily: "Georgia, serif", fontSize: "clamp(8rem, 15vw, 11.5rem)", lineHeight: 0.72, marginTop: "-8px" },
   previewEvent: { fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: "1.45rem", lineHeight: 1.05, marginTop: "8px", whiteSpace: "nowrap" },
+  previewEventIntro: { fontSize: "0.9rem", marginTop: "8px" },
   previewGuests: { color: "#000000", lineHeight: 1.35, marginTop: "8px", width: "100%" },
   previewFilTitle: { fontFamily: "Georgia, serif", fontStyle: "italic", fontWeight: 700, fontSize: "2.35rem", lineHeight: 1.05, maxWidth: "230px" },
   previewCopy: { color: "#000000", fontSize: "1.25rem", lineHeight: 1.3, maxWidth: "220px" },

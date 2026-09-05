@@ -77,7 +77,8 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFontSize(tableNumber.length > 4 ? 62 : tableNumber.length > 2 ? 86 : tableNumber.length > 1 ? 104 : 120);
   doc.text(tableNumber, centerX, 76, { align: "center", maxWidth: 82 });
   doc.setFont("times", "italic");
-  const eventIntro = event.event_type === "Mariage" ? "Bienvenue au mariage de" : "Bienvenue à";
+  const eventIntro = event.event_type === "Mariage" ? "Bienvenue au mariage" : "Bienvenue à";
+  const eventLink = event.event_type === "Mariage" ? "de" : "";
   const eventTitle = getEventNames(event);
   let eventSize = 25;
   doc.setFontSize(eventSize);
@@ -85,8 +86,12 @@ export function addTableCardPage(doc, event, table, qrData) {
     eventSize -= 0.5;
     doc.setFontSize(eventSize);
   }
-  doc.text(eventIntro, centerX, 94, { align: "center" });
-  let centerY = 94 + eventSize * 0.3528 + 6;
+  doc.text(eventIntro, centerX, 89, { align: "center" });
+  let centerY = 89 + eventSize * 0.3528 + 3;
+  if (eventLink) {
+    doc.text(eventLink, centerX, centerY, { align: "center" });
+    centerY += eventSize * 0.3528 + 3;
+  }
   doc.setTextColor(0, 0, 0);
   doc.setFont("times", "italic");
   doc.setFontSize(eventSize);

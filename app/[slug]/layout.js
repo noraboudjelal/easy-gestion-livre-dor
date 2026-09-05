@@ -88,7 +88,7 @@ export default function PublicEventLayout({ children }) {
       }
       .lehnova-welcome-message {
         max-width: 720px;
-        margin: 8px auto 0;
+        margin: 22px auto 0 !important;
         padding: 0 8px;
         text-align: center;
         font-family: 'Libre Baskerville', Georgia, serif;
@@ -118,7 +118,7 @@ export default function PublicEventLayout({ children }) {
           letter-spacing: -.055em !important;
         }
         .lehnova-welcome-message {
-          margin-top: 7px;
+          margin-top: 18px !important;
           font-size: 0.82rem;
         }
         .event-nav {

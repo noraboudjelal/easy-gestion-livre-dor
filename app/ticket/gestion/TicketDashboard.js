@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { callNextTicket, callPreviousTicket, changeManualWaitingCount, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setPublicWaitDisplay, setQueueOpen, setTicketMode, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
+import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setPublicWaitDisplay, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
@@ -30,7 +30,7 @@ export default function TicketDashboard() {
 
   useEffect(() => {
     getMerchantSession().then((session) => {
-      if (!session) router.replace("/ticket/connexion");
+      if (!session?.authenticated || session.mode !== "tickets") router.replace("/ticket/connexion");
       else load();
     }).catch(() => router.replace("/ticket/connexion"));
   }, [load, router]);
@@ -85,25 +85,9 @@ export default function TicketDashboard() {
           <div style={styles.empty}>Aucun commerce Ticket n’est associé à ce compte.</div>
         ) : (
           <div style={styles.panel} aria-live="polite">
-            <div style={styles.modeBox}>
-              <p style={styles.modeTitle}>MODE DE FONCTIONNEMENT</p>
-              <div style={styles.modeButtons}>
-                <button disabled={busy} onClick={() => run(() => setTicketMode("tickets"))} style={queue.queue_mode !== "manual" ? styles.modeActive : styles.modeButton}>AVEC TICKETS</button>
-                <button disabled={busy} onClick={() => run(() => setTicketMode("manual"))} style={queue.queue_mode === "manual" ? styles.modeActive : styles.modeButton}>SANS TICKETS</button>
-              </div>
-            </div>
-            {queue.queue_mode === "manual" ? <>
-              <p style={styles.label}>PERSONNES EN ATTENTE</p>
-              <div style={styles.manualCounter}>
-                <button disabled={busy || queue.manual_waiting_count === 0} onClick={() => run(() => changeManualWaitingCount(-1))} style={styles.counterButton}>−</button>
-                <strong style={styles.manualNumber}>{queue.manual_waiting_count || 0}</strong>
-                <button disabled={busy} onClick={() => run(() => changeManualWaitingCount(1))} style={styles.counterButton}>+</button>
-              </div>
-            </> : <>
-              <p style={styles.label}>TICKET EN COURS</p>
-              <div style={styles.number}># {formatTicketNumber(queue.current_number)}</div>
-              <p style={styles.waiting}>{queue.waiting_count} {queue.waiting_count === 1 ? "personne" : "personnes"} en attente</p>
-            </>}
+            <p style={styles.label}>TICKET EN COURS</p>
+            <div style={styles.number}># {formatTicketNumber(queue.current_number)}</div>
+            <p style={styles.waiting}>{queue.waiting_count} {queue.waiting_count === 1 ? "personne" : "personnes"} en attente</p>
             <div style={styles.estimateBox}>
               <label htmlFor="estimated-minutes" style={styles.estimateLabel}>Temps estimé par client</label>
               <div style={styles.estimateRow}>
@@ -113,7 +97,7 @@ export default function TicketDashboard() {
               </div>
               <p style={styles.estimateHelp}>Cette durée permet d’indiquer automatiquement une attente approximative aux clients.</p>
             </div>
-            {queue.queue_mode !== "manual" && <><div style={styles.actions}>
+            <div style={styles.actions}>
               <button disabled={busy} onClick={() => run(callPreviousTicket)} style={styles.secondary}>← TICKET PRÉCÉDENT</button>
               <button disabled={busy || queue.waiting_count === 0} onClick={() => run(callNextTicket)} style={styles.primary}>TICKET SUIVANT →</button>
             </div>
@@ -121,7 +105,7 @@ export default function TicketDashboard() {
               {queue.is_open ? "FERMER LA FILE" : "ROUVRIR LA FILE"}
             </button>
             <button disabled={busy} onClick={handleResetQueue} style={styles.reset}>REMETTRE LA FILE À ZÉRO</button>
-            <p style={{ ...styles.queueState, color: queue.is_open ? ticketColors.success : ticketColors.accent }}>{queue.is_open ? "● File ouverte" : "● File fermée"}</p></>}
+            <p style={{ ...styles.queueState, color: queue.is_open ? ticketColors.success : ticketColors.accent }}>{queue.is_open ? "● File ouverte" : "● File fermée"}</p>
             <button disabled={busy} onClick={() => run(() => setPublicWaitDisplay(!queue.public_wait_display_enabled))} style={queue.public_wait_display_enabled ? styles.visibilityOn : styles.visibilityOff}>
               {queue.public_wait_display_enabled ? "● ATTENTE PUBLIQUE ACTIVÉE" : "○ ATTENTE PUBLIQUE MASQUÉE"}
             </button>

@@ -34,6 +34,7 @@ function serializeBusiness(row) {
           is_open: queue.is_open,
           current_number: queue.current_number,
           last_issued_number: queue.last_issued_number,
+          queue_mode: queue.queue_mode || "tickets",
         }
       : null,
   };
@@ -47,7 +48,7 @@ async function provisionAccessCode(admin, business) {
       .from("ticket_businesses")
       .update({ access_code_hash: hashAccessCode(accessCode), access_code_encrypted: encryptAccessCode(accessCode), updated_at: new Date().toISOString() })
       .eq("id", business.id)
-      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number)")
+      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number, queue_mode)")
       .single();
     if (!error) return data;
     if (error.code !== "23505") throw error;
@@ -62,7 +63,7 @@ export async function GET(request) {
     const admin = getSupabaseAdmin();
     const { data, error } = await admin
       .from("ticket_businesses")
-      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number)")
+      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number, queue_mode)")
       .order("created_at", { ascending: false });
     if (error) throw error;
     const businesses = await Promise.all((data || []).map((business) => provisionAccessCode(admin, business)));
@@ -82,6 +83,7 @@ export async function POST(request) {
     const body = await request.json();
     const name = String(body.name || "").trim();
     const slug = normalizeSlug(body.slug || name);
+    const queueMode = body.system_type === "manual" ? "manual" : "tickets";
 
     if (!name || name.length > 100) throw new Error("Le nom du commerce est invalide.");
     if (!slug || slug.length > 80) throw new Error("Le slug est invalide.");
@@ -100,8 +102,8 @@ export async function POST(request) {
 
     const { data: queue, error: queueError } = await admin
       .from("ticket_queues")
-      .insert({ business_id: business.id })
-      .select("id, is_open, current_number, last_issued_number")
+      .insert({ business_id: business.id, queue_mode: queueMode })
+      .select("id, is_open, current_number, last_issued_number, queue_mode")
       .single();
     if (queueError) throw queueError;
 
@@ -111,3 +113,4 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message || "Création impossible." }, { status });
   }
 }
+

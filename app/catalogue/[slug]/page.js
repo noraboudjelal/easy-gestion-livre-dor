@@ -148,10 +148,34 @@ function Lightbox({ photos, startIndex, onClose }) {
   );
 }
 
-function Card({ product, accent }) {
+function AvailabilityCalendar({ periods, accent, onClose }) {
+  const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const leading = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+  const days = new Date(year, monthIndex + 1, 0).getDate();
+  const cells = [...Array(leading).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)];
+  const unavailable = (day) => {
+    const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return periods.some((p) => key >= p.start_date && key <= p.end_date);
+  };
+  return createPortal(
+    <div style={styles.calendarBackdrop} onClick={onClose}>
+      <section style={styles.calendarModal} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.calendarHeader}><button type="button" style={styles.calendarNav} onClick={() => setMonth(new Date(year, monthIndex - 1, 1))}>‹</button><strong>{month.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</strong><button type="button" style={styles.calendarNav} onClick={() => setMonth(new Date(year, monthIndex + 1, 1))}>›</button></div>
+        <div style={styles.calendarGrid}>{["L", "M", "M", "J", "V", "S", "D"].map((d, i) => <span key={`${d}-${i}`} style={styles.calendarWeekday}>{d}</span>)}{cells.map((day, i) => day ? <span key={day} style={{ ...styles.calendarDay, ...(unavailable(day) ? styles.calendarUnavailable : {}), borderColor: unavailable(day) ? accent : "transparent" }}>{day}</span> : <span key={`empty-${i}`} />)}</div>
+        <div style={styles.calendarLegend}><span style={{ ...styles.legendMark, borderColor: accent }} /> Indisponible</div>
+        <button type="button" style={{ ...styles.calendarClose, background: accent }} onClick={onClose}>Fermer</button>
+      </section>
+    </div>, document.body
+  );
+}
+
+function Card({ product, accent, periods = [] }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [showAvailability, setShowAvailability] = useState(false);
 
   const photos =
     product.photo_urls && product.photo_urls.length > 0
@@ -200,15 +224,26 @@ function Card({ product, accent }) {
           )}
         </div>
         {product.description && <p style={styles.description}>{product.description}</p>}
+        {product.management_type === "stock" && (
+          <p style={{ ...styles.stockStatus, color: product.stock_quantity === 0 ? "#9D2E25" : accent }}>
+            {product.stock_quantity === 0 ? "Rupture de stock" : product.stock_quantity <= (product.low_stock_threshold ?? 3) ? `Plus que ${product.stock_quantity} disponible${product.stock_quantity > 1 ? "s" : ""}` : "Disponible"}
+          </p>
+        )}
+        {product.management_type === "rental" && <div style={styles.rentalInfo}>
+          {product.rental_price && <strong>Prix de location : {formatPrice(product.rental_price)}</strong>}
+          {product.rental_deposit && <span>Caution : {formatPrice(product.rental_deposit)}</span>}
+          <button type="button" style={{ ...styles.availabilityButton, borderColor: accent, color: accent }} onClick={() => setShowAvailability(true)}>📅 Voir les disponibilités</button>
+        </div>}
       </div>
       {lightboxIndex !== null && (
         <Lightbox photos={photos} startIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
       )}
+      {showAvailability && <AvailabilityCalendar periods={periods} accent={accent} onClose={() => setShowAvailability(false)} />}
     </article>
   );
 }
 
-function QuizWidget({ questions, products, accent, onDone }) {
+function QuizWidget({ questions, products, accent, unavailability, onDone }) {
   const topLevel = [...questions]
     .filter((q) => !q.parent_option_id)
     .sort((a, b) => a.step_order - b.step_order);
@@ -280,7 +315,7 @@ function QuizWidget({ questions, products, accent, onDone }) {
         ) : (
           <div style={styles.quizResultsGrid}>
             {recommended.map((p) => (
-              <Card product={p} accent={accent} key={p.id} />
+              <Card product={p} accent={accent} periods={unavailability[p.id] || []} key={p.id} />
             ))}
           </div>
         )}
@@ -334,6 +369,7 @@ export default function CatalogPage() {
   const [quizLoadError, setQuizLoadError] = useState("");
   const [showQuiz, setShowQuiz] = useState(true);
   const [transformations, setTransformations] = useState([]);
+  const [unavailability, setUnavailability] = useState({});
   const [avapValues, setAvapValues] = useState({});
   const mainRef = useRef(null);
 
@@ -359,6 +395,11 @@ export default function CatalogPage() {
       .order("position", { ascending: true });
 
     setProducts(prods || []);
+    const rentalIds = (prods || []).filter((p) => p.management_type === "rental").map((p) => p.id);
+    if (rentalIds.length) {
+      const { data: periods } = await supabase.from("catalog_product_unavailability").select("product_id,start_date,end_date").in("product_id", rentalIds).order("start_date");
+      setUnavailability((periods || []).reduce((map, period) => { (map[period.product_id] ||= []).push(period); return map; }, {}));
+    } else setUnavailability({});
 
     if (cat.avant_apres_enabled) {
       const { data: transfos } = await supabase
@@ -474,6 +515,7 @@ export default function CatalogPage() {
             questions={quizQuestions}
             products={products}
             accent={accent}
+            unavailability={unavailability}
             onDone={() => setShowQuiz(false)}
           />
         )}
@@ -494,7 +536,7 @@ export default function CatalogPage() {
               )}
               <div style={styles.grid}>
                 {group.items.map((p) => (
-                  <Card product={p} accent={accent} key={p.id} />
+                  <Card product={p} accent={accent} periods={unavailability[p.id] || []} key={p.id} />
                 ))}
               </div>
             </section>
@@ -756,6 +798,20 @@ const styles = {
     borderRadius: "999px",
   },
   description: { fontSize: "0.82rem", color: "#6B5D4C", margin: 0, lineHeight: 1.5 },
+  stockStatus: { margin: "4px 0 0", fontSize: ".78rem", fontWeight: 700 },
+  rentalInfo: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "5px", marginTop: "4px", fontSize: ".8rem", color: "#5B4636" },
+  availabilityButton: { marginTop: "5px", background: "transparent", border: "1px solid", borderRadius: "999px", padding: "8px 12px", fontSize: ".76rem", fontWeight: 600 },
+  calendarBackdrop: { position: "fixed", inset: 0, zIndex: 1200, background: "rgba(20,18,15,.68)", display: "flex", justifyContent: "center", alignItems: "center", padding: "16px" },
+  calendarModal: { width: "100%", maxWidth: "390px", background: "#FFFCF5", borderRadius: "16px", padding: "18px", boxShadow: "0 20px 60px rgba(0,0,0,.25)", fontFamily: "'Inter', sans-serif" },
+  calendarHeader: { display: "grid", gridTemplateColumns: "40px 1fr 40px", alignItems: "center", textAlign: "center", textTransform: "capitalize", marginBottom: "12px" },
+  calendarNav: { width: "36px", height: "36px", borderRadius: "50%", border: "1px solid #E3D9C4", background: "transparent", fontSize: "1.4rem" },
+  calendarGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px" },
+  calendarWeekday: { textAlign: "center", fontSize: ".66rem", color: "#8A7F66", fontWeight: 700 },
+  calendarDay: { aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", border: "1px solid transparent", fontSize: ".78rem" },
+  calendarUnavailable: { background: "#EEE8DC", color: "#8A7F66", textDecoration: "line-through" },
+  calendarLegend: { display: "flex", alignItems: "center", gap: "7px", marginTop: "14px", fontSize: ".72rem", color: "#6B5D4C" },
+  legendMark: { width: "14px", height: "14px", borderRadius: "50%", background: "#EEE8DC", border: "1px solid" },
+  calendarClose: { width: "100%", marginTop: "14px", border: 0, borderRadius: "999px", padding: "10px", color: "white", fontWeight: 700 },
   realisationsSection: { width: "100%", maxWidth: "900px", marginBottom: "8px" },
   realisationsTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.1rem", fontWeight: 700, margin: "0 0 12px 4px" },
   realisationsScroller: {
@@ -909,4 +965,5 @@ const styles = {
     alignSelf: "flex-start",
   },
 };
+
 

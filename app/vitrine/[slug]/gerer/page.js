@@ -27,6 +27,10 @@ export default function ClientManageVitrinePage() {
   const [themeSaving, setThemeSaving] = useState(false);
   const [coverPreview, setCoverPreview] = useState("");
   const [coverSaving, setCoverSaving] = useState(false);
+  const [coverTitle, setCoverTitle] = useState("");
+  const [coverTagline, setCoverTagline] = useState("");
+  const [coverMentions, setCoverMentions] = useState("");
+  const [coverContentSaving, setCoverContentSaving] = useState(false);
   const coverInputRef = useRef(null);
 
   // --- Réseaux sociaux ---
@@ -69,6 +73,9 @@ export default function ClientManageVitrinePage() {
     setFacebookUrl(sc.facebook_url || "");
     setTiktokUrl(sc.tiktok_url || "");
     setAboutText(sc.about_text || "");
+    setCoverTitle(sc.cover_title || "");
+    setCoverTagline(sc.cover_tagline || "");
+    setCoverMentions(Array.isArray(sc.cover_mentions) ? sc.cover_mentions.join("\n") : "");
     setLoading(false);
     if (typeof window !== "undefined" && sessionStorage.getItem(`vitrine-client-auth-${sc.id}`) === "1") {
       setAuthed(true);
@@ -200,6 +207,26 @@ export default function ClientManageVitrinePage() {
     setCoverSaving(false);
     URL.revokeObjectURL(preview);
     setCoverPreview("");
+  }
+
+  async function handleSaveCoverContent(e) {
+    e.preventDefault();
+    if (!supabase || !showcase) return;
+    const mentions = coverMentions.split(/\r?\n/).map((mention) => mention.trim()).filter(Boolean).slice(0, 4);
+    const values = {
+      cover_title: coverTitle.trim() || null,
+      cover_tagline: coverTagline.trim() || null,
+      cover_mentions: mentions.length > 0 ? mentions : null,
+    };
+    setCoverContentSaving(true);
+    const { error } = await supabase.from("showcases").update(values).eq("id", showcase.id);
+    setCoverContentSaving(false);
+    if (error) {
+      setLoadError("Enregistrement des textes de couverture impossible : " + error.message);
+    } else {
+      setShowcase((current) => ({ ...current, ...values }));
+      setLoadError("");
+    }
   }
 
   async function handleRemoveCover() {
@@ -423,6 +450,32 @@ export default function ClientManageVitrinePage() {
               )}
             </div>
           </div>
+        </section>
+
+        <section style={styles.themeBlock}>
+          <h2 style={styles.blockTitle}>Textes de la couverture</h2>
+          <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: "6px 0 0" }}>
+            Laisse un champ vide pour conserver automatiquement le contenu actuel de ta page.
+          </p>
+          <form style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }} onSubmit={handleSaveCoverContent}>
+            <label style={styles.label}>
+              Titre principal
+              <input style={styles.input} value={coverTitle} onChange={(e) => setCoverTitle(e.target.value)} maxLength={120} placeholder={showcase?.business_name || "Nom de l'entreprise"} />
+            </label>
+            <label style={styles.label}>
+              Petite accroche
+              <input style={styles.input} value={coverTagline} onChange={(e) => setCoverTagline(e.target.value)} maxLength={180} placeholder={showcase?.tagline || "Portfolio professionnel"} />
+            </label>
+            <label style={styles.label}>
+              Petites mentions / pastilles (une par ligne, 4 maximum)
+              <textarea style={{ ...styles.textarea, minHeight: "90px" }} value={coverMentions} onChange={(e) => setCoverMentions(e.target.value)} placeholder="Les catégories actuelles restent automatiques si ce champ est vide." rows={4} />
+            </label>
+            <div style={styles.formActions}>
+              <button type="submit" style={styles.primaryButton} disabled={coverContentSaving}>
+                {coverContentSaving ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </div>
+          </form>
         </section>
 
         <section style={styles.themeBlock}>
@@ -680,4 +733,5 @@ const styles = {
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
   iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
 };
+
 

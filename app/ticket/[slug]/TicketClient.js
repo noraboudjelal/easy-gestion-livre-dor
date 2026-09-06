@@ -64,6 +64,9 @@ export default function TicketClient() {
   const hasTicket = state?.ticket_number != null;
   const isTurn = state?.ticket_status === "called";
   const isFinished = state?.ticket_status === "served";
+  const isManualMode = state?.queue_mode === "manual";
+  const showPublicWait = state?.public_wait_display_enabled !== false;
+  const publicEstimate = state?.estimated_minutes_per_client ? state.public_waiting_count * state.estimated_minutes_per_client : null;
 
   return (
     <main style={styles.page}>
@@ -75,6 +78,15 @@ export default function TicketClient() {
           <p style={styles.message}>Chargement…</p>
         ) : error && !state ? (
           <p style={styles.error}>{error}</p>
+        ) : isManualMode ? (
+          <div style={styles.center}>
+            <p style={styles.label}>ATTENTE ACTUELLE</p>
+            {showPublicWait ? <>
+              <div style={styles.manualWaiting}>{state.public_waiting_count || 0}</div>
+              <p style={styles.manualPeople}>{state.public_waiting_count === 1 ? "personne en attente" : "personnes en attente"}</p>
+              {publicEstimate !== null && <div style={styles.publicEstimate}>Environ {publicEstimate} minutes d’attente</div>}
+            </> : <p style={styles.message}>L’attente n’est pas affichée actuellement.</p>}
+          </div>
         ) : !state?.is_open && !hasTicket ? (
           <div style={styles.center}>
             <div style={styles.closedDot} />
@@ -82,9 +94,14 @@ export default function TicketClient() {
             <p style={styles.message}>Ce commerce ne prend pas de nouveaux tickets pour le moment.</p>
           </div>
         ) : !hasTicket ? (
-          <button style={styles.takeButton} onClick={takeTicket} disabled={taking}>
-            {taking ? "ATTRIBUTION…" : "PRENDRE UN TICKET"}
-          </button>
+          <div style={styles.center}>
+            {showPublicWait && <div style={styles.publicWaitingBox}>
+              <strong>{state.public_waiting_count || 0}</strong>
+              <span>{state.public_waiting_count === 1 ? "personne en attente" : "personnes en attente"}</span>
+              {publicEstimate !== null && <small>Environ {publicEstimate} minutes</small>}
+            </div>}
+            <button style={styles.takeButton} onClick={takeTicket} disabled={taking}>{taking ? "ATTRIBUTION…" : "PRENDRE UN TICKET"}</button>
+          </div>
         ) : (
           <div style={styles.center}>
             <p style={styles.label}>VOTRE TICKET</p>
@@ -101,12 +118,12 @@ export default function TicketClient() {
               <div style={styles.statusBox}>
                 <span>Ticket actuellement appelé</span>
                 <strong># {formatTicketNumber(state.current_number)}</strong>
-                <span style={styles.ahead}>
+                {showPublicWait && <span style={styles.ahead}>
                   {state.people_ahead === 0
                     ? "Vous êtes le prochain"
                     : `${state.people_ahead} ${state.people_ahead === 1 ? "personne" : "personnes"} avant vous`}
-                </span>
-                {state.estimated_minutes_per_client && state.people_ahead > 0 && (
+                </span>}
+                {showPublicWait && state.estimated_minutes_per_client && state.people_ahead > 0 && (
                   <span style={styles.estimate}>Temps d’attente estimé : environ {state.people_ahead * state.estimated_minutes_per_client} min</span>
                 )}
               </div>
@@ -129,6 +146,10 @@ const styles = {
   business: { margin: "8px 0 30px", fontSize: "20px", textAlign: "center", fontWeight: 700 },
   center: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
   takeButton: { margin: "auto 0", width: "100%", minHeight: "92px", border: 0, borderRadius: "20px", background: ticketColors.accent, color: "#FFF", fontSize: "20px", fontWeight: 800, letterSpacing: ".04em", boxShadow: "0 16px 30px -18px rgba(181,64,45,.7)" },
+  publicWaitingBox: { width: "100%", marginBottom: "18px", padding: "18px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "5px", color: ticketColors.muted },
+  manualWaiting: { margin: "14px 0 4px", color: ticketColors.ink, fontSize: "96px", lineHeight: 1, fontWeight: 900 },
+  manualPeople: { margin: 0, color: ticketColors.muted, fontSize: "18px", fontWeight: 700 },
+  publicEstimate: { marginTop: "20px", padding: "15px 18px", borderRadius: "14px", background: ticketColors.background, color: ticketColors.accent, fontSize: "18px", fontWeight: 800 },
   label: { margin: 0, color: ticketColors.gold, fontSize: "13px", fontWeight: 800, letterSpacing: ".16em" },
   number: { margin: "8px 0 30px", color: ticketColors.ink, fontSize: "clamp(76px, 24vw, 112px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-.06em" },
   statusBox: { width: "100%", padding: "22px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "8px", color: ticketColors.muted, fontSize: "14px" },

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
+import { callNextTicket, callPreviousTicket, changeManualWaitingCount, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setPublicWaitDisplay, setQueueOpen, setTicketMode, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
@@ -85,9 +85,25 @@ export default function TicketDashboard() {
           <div style={styles.empty}>Aucun commerce Ticket n’est associé à ce compte.</div>
         ) : (
           <div style={styles.panel} aria-live="polite">
-            <p style={styles.label}>TICKET EN COURS</p>
-            <div style={styles.number}># {formatTicketNumber(queue.current_number)}</div>
-            <p style={styles.waiting}>{queue.waiting_count} {queue.waiting_count === 1 ? "personne" : "personnes"} en attente</p>
+            <div style={styles.modeBox}>
+              <p style={styles.modeTitle}>MODE DE FONCTIONNEMENT</p>
+              <div style={styles.modeButtons}>
+                <button disabled={busy} onClick={() => run(() => setTicketMode("tickets"))} style={queue.queue_mode !== "manual" ? styles.modeActive : styles.modeButton}>AVEC TICKETS</button>
+                <button disabled={busy} onClick={() => run(() => setTicketMode("manual"))} style={queue.queue_mode === "manual" ? styles.modeActive : styles.modeButton}>SANS TICKETS</button>
+              </div>
+            </div>
+            {queue.queue_mode === "manual" ? <>
+              <p style={styles.label}>PERSONNES EN ATTENTE</p>
+              <div style={styles.manualCounter}>
+                <button disabled={busy || queue.manual_waiting_count === 0} onClick={() => run(() => changeManualWaitingCount(-1))} style={styles.counterButton}>−</button>
+                <strong style={styles.manualNumber}>{queue.manual_waiting_count || 0}</strong>
+                <button disabled={busy} onClick={() => run(() => changeManualWaitingCount(1))} style={styles.counterButton}>+</button>
+              </div>
+            </> : <>
+              <p style={styles.label}>TICKET EN COURS</p>
+              <div style={styles.number}># {formatTicketNumber(queue.current_number)}</div>
+              <p style={styles.waiting}>{queue.waiting_count} {queue.waiting_count === 1 ? "personne" : "personnes"} en attente</p>
+            </>}
             <div style={styles.estimateBox}>
               <label htmlFor="estimated-minutes" style={styles.estimateLabel}>Temps estimé par client</label>
               <div style={styles.estimateRow}>
@@ -97,7 +113,7 @@ export default function TicketDashboard() {
               </div>
               <p style={styles.estimateHelp}>Cette durée permet d’indiquer automatiquement une attente approximative aux clients.</p>
             </div>
-            <div style={styles.actions}>
+            {queue.queue_mode !== "manual" && <><div style={styles.actions}>
               <button disabled={busy} onClick={() => run(callPreviousTicket)} style={styles.secondary}>← TICKET PRÉCÉDENT</button>
               <button disabled={busy || queue.waiting_count === 0} onClick={() => run(callNextTicket)} style={styles.primary}>TICKET SUIVANT →</button>
             </div>
@@ -105,7 +121,10 @@ export default function TicketDashboard() {
               {queue.is_open ? "FERMER LA FILE" : "ROUVRIR LA FILE"}
             </button>
             <button disabled={busy} onClick={handleResetQueue} style={styles.reset}>REMETTRE LA FILE À ZÉRO</button>
-            <p style={{ ...styles.queueState, color: queue.is_open ? ticketColors.success : ticketColors.accent }}>{queue.is_open ? "● File ouverte" : "● File fermée"}</p>
+            <p style={{ ...styles.queueState, color: queue.is_open ? ticketColors.success : ticketColors.accent }}>{queue.is_open ? "● File ouverte" : "● File fermée"}</p></>}
+            <button disabled={busy} onClick={() => run(() => setPublicWaitDisplay(!queue.public_wait_display_enabled))} style={queue.public_wait_display_enabled ? styles.visibilityOn : styles.visibilityOff}>
+              {queue.public_wait_display_enabled ? "● ATTENTE PUBLIQUE ACTIVÉE" : "○ ATTENTE PUBLIQUE MASQUÉE"}
+            </button>
           </div>
         )}
         {error && <p style={styles.error}>{error}</p>}
@@ -123,9 +142,17 @@ const styles = {
   logout: { border: 0, background: "transparent", color: ticketColors.muted, fontWeight: 650 },
   select: { width: "100%", padding: "12px", marginBottom: "14px", border: `1px solid ${ticketColors.border}`, borderRadius: "12px", background: "#FFF" },
   panel: { background: "#FFF", border: `1px solid ${ticketColors.border}`, borderRadius: "28px", padding: "34px 24px 26px", textAlign: "center", boxShadow: "0 24px 60px -42px rgba(34,29,24,.45)" },
+  modeBox: { margin: "0 0 28px", paddingBottom: "20px", borderBottom: `1px solid ${ticketColors.border}` },
+  modeTitle: { margin: "0 0 10px", color: ticketColors.muted, fontSize: "11px", fontWeight: 800, letterSpacing: ".12em" },
+  modeButtons: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" },
+  modeButton: { minHeight: "44px", border: `1px solid ${ticketColors.border}`, borderRadius: "12px", background: "#FFF", color: ticketColors.muted, fontSize: "12px", fontWeight: 800 },
+  modeActive: { minHeight: "44px", border: 0, borderRadius: "12px", background: ticketColors.ink, color: "#FFF", fontSize: "12px", fontWeight: 800 },
   label: { margin: 0, color: ticketColors.gold, fontSize: "14px", fontWeight: 800, letterSpacing: ".16em" },
   number: { margin: "12px 0 8px", fontSize: "clamp(88px, 25vw, 160px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-.07em" },
   waiting: { margin: "0 0 32px", color: ticketColors.muted, fontSize: "20px", fontWeight: 650 },
+  manualCounter: { display: "flex", justifyContent: "center", alignItems: "center", gap: "24px", margin: "14px 0 28px" },
+  counterButton: { width: "64px", height: "64px", border: `2px solid ${ticketColors.ink}`, borderRadius: "50%", background: "#FFF", color: ticketColors.ink, fontSize: "34px", lineHeight: 1 },
+  manualNumber: { minWidth: "100px", color: ticketColors.ink, fontSize: "76px", lineHeight: 1 },
   estimateBox: { margin: "0 0 24px", padding: "16px", borderRadius: "16px", background: ticketColors.background, textAlign: "left" },
   estimateLabel: { display: "block", marginBottom: "9px", color: ticketColors.ink, fontSize: "14px", fontWeight: 800 },
   estimateRow: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" },
@@ -140,6 +167,8 @@ const styles = {
   open: { width: "100%", minHeight: "54px", marginTop: "14px", border: 0, borderRadius: "14px", background: ticketColors.success, color: "#FFF", fontWeight: 800 },
   reset: { width: "100%", minHeight: "48px", marginTop: "10px", border: 0, background: "transparent", color: ticketColors.muted, fontWeight: 750 },
   queueState: { margin: "18px 0 0", fontSize: "13px", fontWeight: 700 },
+  visibilityOn: { width: "100%", minHeight: "48px", marginTop: "16px", border: `1px solid ${ticketColors.success}`, borderRadius: "14px", background: "#FFF", color: ticketColors.success, fontWeight: 800 },
+  visibilityOff: { width: "100%", minHeight: "48px", marginTop: "16px", border: `1px solid ${ticketColors.muted}`, borderRadius: "14px", background: "#FFF", color: ticketColors.muted, fontWeight: 800 },
   empty: { background: "#FFF", border: `1px solid ${ticketColors.border}`, borderRadius: "20px", padding: "30px", textAlign: "center", color: ticketColors.muted },
   error: { color: ticketColors.accent, textAlign: "center", fontSize: "13px" },
 };

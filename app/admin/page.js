@@ -126,6 +126,7 @@ export default function AdminPage() {
   const [ticketName, setTicketName] = useState("");
   const [ticketSlug, setTicketSlug] = useState("");
   const [ticketSlugTouched, setTicketSlugTouched] = useState(false);
+  const [ticketSystem, setTicketSystem] = useState("tickets");
   const [copiedTicketId, setCopiedTicketId] = useState(null);
   const [updatingTicketId, setUpdatingTicketId] = useState(null);
 
@@ -835,16 +836,16 @@ export default function AdminPage() {
     }
   }
 
-  function ticketPublicLinkFor(slug) {
-    return `https://lehnova.fr/ticket/${slug}`;
+  function ticketPublicLinkFor(business) {
+    return `https://lehnova.fr/${business.queue?.queue_mode === "manual" ? "attente" : "ticket"}/${business.slug}`;
   }
 
-  function ticketLoginLink() {
-    return "https://lehnova.fr/ticket/connexion";
+  function ticketLoginLink(business) {
+    return `https://lehnova.fr/${business.queue?.queue_mode === "manual" ? "attente" : "ticket"}/connexion`;
   }
 
-  function ticketManagementLink() {
-    return "https://lehnova.fr/ticket/gestion";
+  function ticketManagementLink(business) {
+    return `https://lehnova.fr/${business.queue?.queue_mode === "manual" ? "attente" : "ticket"}/gestion`;
   }
 
   function markTicketCopied(id) {
@@ -868,6 +869,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           name: ticketName,
           slug: ticketSlug,
+          system_type: ticketSystem,
         }),
       });
       const data = await response.json();
@@ -877,6 +879,7 @@ export default function AdminPage() {
       setTicketName("");
       setTicketSlug("");
       setTicketSlugTouched(false);
+      setTicketSystem("tickets");
       setShowTicketForm(false);
     } catch (error) {
       setTicketsError(error.message || "Création impossible.");
@@ -907,6 +910,17 @@ export default function AdminPage() {
     } finally {
       setUpdatingTicketId(null);
     }
+  }
+
+  async function handleTicketSystemChange(business, systemType) {
+    setUpdatingTicketId(business.id); setTicketsError("");
+    try {
+      const response = await fetch(`/api/admin/tickets/${business.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system_type: systemType }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Mise à jour impossible.");
+      await loadTicketBusinesses();
+    } catch (error) { setTicketsError(error.message || "Mise à jour impossible."); }
+    finally { setUpdatingTicketId(null); }
   }
 
   async function handleDeleteTicketBusiness(business) {
@@ -1005,7 +1019,7 @@ export default function AdminPage() {
           )}
           {view === "tickets" && (
             <button style={styles.newButton} onClick={() => setShowTicketForm(true)}>
-              + Nouveau Ticket
+              + Nouveau commerce Ticket / Attente
             </button>
           )}
         </header>
@@ -1907,7 +1921,13 @@ export default function AdminPage() {
             {showTicketForm && (
               <div style={styles.modalOverlay} onClick={() => setShowTicketForm(false)}>
                 <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateTicket}>
-                  <h2 style={styles.modalTitle}>Créer un commerce Ticket</h2>
+                  <h2 style={styles.modalTitle}>Créer un commerce</h2>
+                  <label style={styles.label}>Système attribué
+                    <select style={styles.input} value={ticketSystem} onChange={(e) => setTicketSystem(e.target.value)}>
+                      <option value="tickets">Lehnova Ticket</option>
+                      <option value="manual">Lehnova Attente</option>
+                    </select>
+                  </label>
                   <label style={styles.label}>
                     Nom du commerce
                     <input
@@ -1935,7 +1955,7 @@ export default function AdminPage() {
                       pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                       required
                     />
-                    <span style={styles.subText}>lehnova.fr/ticket/{ticketSlug || "nom-du-commerce"}</span>
+                    <span style={styles.subText}>lehnova.fr/{ticketSystem === "manual" ? "attente" : "ticket"}/{ticketSlug || "nom-du-commerce"}</span>
                   </label>
                   <p style={styles.subText}>Un code d’accès commerçant unique sera généré automatiquement.</p>
                   <div style={styles.modalActions}>
@@ -1958,7 +1978,7 @@ export default function AdminPage() {
                   Aucun commerce Ticket créé pour l'instant
                 </p>
                 <p style={{ color: "#8A7F66", marginTop: "6px" }}>
-                  Clique sur "+ Nouveau Ticket" pour créer ton premier commerce
+                  Clique sur « Nouveau commerce Ticket / Attente » pour créer ton premier commerce
                 </p>
               </div>
             )}
@@ -1969,7 +1989,7 @@ export default function AdminPage() {
                   <thead>
                     <tr>
                       <th style={styles.th}>Commerce</th>
-                      <th style={styles.th}>Lien public Ticket</th>
+                      <th style={styles.th}>Lien public</th>
                       <th style={styles.th}>Accès commerçant</th>
                       <th style={styles.th}>QR code</th>
                       <th style={styles.th}>État de la file</th>
@@ -1978,12 +1998,13 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {ticketBusinesses.map((business) => {
-                      const publicLink = ticketPublicLinkFor(business.slug);
+                      const publicLink = ticketPublicLinkFor(business);
                       return (
                         <tr className="row" key={business.id}>
                           <td style={styles.td}>
                             <strong>{business.name}</strong>
                             <div style={styles.subText}>/{business.slug}</div>
+                            <select value={business.queue?.queue_mode || "tickets"} onChange={(e) => handleTicketSystemChange(business, e.target.value)} disabled={updatingTicketId === business.id} style={{ ...styles.input, marginTop: "6px", padding: "5px 7px", fontSize: "0.72rem" }}><option value="tickets">Lehnova Ticket</option><option value="manual">Lehnova Attente</option></select>
                             {!business.is_active && <span style={{ ...styles.badge, background: "#FBE9E4", color: "#B5402D" }}>Désactivé</span>}
                           </td>
                           <td style={styles.td}>
@@ -1997,10 +2018,10 @@ export default function AdminPage() {
                           <td style={styles.td}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               <code style={{ fontWeight: 800, letterSpacing: ".12em" }}>{business.access_code}</code>
-                              <button style={styles.iconButton} onClick={() => copyTicketText(`login-${business.id}`, `${ticketLoginLink()}\nCode : ${business.access_code}`)}>
+                              <button style={styles.iconButton} onClick={() => copyTicketText(`login-${business.id}`, `${ticketLoginLink(business)}\nCode : ${business.access_code}`)}>
                                 {copiedTicketId === `login-${business.id}` ? "✓ copié" : "copier lien + code"}
                               </button>
-                              <a href={ticketManagementLink()} target="_blank" rel="noreferrer" style={styles.iconButton}>ouvrir la gestion</a>
+                              <a href={ticketManagementLink(business)} target="_blank" rel="noreferrer" style={styles.iconButton}>ouvrir la gestion</a>
                             </div>
                           </td>
                           <td style={styles.td}>
@@ -2011,7 +2032,7 @@ export default function AdminPage() {
                           </td>
                           <td style={styles.td}>
                             <span style={{ ...styles.badge, background: business.queue?.is_open && business.is_active ? "#E9F3EA" : "#FBE9E4", color: business.queue?.is_open && business.is_active ? "#3F7A52" : "#B5402D" }}>
-                              {business.queue?.is_open && business.is_active ? "Ouverte" : "Fermée"}
+                              {business.queue?.queue_mode === "manual" ? "Lehnova Attente" : business.queue?.is_open && business.is_active ? "Ouverte" : "Fermée"}
                             </span>
                           </td>
                           <td style={styles.td}>
@@ -2035,15 +2056,16 @@ export default function AdminPage() {
 
                 <div className="mobile-cards" style={styles.mobileCards}>
                   {ticketBusinesses.map((business) => {
-                    const publicLink = ticketPublicLinkFor(business.slug);
+                    const publicLink = ticketPublicLinkFor(business);
                     return (
                       <div style={styles.card} key={business.id}>
                         <div style={styles.cardHeader}>
                           <div>
                             <strong>{business.name}</strong>
                             <div style={styles.subText}>/{business.slug}</div>
+                            <select value={business.queue?.queue_mode || "tickets"} onChange={(e) => handleTicketSystemChange(business, e.target.value)} disabled={updatingTicketId === business.id} style={{ ...styles.input, marginTop: "6px", padding: "5px 7px", fontSize: "0.72rem" }}><option value="tickets">Lehnova Ticket</option><option value="manual">Lehnova Attente</option></select>
                             <span style={{ ...styles.badge, marginTop: "6px", background: business.queue?.is_open && business.is_active ? "#E9F3EA" : "#FBE9E4", color: business.queue?.is_open && business.is_active ? "#3F7A52" : "#B5402D" }}>
-                              {business.queue?.is_open && business.is_active ? "File ouverte" : "File fermée"}
+                              {business.queue?.queue_mode === "manual" ? "Lehnova Attente" : business.queue?.is_open && business.is_active ? "File ouverte" : "File fermée"}
                             </span>
                           </div>
                           <div style={{ textAlign: "center" }}>
@@ -2057,8 +2079,8 @@ export default function AdminPage() {
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
                           <a href={publicLink} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>page publique</a>
-                          <a href={ticketManagementLink()} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>gestion</a>
-                          <button style={styles.iconButton} onClick={() => copyTicketText(`mobile-login-${business.id}`, `${ticketLoginLink()}\nCode : ${business.access_code}`)}>{copiedTicketId === `mobile-login-${business.id}` ? "✓ copié" : `${business.access_code} · copier lien + code`}</button>
+                          <a href={ticketManagementLink(business)} target="_blank" rel="noreferrer" style={{ ...styles.iconButton, textAlign: "center" }}>gestion</a>
+                          <button style={styles.iconButton} onClick={() => copyTicketText(`mobile-login-${business.id}`, `${ticketLoginLink(business)}\nCode : ${business.access_code}`)}>{copiedTicketId === `mobile-login-${business.id}` ? "✓ copié" : `${business.access_code} · copier lien + code`}</button>
                           <button style={business.is_active ? styles.iconButtonDanger : styles.iconButton} disabled={updatingTicketId === business.id} onClick={() => handleToggleTicketBusiness(business)}>
                             {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
                           </button>
@@ -2603,5 +2625,6 @@ const styles = {
   removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
   addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };
+
 
 

@@ -249,11 +249,16 @@ export default function ClientManageVitrinePage() {
   async function handleSaveCoverLinks(e) {
     e.preventDefault();
     if (!supabase || !showcase) return;
-    const links = coverLinks.map((link) => ({ label: link.label?.trim() || "", destination: link.destination?.trim() || "" }))
-      .filter((link) => link.label && link.destination).slice(0, 8);
-    const invalidLink = links.find((link) => !/^#(portfolio|prestations|avant-apres|contact)$/.test(link.destination) && !/^(https?:\/\/|mailto:|tel:)/i.test(link.destination));
+    const links = coverLinks.map((link) => {
+      const rawDestination = link.destination?.trim() || "";
+      const destination = /^[\w.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(rawDestination)
+        ? `https://${rawDestination}`
+        : rawDestination;
+      return { label: link.label?.trim() || "", destination };
+    }).filter((link) => link.label && link.destination).slice(0, 8);
+    const invalidLink = links.find((link) => !/^(https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i.test(link.destination));
     if (invalidLink) {
-      setLoadError("Une URL externe doit commencer par https://, http://, mailto: ou tel:.");
+      setLoadError("Saisis une adresse web valide, par exemple https://…, /attente/… ou #contact.");
       return;
     }
     setCoverLinksSaving(true);
@@ -520,31 +525,19 @@ export default function ClientManageVitrinePage() {
         <section style={styles.themeBlock}>
           <h2 style={styles.blockTitle}>Liens de couverture</h2>
           <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: "6px 0 0" }}>
-            Ajoute de petits liens sur la photo de couverture et organise leur ordre d’affichage.
+            Ajoute les liens de ton choix sur la photo de couverture et organise leur ordre d’affichage.
           </p>
           <form style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }} onSubmit={handleSaveCoverLinks}>
             {coverLinks.map((link, index) => (
               <div style={styles.coverLinkRow} key={index}>
                 <label style={styles.label}>
-                  Nom du lien
-                  <input style={styles.input} value={link.label || ""} onChange={(e) => updateCoverLink(index, "label", e.target.value)} maxLength={60} placeholder="ex. Instagram" />
+                  Texte affiché
+                  <input style={styles.input} value={link.label || ""} onChange={(e) => updateCoverLink(index, "label", e.target.value)} maxLength={60} placeholder="ex. Voir l’attente" />
                 </label>
                 <label style={styles.label}>
-                  Destination
-                  <select style={styles.input} value={["#portfolio", "#prestations", "#avant-apres", "#contact"].includes(link.destination) ? link.destination : "external"} onChange={(e) => updateCoverLink(index, "destination", e.target.value === "external" ? "" : e.target.value)}>
-                    <option value="#portfolio">Réalisations</option>
-                    <option value="#prestations">Prestations</option>
-                    <option value="#avant-apres">Avant / Après</option>
-                    <option value="#contact">Contact</option>
-                    <option value="external">URL externe</option>
-                  </select>
+                  URL de destination
+                  <input style={styles.input} value={link.destination || ""} onChange={(e) => updateCoverLink(index, "destination", e.target.value)} placeholder="https://… ou /attente/…" inputMode="url" />
                 </label>
-                {!["#portfolio", "#prestations", "#avant-apres", "#contact"].includes(link.destination) && (
-                  <label style={{ ...styles.label, flexBasis: "100%" }}>
-                    URL externe
-                    <input style={styles.input} value={link.destination || ""} onChange={(e) => updateCoverLink(index, "destination", e.target.value)} placeholder="https://instagram.com/..." />
-                  </label>
-                )}
                 <div style={styles.coverLinkActions}>
                   <button type="button" style={styles.iconButton} onClick={() => moveCoverLink(index, -1)} disabled={index === 0} aria-label="Monter ce lien">↑</button>
                   <button type="button" style={styles.iconButton} onClick={() => moveCoverLink(index, 1)} disabled={index === coverLinks.length - 1} aria-label="Descendre ce lien">↓</button>
@@ -552,7 +545,7 @@ export default function ClientManageVitrinePage() {
                 </div>
               </div>
             ))}
-            {coverLinks.length < 8 && <button type="button" style={styles.cancelButton} onClick={() => setCoverLinks((current) => [...current, { label: "", destination: "#portfolio" }])}>+ Ajouter un lien</button>}
+            {coverLinks.length < 8 && <button type="button" style={styles.cancelButton} onClick={() => setCoverLinks((current) => [...current, { label: "", destination: "" }])}>+ Ajouter un lien</button>}
             <div style={styles.formActions}>
               <button type="submit" style={styles.primaryButton} disabled={coverLinksSaving}>{coverLinksSaving ? "Enregistrement…" : "Enregistrer les liens"}</button>
             </div>

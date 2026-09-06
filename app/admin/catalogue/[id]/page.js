@@ -25,6 +25,16 @@ export default function ManageCatalogPage() {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [managementType, setManagementType] = useState("none");
+  const [stockQuantity, setStockQuantity] = useState(0);
+  const [lowStockThreshold, setLowStockThreshold] = useState(3);
+  const [rentalPrice, setRentalPrice] = useState("");
+  const [rentalDeposit, setRentalDeposit] = useState("");
+  const [availabilityProduct, setAvailabilityProduct] = useState(null);
+  const [unavailablePeriods, setUnavailablePeriods] = useState([]);
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [savingPeriod, setSavingPeriod] = useState(false);
   const [photos, setPhotos] = useState([]); // nouveaux fichiers à uploader
   const [photoPreviews, setPhotoPreviews] = useState([]); // aperçus locaux des nouveaux fichiers
   const [existingPhotoUrls, setExistingPhotoUrls] = useState([]); // photos déjà en ligne (modifiables/supprimables)
@@ -167,6 +177,11 @@ export default function ManageCatalogPage() {
     setPrice("");
     setDescription("");
     setCategory("");
+    setManagementType("none");
+    setStockQuantity(0);
+    setLowStockThreshold(3);
+    setRentalPrice("");
+    setRentalDeposit("");
     setPhotos([]);
     setPhotoPreviews([]);
     setExistingPhotoUrls([]);
@@ -178,6 +193,11 @@ export default function ManageCatalogPage() {
     setPrice(p.price || "");
     setDescription(p.description || "");
     setCategory(p.category || "");
+    setManagementType(p.management_type || "none");
+    setStockQuantity(p.stock_quantity ?? 0);
+    setLowStockThreshold(p.low_stock_threshold ?? 3);
+    setRentalPrice(p.rental_price || "");
+    setRentalDeposit(p.rental_deposit || "");
     setPhotos([]);
     setPhotoPreviews([]);
     const existing = p.photo_urls && p.photo_urls.length > 0 ? p.photo_urls : p.photo_url ? [p.photo_url] : [];
@@ -230,6 +250,11 @@ export default function ManageCatalogPage() {
           category: category.trim(),
           photo_url: finalPhotoUrls[0] || null,
           photo_urls: finalPhotoUrls,
+          management_type: managementType,
+          stock_quantity: managementType === "stock" ? Math.max(0, Number(stockQuantity) || 0) : null,
+          low_stock_threshold: Math.max(0, Number(lowStockThreshold) || 0),
+          rental_price: managementType === "rental" ? rentalPrice.trim() : null,
+          rental_deposit: managementType === "rental" ? rentalDeposit.trim() || null : null,
         })
         .eq("id", editingId);
       if (error) setLoadError("Modification impossible : " + error.message);
@@ -243,6 +268,11 @@ export default function ManageCatalogPage() {
         photo_url: finalPhotoUrls[0] || null,
         photo_urls: finalPhotoUrls,
         position: products.length,
+        management_type: managementType,
+        stock_quantity: managementType === "stock" ? Math.max(0, Number(stockQuantity) || 0) : null,
+        low_stock_threshold: Math.max(0, Number(lowStockThreshold) || 0),
+        rental_price: managementType === "rental" ? rentalPrice.trim() : null,
+        rental_deposit: managementType === "rental" ? rentalDeposit.trim() || null : null,
       });
       if (error) setLoadError("Ajout impossible : " + error.message);
     }
@@ -261,6 +291,30 @@ export default function ManageCatalogPage() {
     } else {
       load();
     }
+  }
+
+  async function openAvailability(product) {
+    setAvailabilityProduct(product);
+    setPeriodStart(""); setPeriodEnd("");
+    const { data, error } = await supabase.from("catalog_product_unavailability").select("*").eq("product_id", product.id).order("start_date", { ascending: true });
+    if (error) setLoadError("Impossible de charger les disponibilités : " + error.message);
+    else setUnavailablePeriods(data || []);
+  }
+
+  async function addUnavailablePeriod(e) {
+    e.preventDefault();
+    if (!availabilityProduct || !periodStart) return;
+    const endDate = periodEnd || periodStart;
+    if (endDate < periodStart) { setLoadError("La date de fin doit être postérieure à la date de début."); return; }
+    setSavingPeriod(true);
+    const { error } = await supabase.from("catalog_product_unavailability").insert({ product_id: availabilityProduct.id, start_date: periodStart, end_date: endDate });
+    setSavingPeriod(false);
+    if (error) setLoadError("Ajout impossible : " + error.message); else openAvailability(availabilityProduct);
+  }
+
+  async function removeUnavailablePeriod(id) {
+    const { error } = await supabase.from("catalog_product_unavailability").delete().eq("id", id).eq("product_id", availabilityProduct.id);
+    if (error) setLoadError("Suppression impossible : " + error.message); else openAvailability(availabilityProduct);
   }
 
   async function handleSaveStyle() {
@@ -1334,6 +1388,20 @@ export default function ManageCatalogPage() {
             />
           </label>
           <label style={styles.label}>
+            Type de gestion
+            <select style={styles.input} value={managementType} onChange={(e) => setManagementType(e.target.value)}>
+              <option value="none">Aucune gestion</option><option value="stock">Vente / Stock</option><option value="rental">Location / Disponibilités</option>
+            </select>
+          </label>
+          {managementType === "stock" && <div style={styles.formRow2}>
+            <label style={styles.label}>Quantité disponible<input style={styles.input} type="number" min="0" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} /></label>
+            <label style={styles.label}>Seuil de stock faible<input style={styles.input} type="number" min="0" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} /></label>
+          </div>}
+          {managementType === "rental" && <div style={styles.formRow2}>
+            <label style={styles.label}>Prix de location<input style={styles.input} value={rentalPrice} onChange={(e) => setRentalPrice(e.target.value)} placeholder="ex. 80 € / jour" /></label>
+            <label style={styles.label}>Caution (facultative)<input style={styles.input} value={rentalDeposit} onChange={(e) => setRentalDeposit(e.target.value)} placeholder="ex. 200 €" /></label>
+          </div>}
+          <label style={styles.label}>
             Photos {existingPhotoUrls.length + photoPreviews.length > 0 && `(${existingPhotoUrls.length + photoPreviews.length})`}
             {(existingPhotoUrls.length > 0 || photoPreviews.length > 0) && (
               <div style={styles.photoGallery}>
@@ -1394,14 +1462,32 @@ export default function ManageCatalogPage() {
                 <strong>{p.name}</strong>
                 {p.price && <span style={styles.productPrice}> — {p.price}</span>}
                 {p.description && <div style={styles.productDesc}>{p.description}</div>}
+                {p.management_type === "stock" && <div style={styles.productDesc}>Stock : {p.stock_quantity ?? 0} · seuil faible : {p.low_stock_threshold ?? 3}</div>}
+                {p.management_type === "rental" && <div style={styles.productDesc}>Location : {p.rental_price || "prix non renseigné"}{p.rental_deposit ? ` · caution ${p.rental_deposit}` : ""}</div>}
               </div>
               <div style={styles.productActions}>
+                {p.management_type === "rental" && <button type="button" style={styles.iconButton} onClick={() => openAvailability(p)}>disponibilités</button>}
                 <button style={styles.iconButton} onClick={() => startEdit(p)}>modifier</button>
                 <button style={styles.iconButtonDanger} onClick={() => handleDelete(p.id)}>supprimer</button>
               </div>
             </div>
           ))}
         </div>
+        {availabilityProduct && <div style={styles.modalBackdrop} onClick={() => setAvailabilityProduct(null)}>
+          <section style={styles.availabilityModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}><h2 style={styles.formTitle}>Disponibilités — {availabilityProduct.name}</h2><button type="button" style={styles.iconButton} onClick={() => setAvailabilityProduct(null)}>fermer</button></div>
+            <p style={styles.productDesc}>Bloquez une journée ou une période pour cet article uniquement.</p>
+            <form onSubmit={addUnavailablePeriod} style={styles.availabilityForm}>
+              <label style={styles.label}>Du<input required type="date" style={styles.input} value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} /></label>
+              <label style={styles.label}>Au (facultatif)<input type="date" style={styles.input} min={periodStart || undefined} value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} /></label>
+              <button type="submit" style={styles.newButton} disabled={savingPeriod}>{savingPeriod ? "Ajout…" : "Bloquer la période"}</button>
+            </form>
+            <div style={styles.periodList}>
+              {unavailablePeriods.length === 0 && <p style={styles.productDesc}>Aucune date bloquée.</p>}
+              {unavailablePeriods.map((period) => <div key={period.id} style={styles.periodRow}><span>{new Date(`${period.start_date}T12:00:00`).toLocaleDateString("fr-FR")}{period.end_date !== period.start_date ? ` → ${new Date(`${period.end_date}T12:00:00`).toLocaleDateString("fr-FR")}` : ""}</span><button type="button" style={styles.iconButtonDanger} onClick={() => removeUnavailablePeriod(period.id)}>supprimer</button></div>)}
+            </div>
+          </section>
+        </div>}
       </div>
     </div>
   );
@@ -1420,6 +1506,12 @@ const styles = {
   form: { background: "#FCFAF2", borderRadius: "10px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px", border: "1px solid #E6DCC2" },
   formTitle: { fontFamily: "'Caveat', cursive", fontSize: "1.5rem", margin: 0, color: "#1E2A3A" },
   formRow2: { display: "flex", gap: "12px", flexWrap: "wrap" },
+  modalBackdrop: { position: "fixed", inset: 0, zIndex: 1000, background: "rgba(30,42,58,.62)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" },
+  availabilityModal: { width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto", background: "#FCFAF2", border: "1px solid #E6DCC2", borderRadius: "10px", padding: "18px" },
+  modalHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" },
+  availabilityForm: { display: "flex", alignItems: "flex-end", gap: "10px", flexWrap: "wrap", margin: "18px 0" },
+  periodList: { display: "flex", flexDirection: "column", gap: "8px" },
+  periodRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "10px", border: "1px solid #E6DCC2", borderRadius: "6px", fontSize: ".86rem" },
   label: { display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "#5B4636", flex: "1 1 200px" },
   input: { fontSize: "0.9rem", padding: "9px 10px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff", color: "#2A241D" },
   colorInput: { width: "70px", height: "38px", padding: "2px", border: "1px solid #D8CCAB", borderRadius: "5px", background: "#fff" },
@@ -1503,4 +1595,5 @@ const styles = {
     lineHeight: 1,
   },
 };
+
 

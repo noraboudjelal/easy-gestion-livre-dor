@@ -30,14 +30,17 @@ const THEMES = {
     avatarPalette: ["#E8B44D", "#E2705A", "#8FAE8B", "#A68BC9"],
   },
   "Baby Shower": {
-    ink: "#161B26",
-    surface: "#202838",
-    surface2: "#2A3448",
-    accent: "#E8A3C0",
-    accentSoft: "rgba(232,163,192,0.3)",
-    accentText: "#2A1420",
-    ivory: "#F0F3F8",
-    muted: "#9CA8BE",
+    ink: "#DFF3FF",
+    surface: "#FFF8FC",
+    surface2: "#EAF7FF",
+    accent: "#E78FB5",
+    accentSoft: "rgba(231,143,181,0.24)",
+    accentText: "#30445F",
+    ivory: "#30445F",
+    muted: "#66829A",
+    borderColor: "#B9DDF2",
+    cardGradient: "linear-gradient(160deg, #FFF8FC 0%, #F5FBFF 52%, #EAF7FF 100%)",
+    button: "#6FAED6",
     avatarPalette: ["#7FA8D9", "#E8A3C0", "#9CC2DE", "#F0B8CE"],
   },
   "Baptême": {
@@ -3001,7 +3004,7 @@ function getStyles(t, isFun) {
     entryPhotoGridItem: { width: "100%", height: "120px", objectFit: "cover", borderRadius: "8px" },
     formRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
     counter: { fontSize: "0.7rem", color: t.muted },
-    button: { fontFamily: "'DM Sans', Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "13px 20px", background: "#3d3128", color: "#fff", border: "none", borderRadius: "13px", cursor: "pointer" },
+    button: { fontFamily: "'DM Sans', Inter, sans-serif", fontWeight: 700, fontSize: "0.85rem", padding: "13px 20px", background: t.button || "#3d3128", color: "#fff", border: "none", borderRadius: "13px", cursor: "pointer" },
     errorText: { color: "#D98C7F", fontSize: "0.8rem", margin: 0 },
     successText: { color: "#6FAE7F", fontSize: "0.8rem", margin: 0 },
     pollCard: {
@@ -3379,4 +3382,5 @@ function getStyles(t, isFun) {
     rsvpEditLink: { fontSize: "0.78rem", color: t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
   };
 }
+
 

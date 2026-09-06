@@ -51,7 +51,7 @@ const solutions = [
     subtitle: "Commerces",
     text: "Un catalogue élégant avec des questions de recommandation pour aider vos clients à choisir la prestation ou le produit adapté.",
     image: "/vitrine-commerce.png",
-    href: "#professionnels",
+    href: "/catalogue-numerique-toulouse",
   },
   {
     number: "03",
@@ -401,6 +401,7 @@ export default function Home() {
           <div className="footer-links">
             <a href="mailto:easygestionn@gmail.com">E-mail</a>
             <a href="https://wa.me/33769215578" target="_blank" rel="noreferrer">WhatsApp</a>
+            <a href="/catalogue-numerique-toulouse">Catalogue numérique Toulouse</a>
             <a href="#solutions">Solutions</a>
             <a href="#le-fil">Le Fil</a>
             <a href="#professionnels">Professionnels</a>
@@ -410,3 +411,4 @@ export default function Home() {
     </main>
   );
 }
+

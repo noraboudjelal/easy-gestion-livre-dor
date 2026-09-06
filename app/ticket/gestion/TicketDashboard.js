@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
+import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
@@ -13,6 +13,7 @@ export default function TicketDashboard() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [estimatedMinutes, setEstimatedMinutesValue] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -40,6 +41,10 @@ export default function TicketDashboard() {
   }, [businessId, load]);
 
   const queue = queues.find((item) => item.business_id === businessId) || queues[0];
+
+  useEffect(() => {
+    setEstimatedMinutesValue(queue?.estimated_minutes_per_client ?? "");
+  }, [queue?.business_id, queue?.estimated_minutes_per_client]);
 
   async function run(action) {
     if (!queue || busy) return;
@@ -83,6 +88,15 @@ export default function TicketDashboard() {
             <p style={styles.label}>TICKET EN COURS</p>
             <div style={styles.number}># {formatTicketNumber(queue.current_number)}</div>
             <p style={styles.waiting}>{queue.waiting_count} {queue.waiting_count === 1 ? "personne" : "personnes"} en attente</p>
+            <div style={styles.estimateBox}>
+              <label htmlFor="estimated-minutes" style={styles.estimateLabel}>Temps estimé par client</label>
+              <div style={styles.estimateRow}>
+                <input id="estimated-minutes" type="number" min="1" max="180" inputMode="numeric" value={estimatedMinutes} onChange={(event) => setEstimatedMinutesValue(event.target.value)} placeholder="ex. 15" style={styles.estimateInput} />
+                <span style={styles.minutesLabel}>minutes</span>
+                <button disabled={busy} onClick={() => run(() => setEstimatedMinutes(estimatedMinutes === "" ? null : Number(estimatedMinutes)))} style={styles.estimateSave}>ENREGISTRER</button>
+              </div>
+              <p style={styles.estimateHelp}>Cette durée permet d’indiquer automatiquement une attente approximative aux clients.</p>
+            </div>
             <div style={styles.actions}>
               <button disabled={busy} onClick={() => run(callPreviousTicket)} style={styles.secondary}>← TICKET PRÉCÉDENT</button>
               <button disabled={busy || queue.waiting_count === 0} onClick={() => run(callNextTicket)} style={styles.primary}>TICKET SUIVANT →</button>
@@ -112,6 +126,13 @@ const styles = {
   label: { margin: 0, color: ticketColors.gold, fontSize: "14px", fontWeight: 800, letterSpacing: ".16em" },
   number: { margin: "12px 0 8px", fontSize: "clamp(88px, 25vw, 160px)", fontWeight: 900, lineHeight: 1, letterSpacing: "-.07em" },
   waiting: { margin: "0 0 32px", color: ticketColors.muted, fontSize: "20px", fontWeight: 650 },
+  estimateBox: { margin: "0 0 24px", padding: "16px", borderRadius: "16px", background: ticketColors.background, textAlign: "left" },
+  estimateLabel: { display: "block", marginBottom: "9px", color: ticketColors.ink, fontSize: "14px", fontWeight: 800 },
+  estimateRow: { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" },
+  estimateInput: { width: "90px", minHeight: "44px", padding: "8px 10px", border: `1px solid ${ticketColors.border}`, borderRadius: "10px", background: "#FFF", color: ticketColors.ink, fontSize: "17px", fontWeight: 750 },
+  minutesLabel: { color: ticketColors.muted, fontSize: "14px" },
+  estimateSave: { minHeight: "44px", marginLeft: "auto", padding: "0 14px", border: 0, borderRadius: "10px", background: ticketColors.ink, color: "#FFF", fontSize: "12px", fontWeight: 800 },
+  estimateHelp: { margin: "10px 0 0", color: ticketColors.muted, fontSize: "12px", lineHeight: 1.45 },
   actions: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" },
   primary: { minHeight: "72px", border: 0, borderRadius: "16px", background: ticketColors.accent, color: "#FFF", fontSize: "16px", fontWeight: 850 },
   secondary: { minHeight: "72px", border: `2px solid ${ticketColors.ink}`, borderRadius: "16px", background: "#FFF", color: ticketColors.ink, fontSize: "16px", fontWeight: 850 },
@@ -122,3 +143,4 @@ const styles = {
   empty: { background: "#FFF", border: `1px solid ${ticketColors.border}`, borderRadius: "20px", padding: "30px", textAlign: "center", color: ticketColors.muted },
   error: { color: ticketColors.accent, textAlign: "center", fontSize: "13px" },
 };
+

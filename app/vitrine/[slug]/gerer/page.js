@@ -31,6 +31,8 @@ export default function ClientManageVitrinePage() {
   const [coverTagline, setCoverTagline] = useState("");
   const [coverMentions, setCoverMentions] = useState("");
   const [coverContentSaving, setCoverContentSaving] = useState(false);
+  const [coverLinks, setCoverLinks] = useState([]);
+  const [coverLinksSaving, setCoverLinksSaving] = useState(false);
   const coverInputRef = useRef(null);
 
   // --- Réseaux sociaux ---
@@ -76,6 +78,7 @@ export default function ClientManageVitrinePage() {
     setCoverTitle(sc.cover_title || "");
     setCoverTagline(sc.cover_tagline || "");
     setCoverMentions(Array.isArray(sc.cover_mentions) ? sc.cover_mentions.join("\n") : "");
+    setCoverLinks(Array.isArray(sc.cover_links) ? sc.cover_links : []);
     setLoading(false);
     if (typeof window !== "undefined" && sessionStorage.getItem(`vitrine-client-auth-${sc.id}`) === "1") {
       setAuthed(true);
@@ -225,6 +228,42 @@ export default function ClientManageVitrinePage() {
       setLoadError("Enregistrement des textes de couverture impossible : " + error.message);
     } else {
       setShowcase((current) => ({ ...current, ...values }));
+      setLoadError("");
+    }
+  }
+
+  function updateCoverLink(index, field, value) {
+    setCoverLinks((current) => current.map((link, linkIndex) => linkIndex === index ? { ...link, [field]: value } : link));
+  }
+
+  function moveCoverLink(index, direction) {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= coverLinks.length) return;
+    setCoverLinks((current) => {
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return next;
+    });
+  }
+
+  async function handleSaveCoverLinks(e) {
+    e.preventDefault();
+    if (!supabase || !showcase) return;
+    const links = coverLinks.map((link) => ({ label: link.label?.trim() || "", destination: link.destination?.trim() || "" }))
+      .filter((link) => link.label && link.destination).slice(0, 8);
+    const invalidLink = links.find((link) => !/^#(portfolio|prestations|avant-apres|contact)$/.test(link.destination) && !/^(https?:\/\/|mailto:|tel:)/i.test(link.destination));
+    if (invalidLink) {
+      setLoadError("Une URL externe doit commencer par https://, http://, mailto: ou tel:.");
+      return;
+    }
+    setCoverLinksSaving(true);
+    const { error } = await supabase.from("showcases").update({ cover_links: links }).eq("id", showcase.id);
+    setCoverLinksSaving(false);
+    if (error) {
+      setLoadError("Enregistrement des liens de couverture impossible : " + error.message);
+    } else {
+      setCoverLinks(links);
+      setShowcase((current) => ({ ...current, cover_links: links }));
       setLoadError("");
     }
   }
@@ -479,6 +518,48 @@ export default function ClientManageVitrinePage() {
         </section>
 
         <section style={styles.themeBlock}>
+          <h2 style={styles.blockTitle}>Liens de couverture</h2>
+          <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: "6px 0 0" }}>
+            Ajoute de petits liens sur la photo de couverture et organise leur ordre d’affichage.
+          </p>
+          <form style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }} onSubmit={handleSaveCoverLinks}>
+            {coverLinks.map((link, index) => (
+              <div style={styles.coverLinkRow} key={index}>
+                <label style={styles.label}>
+                  Nom du lien
+                  <input style={styles.input} value={link.label || ""} onChange={(e) => updateCoverLink(index, "label", e.target.value)} maxLength={60} placeholder="ex. Instagram" />
+                </label>
+                <label style={styles.label}>
+                  Destination
+                  <select style={styles.input} value={["#portfolio", "#prestations", "#avant-apres", "#contact"].includes(link.destination) ? link.destination : "external"} onChange={(e) => updateCoverLink(index, "destination", e.target.value === "external" ? "" : e.target.value)}>
+                    <option value="#portfolio">Réalisations</option>
+                    <option value="#prestations">Prestations</option>
+                    <option value="#avant-apres">Avant / Après</option>
+                    <option value="#contact">Contact</option>
+                    <option value="external">URL externe</option>
+                  </select>
+                </label>
+                {!["#portfolio", "#prestations", "#avant-apres", "#contact"].includes(link.destination) && (
+                  <label style={{ ...styles.label, flexBasis: "100%" }}>
+                    URL externe
+                    <input style={styles.input} value={link.destination || ""} onChange={(e) => updateCoverLink(index, "destination", e.target.value)} placeholder="https://instagram.com/..." />
+                  </label>
+                )}
+                <div style={styles.coverLinkActions}>
+                  <button type="button" style={styles.iconButton} onClick={() => moveCoverLink(index, -1)} disabled={index === 0} aria-label="Monter ce lien">↑</button>
+                  <button type="button" style={styles.iconButton} onClick={() => moveCoverLink(index, 1)} disabled={index === coverLinks.length - 1} aria-label="Descendre ce lien">↓</button>
+                  <button type="button" style={styles.iconButtonDanger} onClick={() => setCoverLinks((current) => current.filter((_, linkIndex) => linkIndex !== index))}>Supprimer</button>
+                </div>
+              </div>
+            ))}
+            {coverLinks.length < 8 && <button type="button" style={styles.cancelButton} onClick={() => setCoverLinks((current) => [...current, { label: "", destination: "#portfolio" }])}>+ Ajouter un lien</button>}
+            <div style={styles.formActions}>
+              <button type="submit" style={styles.primaryButton} disabled={coverLinksSaving}>{coverLinksSaving ? "Enregistrement…" : "Enregistrer les liens"}</button>
+            </div>
+          </form>
+        </section>
+
+        <section style={styles.themeBlock}>
           <h2 style={styles.blockTitle}>À propos</h2>
           <p style={{ fontSize: "0.75rem", color: "#8A7F66", margin: "6px 0 0" }}>
             Ton expérience, tes diplômes, ce qui te définit — ça apparaît sur ta page juste sous le titre.
@@ -702,6 +783,8 @@ const styles = {
   coverPreview: { width: "100%", maxHeight: "280px", objectFit: "contain", objectPosition: "center", borderRadius: "8px", background: "#EFE9DA", border: "1px solid #E6DCC2" },
   coverEmpty: { margin: 0, color: "#8A7F66", fontSize: "0.8rem" },
   coverActions: { display: "flex", gap: "8px", flexWrap: "wrap" },
+  coverLinkRow: { display: "flex", gap: "10px", flexWrap: "wrap", padding: "12px", border: "1px solid #E6DCC2", borderRadius: "8px" },
+  coverLinkActions: { display: "flex", gap: "6px", width: "100%" },
   themeRow: { display: "flex", gap: "12px", marginTop: "10px" },
   themeSwatch: { width: "38px", height: "38px", borderRadius: "50%", border: "none", padding: 0 },
   tabs: { display: "flex", gap: "8px", flexWrap: "wrap" },
@@ -733,5 +816,6 @@ const styles = {
   iconButton: { background: "#F1EAD6", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
   iconButtonDanger: { background: "#F6DCD4", color: "#8B3A2B", border: "none", borderRadius: "4px", padding: "6px 10px", fontSize: "0.7rem" },
 };
+
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { getOrCreateDeviceToken } from "../../../lib/ticket/deviceToken";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { getPublicTicketState, subscribeToQueue, takeOrResumeTicket } from "../../../lib/ticket/ticketApi";
@@ -9,6 +9,7 @@ import { ticketBase, ticketColors } from "../ticketStyles";
 
 export default function TicketClient() {
   const { slug } = useParams();
+  const router = useRouter();
   const [token, setToken] = useState(null);
   const [state, setState] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +69,10 @@ export default function TicketClient() {
   const showPublicWait = state?.public_wait_display_enabled !== false;
   const publicEstimate = state?.estimated_minutes_per_client ? state.public_waiting_count * state.estimated_minutes_per_client : null;
 
+  useEffect(() => {
+    if (isManualMode && slug) router.replace(`/attente/${slug}`);
+  }, [isManualMode, router, slug]);
+
   return (
     <main style={styles.page}>
       <section style={styles.card} aria-live="polite">
@@ -78,16 +83,7 @@ export default function TicketClient() {
           <p style={styles.message}>Chargement…</p>
         ) : error && !state ? (
           <p style={styles.error}>{error}</p>
-        ) : isManualMode ? (
-          <div style={styles.center}>
-            <p style={styles.label}>ATTENTE ACTUELLE</p>
-            {showPublicWait ? <>
-              <div style={styles.manualWaiting}>{state.public_waiting_count || 0}</div>
-              <p style={styles.manualPeople}>{state.public_waiting_count === 1 ? "personne en attente" : "personnes en attente"}</p>
-              {publicEstimate !== null && <div style={styles.publicEstimate}>Environ {publicEstimate} minutes d’attente</div>}
-            </> : <p style={styles.message}>L’attente n’est pas affichée actuellement.</p>}
-          </div>
-        ) : !state?.is_open && !hasTicket ? (
+        ) : isManualMode ? <p style={styles.message}>Redirection vers Lehnova Attente…</p> : !state?.is_open && !hasTicket ? (
           <div style={styles.center}>
             <div style={styles.closedDot} />
             <h2 style={styles.closedTitle}>FILE FERMÉE</h2>

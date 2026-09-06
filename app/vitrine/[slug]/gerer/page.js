@@ -254,7 +254,17 @@ export default function ClientManageVitrinePage() {
       const destination = /^[\w.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(rawDestination)
         ? `https://${rawDestination}`
         : rawDestination;
-      return { label: link.label?.trim() || "", destination };
+      const placement = link.placement === "below" ? "below" : "cover";
+      return {
+        label: link.label?.trim() || "",
+        destination,
+        placement,
+        ...(placement === "below" ? {
+          eyebrow: link.eyebrow?.trim() || "",
+          title: link.title?.trim() || "",
+          description: link.description?.trim() || "",
+        } : {}),
+      };
     }).filter((link) => link.label && link.destination).slice(0, 8);
     const invalidLink = links.find((link) => !/^(https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i.test(link.destination));
     if (invalidLink) {
@@ -538,6 +548,29 @@ export default function ClientManageVitrinePage() {
                   URL de destination
                   <input style={styles.input} value={link.destination || ""} onChange={(e) => updateCoverLink(index, "destination", e.target.value)} placeholder="https://… ou /attente/…" inputMode="url" />
                 </label>
+                <label style={styles.label}>
+                  Emplacement
+                  <select style={styles.input} value={link.placement === "below" ? "below" : "cover"} onChange={(e) => updateCoverLink(index, "placement", e.target.value)}>
+                    <option value="cover">Sur la couverture</option>
+                    <option value="below">Dans un bloc sous la couverture</option>
+                  </select>
+                </label>
+                {link.placement === "below" && (
+                  <div style={styles.coverLinkBlockFields}>
+                    <label style={styles.label}>
+                      Petit titre
+                      <input style={styles.input} value={link.eyebrow || ""} onChange={(e) => updateCoverLink(index, "eyebrow", e.target.value)} maxLength={50} placeholder="ex. EN DIRECT" />
+                    </label>
+                    <label style={styles.label}>
+                      Titre principal
+                      <input style={styles.input} value={link.title || ""} onChange={(e) => updateCoverLink(index, "title", e.target.value)} maxLength={100} placeholder="ex. Combien d’attente actuellement ?" />
+                    </label>
+                    <label style={styles.label}>
+                      Courte phrase
+                      <textarea style={{ ...styles.textarea, minHeight: "76px" }} value={link.description || ""} onChange={(e) => updateCoverLink(index, "description", e.target.value)} maxLength={220} placeholder="ex. Consultez l’attente avant de vous déplacer." rows={2} />
+                    </label>
+                  </div>
+                )}
                 <div style={styles.coverLinkActions}>
                   <button type="button" style={styles.iconButton} onClick={() => moveCoverLink(index, -1)} disabled={index === 0} aria-label="Monter ce lien">↑</button>
                   <button type="button" style={styles.iconButton} onClick={() => moveCoverLink(index, 1)} disabled={index === coverLinks.length - 1} aria-label="Descendre ce lien">↓</button>
@@ -545,7 +578,7 @@ export default function ClientManageVitrinePage() {
                 </div>
               </div>
             ))}
-            {coverLinks.length < 8 && <button type="button" style={styles.cancelButton} onClick={() => setCoverLinks((current) => [...current, { label: "", destination: "" }])}>+ Ajouter un lien</button>}
+            {coverLinks.length < 8 && <button type="button" style={styles.cancelButton} onClick={() => setCoverLinks((current) => [...current, { label: "", destination: "", placement: "cover" }])}>+ Ajouter un lien</button>}
             <div style={styles.formActions}>
               <button type="submit" style={styles.primaryButton} disabled={coverLinksSaving}>{coverLinksSaving ? "Enregistrement…" : "Enregistrer les liens"}</button>
             </div>
@@ -777,6 +810,7 @@ const styles = {
   coverEmpty: { margin: 0, color: "#8A7F66", fontSize: "0.8rem" },
   coverActions: { display: "flex", gap: "8px", flexWrap: "wrap" },
   coverLinkRow: { display: "flex", gap: "10px", flexWrap: "wrap", padding: "12px", border: "1px solid #E6DCC2", borderRadius: "8px" },
+  coverLinkBlockFields: { display: "grid", gap: "10px", width: "100%", padding: "12px", background: "#F7F2E8", borderRadius: "8px" },
   coverLinkActions: { display: "flex", gap: "6px", width: "100%" },
   themeRow: { display: "flex", gap: "12px", marginTop: "10px" },
   themeSwatch: { width: "38px", height: "38px", borderRadius: "50%", border: "none", padding: 0 },

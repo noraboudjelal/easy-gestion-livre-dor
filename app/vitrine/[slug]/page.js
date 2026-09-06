@@ -40,7 +40,11 @@ export default function PublicVitrinePage() {
   const firstPhoto = realisations.find(r => r.photo_url || r.photo_urls?.[0]);
   const heroImage = showcase.cover_image_url || firstPhoto?.photo_urls?.[0] || firstPhoto?.photo_url || "";
   const categories = ["Tout", ...Array.from(new Set(realisations.map(r => r.category).filter(Boolean)))];
-  const heroTags = Array.from(new Set([...realisations.map(r => r.category), ...prestations.map(p => p.category)].filter(Boolean))).slice(0, 4);
+  const automaticHeroTags = Array.from(new Set([...realisations.map(r => r.category), ...prestations.map(p => p.category)].filter(Boolean))).slice(0, 4);
+  const customHeroTags = Array.isArray(showcase.cover_mentions) ? showcase.cover_mentions.map((tag) => tag.trim()).filter(Boolean) : [];
+  const heroTags = customHeroTags.length > 0 ? customHeroTags : automaticHeroTags;
+  const heroTitle = showcase.cover_title?.trim() || showcase.business_name;
+  const heroTagline = showcase.cover_tagline?.trim() || showcase.tagline || "Portfolio professionnel";
   const visible = active === "Tout" ? realisations : realisations.filter(r => r.category === active);
   const cleanPhone = (showcase.phone || "").replace(/\D/g, "");
   const waPhone = (showcase.whatsapp || showcase.phone || "").replace(/\D/g, "").replace(/^0/, "33");
@@ -54,8 +58,8 @@ export default function PublicVitrinePage() {
         <section className="hero">
           <div className="brand"><span>{showcase.business_name}</span>{showcase.address && <span className="badge">{showcase.address.split(",")[0]}</span>}</div>
           <div>
-            <div className="eyebrow" style={{color:"#f3d9d0"}}>{showcase.tagline || "Portfolio professionnel"}</div>
-            <h1>{showcase.business_name}</h1>
+            <div className="eyebrow" style={{color:"#f3d9d0"}}>{heroTagline}</div>
+            <h1>{heroTitle}</h1>
             {showcase.about_text && <p>{showcase.about_text}</p>}
             {heroTags.length > 0 && <div className="hero-tags">{heroTags.map(tag => <span className="hero-tag" key={tag}>{tag}</span>)}</div>}
             {(showcase.booking_url || cleanPhone) && <a className="cta" href={showcase.booking_url || `tel:${cleanPhone}`}>{showcase.booking_url ? "Prendre rendez-vous" : "Nous contacter"}</a>}
@@ -72,3 +76,4 @@ export default function PublicVitrinePage() {
     </main>
   );
 }
+

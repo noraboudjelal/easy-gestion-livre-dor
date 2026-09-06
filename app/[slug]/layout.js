@@ -109,6 +109,10 @@ export default function PublicEventLayout({ children }) {
     };
   }, [cameraOpen]);
 
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     let mount = null;
@@ -231,13 +235,23 @@ export default function PublicEventLayout({ children }) {
     canvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], `le-fil-${Date.now()}.jpg`, { type: "image/jpeg" });
-      setShotFile(file); setShot(URL.createObjectURL(blob)); streamRef.current?.getTracks().forEach((track) => track.stop());
+      setShotFile(file); setShot(URL.createObjectURL(blob));
     }, "image/jpeg", 0.95);
   }
 
   async function retake() {
     setShot(""); setShotFile(null); setCameraError("");
-    try { await startCamera(cameraFacing); } catch { setCameraError("Impossible de rouvrir la caméra."); }
+    const stream = streamRef.current;
+    const streamIsActive = stream?.getVideoTracks().some((track) => track.readyState === "live");
+    if (!streamIsActive) {
+      try { await startCamera(cameraFacing); } catch { setCameraError("Impossible de rouvrir la caméra."); }
+      return;
+    }
+    setTimeout(() => {
+      if (!videoRef.current) return;
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
+    }, 0);
   }
 
   function useShot() {
@@ -273,3 +287,4 @@ export default function PublicEventLayout({ children }) {
     </div>}
   </>;
 }
+

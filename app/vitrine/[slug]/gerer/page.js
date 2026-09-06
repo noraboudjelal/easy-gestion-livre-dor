@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../../lib/supabaseClient";
 import { VITRINE_THEMES } from "../../../../lib/vitrineThemes";
+import ShowcaseAdvisorManager from "../../../../components/ShowcaseAdvisorManager";
 
 export default function ClientManageVitrinePage() {
   const params = useParams();
@@ -605,6 +606,12 @@ export default function ClientManageVitrinePage() {
             </div>
           </form>
         </section>
+
+        <ShowcaseAdvisorManager
+          showcase={showcase}
+          prestations={items.filter((item) => item.item_type === "prestation")}
+          onShowcaseChange={setShowcase}
+        />
 
         <section style={styles.themeBlock}>
           <h2 style={styles.blockTitle}>Couleur de ma page</h2>

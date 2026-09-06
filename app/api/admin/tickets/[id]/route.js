@@ -12,19 +12,26 @@ export async function PATCH(request, { params }) {
 
   try {
     const { id } = params;
-    const { is_active: isActive } = await request.json();
-    if (typeof isActive !== "boolean") throw new Error("État invalide.");
+    const body = await request.json();
+    const isActive = body.is_active;
+    const systemType = body.system_type;
+    if (typeof isActive !== "boolean" && !["tickets", "manual"].includes(systemType)) throw new Error("État invalide.");
 
     const admin = getSupabaseAdmin();
     const { data: business, error } = await admin
       .from("ticket_businesses")
-      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .update(typeof isActive === "boolean" ? { is_active: isActive, updated_at: new Date().toISOString() } : { updated_at: new Date().toISOString() })
       .eq("id", id)
       .select("id")
       .single();
     if (error) throw error;
 
-    if (!isActive) {
+    if (systemType) {
+      const { error: modeError } = await admin.from("ticket_queues").update({ queue_mode: systemType, updated_at: new Date().toISOString() }).eq("business_id", business.id);
+      if (modeError) throw modeError;
+    }
+
+    if (isActive === false) {
       const { error: queueError } = await admin
         .from("ticket_queues")
         .update({ is_open: false, updated_at: new Date().toISOString() })
@@ -60,3 +67,4 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: error.message || "Suppression impossible." }, { status: 400 });
   }
 }
+

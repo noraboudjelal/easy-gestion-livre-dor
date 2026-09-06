@@ -106,6 +106,9 @@ export default function TicketClient() {
                     ? "Vous êtes le prochain"
                     : `${state.people_ahead} ${state.people_ahead === 1 ? "personne" : "personnes"} avant vous`}
                 </span>
+                {state.estimated_minutes_per_client && state.people_ahead > 0 && (
+                  <span style={styles.estimate}>Temps d’attente estimé : environ {state.people_ahead * state.estimated_minutes_per_client} min</span>
+                )}
               </div>
             )}
 
@@ -130,6 +133,7 @@ const styles = {
   number: { margin: "8px 0 30px", color: ticketColors.ink, fontSize: "clamp(76px, 24vw, 112px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-.06em" },
   statusBox: { width: "100%", padding: "22px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "8px", color: ticketColors.muted, fontSize: "14px" },
   ahead: { marginTop: "4px", color: ticketColors.ink, fontSize: "18px", fontWeight: 750 },
+  estimate: { marginTop: "8px", color: ticketColors.accent, fontSize: "15px", fontWeight: 750 },
   turnBox: { width: "100%", padding: "24px 18px", borderRadius: "18px", color: "#FFF", background: ticketColors.success, display: "flex", flexDirection: "column", gap: "7px" },
   turnTitle: { fontSize: "24px", letterSpacing: ".04em" },
   finishedBox: { width: "100%", padding: "20px", borderRadius: "18px", background: ticketColors.background, color: ticketColors.muted },
@@ -140,3 +144,4 @@ const styles = {
   error: { color: ticketColors.accent, textAlign: "center", fontSize: "14px" },
   footer: { margin: "auto 0 0", paddingTop: "28px", color: ticketColors.muted, textAlign: "center", fontSize: "11px" },
 };
+

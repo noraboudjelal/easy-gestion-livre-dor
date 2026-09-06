@@ -2,6 +2,9 @@ export const metadata = {
   title: "Lehnova — Supports numériques personnalisés",
   description: "Solutions numériques accessibles par QR code pour les événements, les commerces et les artisans.",
   manifest: "/manifest.webmanifest",
+  verification: {
+    google: "ugdgCxBWyvWrjHpc8kvGkGttpFQ6WRVEH2TZo9fuqec",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -21,3 +24,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+

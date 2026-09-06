@@ -45,6 +45,15 @@ export default function PublicVitrinePage() {
   const heroTags = customHeroTags.length > 0 ? customHeroTags : automaticHeroTags;
   const heroTitle = showcase.cover_title?.trim() || showcase.business_name;
   const heroTagline = showcase.cover_tagline?.trim() || showcase.tagline || "Portfolio professionnel";
+  const coverLinks = Array.isArray(showcase.cover_links)
+    ? showcase.cover_links.filter((link) => link?.label?.trim() && (/^#(portfolio|prestations|avant-apres|contact)$/.test(link?.destination) || /^(https?:\/\/|mailto:|tel:)/i.test(link?.destination)))
+    : [];
+
+  function handleCoverLinkClick(event, destination) {
+    if (!destination.startsWith("#")) return;
+    event.preventDefault();
+    document.querySelector(destination)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   const visible = active === "Tout" ? realisations : realisations.filter(r => r.category === active);
   const cleanPhone = (showcase.phone || "").replace(/\D/g, "");
   const waPhone = (showcase.whatsapp || showcase.phone || "").replace(/\D/g, "").replace(/^0/, "33");
@@ -62,18 +71,20 @@ export default function PublicVitrinePage() {
             <h1>{heroTitle}</h1>
             {showcase.about_text && <p>{showcase.about_text}</p>}
             {heroTags.length > 0 && <div className="hero-tags">{heroTags.map(tag => <span className="hero-tag" key={tag}>{tag}</span>)}</div>}
+            {coverLinks.length > 0 && <nav aria-label="Liens de couverture" style={{display:"flex",flexWrap:"wrap",gap:"6px 14px",margin:"0 0 18px"}}>{coverLinks.map((link, index) => <a href={link.destination} onClick={(event) => handleCoverLinkClick(event, link.destination)} key={`${link.label}-${index}`} style={{color:"inherit",fontSize:11,lineHeight:1.4,textDecoration:"none",borderBottom:"1px solid rgba(255,255,255,.55)"}}>{link.label}</a>)}</nav>}
             {(showcase.booking_url || cleanPhone) && <a className="cta" href={showcase.booking_url || `tel:${cleanPhone}`}>{showcase.booking_url ? "Prendre rendez-vous" : "Nous contacter"}</a>}
           </div>
         </section>
 
         {showcase.about_text && <section className="section"><div className="eyebrow">À propos</div><h2>Bienvenue</h2><p className="about">{showcase.about_text}</p></section>}
         <section className="section" id="portfolio"><div className="eyebrow">Portfolio</div><h2>Nos réalisations</h2>{categories.length > 1 && <div className="filters">{categories.map(c => <button key={c} className={`filter ${active===c?"on":""}`} onClick={()=>setActive(c)}>{c}</button>)}</div>}{visible.length ? <div className="grid">{visible.map(r => { const image=r.photo_urls?.[0]||r.photo_url; return <article className="card" key={r.id}>{image && <img src={image} alt={r.name}/>}<div className="caption">{r.category&&<span>{r.category}</span>}<strong>{r.name}</strong>{r.price&&<span>{r.price}</span>}</div></article>})}</div> : <p className="about">Les réalisations arrivent bientôt.</p>}</section>
-        {prestations.length > 0 && <section className="section prices"><div className="eyebrow">Prestations</div><h2>Ce que nous proposons</h2>{prestations.map(p=><div className="price-row" key={p.id}><span>{p.name}{p.description&&<small style={{display:"block",opacity:.6,marginTop:4}}>{p.description}</small>}</span><span>{p.price||"Sur devis"}</span></div>)}</section>}
-        {transformations.length > 0 && <section className="section"><div className="eyebrow">Transformations</div><h2>Avant / Après</h2>{transformations.map(t=><div key={t.id} style={{marginBottom:24}}>{t.label&&<p className="about" style={{marginBottom:8}}>{t.label}</p>}<div className="before"><figure>{t.before_url&&<img src={t.before_url} alt="Avant"/>}<b>Avant</b></figure><figure>{t.after_url&&<img src={t.after_url} alt="Après"/>}<b>Après</b></figure></div></div>)}</section>}
+        {prestations.length > 0 && <section className="section prices" id="prestations"><div className="eyebrow">Prestations</div><h2>Ce que nous proposons</h2>{prestations.map(p=><div className="price-row" key={p.id}><span>{p.name}{p.description&&<small style={{display:"block",opacity:.6,marginTop:4}}>{p.description}</small>}</span><span>{p.price||"Sur devis"}</span></div>)}</section>}
+        {transformations.length > 0 && <section className="section" id="avant-apres"><div className="eyebrow">Transformations</div><h2>Avant / Après</h2>{transformations.map(t=><div key={t.id} style={{marginBottom:24}}>{t.label&&<p className="about" style={{marginBottom:8}}>{t.label}</p>}<div className="before"><figure>{t.before_url&&<img src={t.before_url} alt="Avant"/>}<b>Avant</b></figure><figure>{t.after_url&&<img src={t.after_url} alt="Après"/>}<b>Après</b></figure></div></div>)}</section>}
         <section className="contact" id="contact"><div className="eyebrow">Contact</div><h2>On prend rendez-vous ?</h2>{(showcase.hours_text||showcase.address)&&<p>{showcase.hours_text}{showcase.hours_text&&showcase.address&&<br/>}{showcase.address}</p>}<div className="buttons">{showcase.booking_url&&<a className="button" href={showcase.booking_url} target="_blank" rel="noreferrer">Prendre rendez-vous</a>}{cleanPhone&&<a className="button" href={`tel:${cleanPhone}`}>Appeler</a>}{waPhone&&<a className="button alt" href={`https://wa.me/${waPhone}`} target="_blank" rel="noreferrer">WhatsApp</a>}</div><div className="socials">{showcase.instagram_url&&<a href={showcase.instagram_url} target="_blank" rel="noreferrer">Instagram</a>}{showcase.facebook_url&&<a href={showcase.facebook_url} target="_blank" rel="noreferrer">Facebook</a>}{showcase.tiktok_url&&<a href={showcase.tiktok_url} target="_blank" rel="noreferrer">TikTok</a>}</div></section>
         <footer className="footer">Propulsé par Lehnova — Solutions numériques</footer>
       </div>
     </main>
   );
 }
+
 

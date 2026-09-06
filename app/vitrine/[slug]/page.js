@@ -71,7 +71,7 @@ export default function PublicVitrinePage() {
             <h1>{heroTitle}</h1>
             {showcase.about_text && <p>{showcase.about_text}</p>}
             {heroTags.length > 0 && <div className="hero-tags">{heroTags.map(tag => <span className="hero-tag" key={tag}>{tag}</span>)}</div>}
-            {coverLinks.length > 0 && <nav aria-label="Liens de couverture" style={{display:"flex",flexWrap:"wrap",gap:"6px 14px",margin:"0 0 18px"}}>{coverLinks.map((link, index) => <a href={link.destination} onClick={(event) => handleCoverLinkClick(event, link.destination)} key={`${link.label}-${index}`} style={{color:"inherit",fontSize:11,lineHeight:1.4,textDecoration:"none",borderBottom:"1px solid rgba(255,255,255,.55)"}}>{link.label}</a>)}</nav>}
+            {coverLinks.length > 0 && <nav aria-label="Liens de couverture" style={{display:"flex",flexWrap:"wrap",gap:"6px 14px",margin:"0 0 18px"}}>{coverLinks.map((link, index) => <a href={link.destination} onClick={(event) => handleCoverLinkClick(event, link.destination)} key={`${link.label}-${index}`} style={{color:"inherit",fontSize:"clamp(16px, 4vw, 18px)",lineHeight:1.4,textDecoration:"none",borderBottom:"1px solid rgba(255,255,255,.55)"}}>{link.label}</a>)}</nav>}
             {(showcase.booking_url || cleanPhone) && <a className="cta" href={showcase.booking_url || `tel:${cleanPhone}`}>{showcase.booking_url ? "Prendre rendez-vous" : "Nous contacter"}</a>}
           </div>
         </section>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import { VITRINE_THEMES, DEFAULT_THEME } from "../../../lib/vitrineThemes";
+import ShowcaseAdvisor from "../../../components/ShowcaseAdvisor";
 
 export default function PublicVitrinePage() {
   const params = useParams();
@@ -12,6 +13,8 @@ export default function PublicVitrinePage() {
   const [realisations, setRealisations] = useState([]);
   const [prestations, setPrestations] = useState([]);
   const [transformations, setTransformations] = useState([]);
+  const [quizQuestions, setQuizQuestions] = useState([]);
+  const [showQuiz, setShowQuiz] = useState(true);
   const [active, setActive] = useState("Tout");
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -25,6 +28,14 @@ export default function PublicVitrinePage() {
     const { data: items } = await supabase.from("showcase_products").select("*").eq("showcase_id", sc.id).order("position", { ascending: true });
     setRealisations((items || []).filter((p) => (p.item_type || "realisation") === "realisation"));
     setPrestations((items || []).filter((p) => p.item_type === "prestation"));
+    if (sc.quiz_enabled) {
+      const { data: questions } = await supabase.from("quiz_questions")
+        .select("*, quiz_options!question_id(*)").eq("showcase_id", sc.id)
+        .order("step_order", { ascending: true });
+      setQuizQuestions((questions || []).filter((question) => (question.quiz_options || []).length >= 2));
+    } else {
+      setQuizQuestions([]);
+    }
     const { data: transfos } = await supabase.from("showcase_transformations").select("*").eq("showcase_id", sc.id).order("position", { ascending: true });
     setTransformations(transfos || []);
     setLoading(false);
@@ -84,6 +95,10 @@ export default function PublicVitrinePage() {
           {link.description?.trim() && <p>{link.description}</p>}
           <a href={link.destination} onClick={(event) => handleCoverLinkClick(event, link.destination)}>{link.label}</a>
         </section>)}</div>}
+
+        {showcase.quiz_enabled && showQuiz && quizQuestions.length > 0 && <section style={{padding:"18px 16px",background:v["--bg"]}}>
+          <ShowcaseAdvisor questions={quizQuestions} prestations={prestations} accent={v["--accent-2"]} onDone={() => setShowQuiz(false)} />
+        </section>}
 
         {showcase.about_text && <section className="section"><div className="eyebrow">À propos</div><h2>Bienvenue</h2><p className="about">{showcase.about_text}</p></section>}
         <section className="section" id="portfolio"><div className="eyebrow">Portfolio</div><h2>Nos réalisations</h2>{categories.length > 1 && <div className="filters">{categories.map(c => <button key={c} className={`filter ${active===c?"on":""}`} onClick={()=>setActive(c)}>{c}</button>)}</div>}{visible.length ? <div className="grid">{visible.map(r => { const image=r.photo_urls?.[0]||r.photo_url; return <article className="card" key={r.id}>{image && <img src={image} alt={r.name}/>}<div className="caption">{r.category&&<span>{r.category}</span>}<strong>{r.name}</strong>{r.price&&<span>{r.price}</span>}</div></article>})}</div> : <p className="about">Les réalisations arrivent bientôt.</p>}</section>

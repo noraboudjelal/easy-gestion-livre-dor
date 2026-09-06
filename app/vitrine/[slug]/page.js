@@ -46,7 +46,7 @@ export default function PublicVitrinePage() {
   const heroTitle = showcase.cover_title?.trim() || showcase.business_name;
   const heroTagline = showcase.cover_tagline?.trim() || showcase.tagline || "Portfolio professionnel";
   const coverLinks = Array.isArray(showcase.cover_links)
-    ? showcase.cover_links.filter((link) => link?.label?.trim() && (/^#(portfolio|prestations|avant-apres|contact)$/.test(link?.destination) || /^(https?:\/\/|mailto:|tel:)/i.test(link?.destination)))
+    ? showcase.cover_links.filter((link) => link?.label?.trim() && /^(https?:\/\/|mailto:|tel:|\/(?!\/)|#)/i.test(link?.destination || ""))
     : [];
 
   function handleCoverLinkClick(event, destination) {

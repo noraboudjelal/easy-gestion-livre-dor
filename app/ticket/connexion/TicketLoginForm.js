@@ -13,7 +13,7 @@ export default function TicketLoginForm() {
 
   useEffect(() => {
     getMerchantSession().then((session) => {
-      if (session) router.replace("/ticket/gestion");
+      if (session?.authenticated && session.mode === "tickets") router.replace("/ticket/gestion");
     }).catch(() => {});
   }, [router]);
 
@@ -54,3 +54,4 @@ const styles = {
   button: { minHeight: "52px", border: 0, borderRadius: "13px", background: ticketColors.accent, color: "#FFF", fontWeight: 800, fontSize: "15px" },
   error: { margin: 0, color: ticketColors.accent, fontSize: "13px" },
 };
+

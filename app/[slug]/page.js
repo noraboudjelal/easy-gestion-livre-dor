@@ -445,7 +445,7 @@ function PlaylistRequest({ eventId, theme }) {
         boxShadow: "0 12px 28px rgba(60,42,20,0.08)",
       }}
     >
-      <h2 className="event-section-title">Musique</h2>
+      <h2 className="event-section-title">Playlist</h2>
       <p className="event-section-subtitle">Une envie pour la soirée ?</p>
       <p style={{ fontSize: "0.82rem", color: theme.muted, margin: "0 0 14px" }}>
         Le DJ verra toutes les demandes en direct !
@@ -1892,7 +1892,7 @@ export default function GuestbookPage() {
             <nav className="event-nav" aria-label="Sections de l'événement">
               {event?.event_type === "Baby Shower" && event?.reveal_at && <a href="#reveal">Révélation</a>}
               {pollQuestions.length > 0 && <a href="#quiz">Quiz</a>}
-              {event?.playlist_enabled && <a href="#music">Musique</a>}
+              {event?.playlist_enabled && <a href="#music">Playlist</a>}
               <a href="#memory">Souvenir</a>
               {riddles.length > 0 && <a href="#riddles">Devinettes</a>}
               <a href="#feed">Le Fil</a>

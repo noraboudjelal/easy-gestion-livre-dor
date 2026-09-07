@@ -13,7 +13,7 @@ export default function IdleCover({ timeoutMs = 30000 }) {
   useEffect(() => {
     let active = true;
     if (!slug || !supabase) return;
-    supabase.from("events").select("event_title,client,event_date,event_type").eq("slug", slug).single().then(({ data }) => {
+    supabase.from("events").select("event_title,client,event_date,event_type,idle_cover_url").eq("slug", slug).single().then(({ data }) => {
       if (active) setEvent(data || null);
     });
     return () => { active = false; };
@@ -41,6 +41,11 @@ export default function IdleCover({ timeoutMs = 30000 }) {
 
   const title = (event.event_title || event.client || "Bienvenue").replace(/^mariage\s+(?:de|d[’'])\s*/i, "");
   const date = event.event_date ? new Date(`${event.event_date}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
+
+  if (event.idle_cover_url) return <button type="button" onClick={() => setVisible(false)} aria-label="Entrer dans Le Fil" style={{position:"fixed",inset:0,zIndex:9999,border:0,padding:0,cursor:"pointer",background:"#111",display:"block",width:"100vw",height:"100vh",overflow:"hidden"}}>
+    <img src={event.idle_cover_url} alt="Couverture de l’événement" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />
+    <span style={{position:"absolute",left:"50%",bottom:28,transform:"translateX(-50%)",background:"rgba(0,0,0,.48)",color:"white",padding:"10px 18px",borderRadius:999,fontSize:14,letterSpacing:".04em",whiteSpace:"nowrap"}}>Touchez l’écran pour entrer</span>
+  </button>;
 
   return <button type="button" onClick={() => setVisible(false)} aria-label="Entrer dans Le Fil" style={{position:"fixed",inset:0,zIndex:9999,border:0,padding:0,cursor:"pointer",background:"linear-gradient(145deg,#f8f1e7,#efe1cf)",color:"#3a2e25",display:"grid",placeItems:"center",textAlign:"center"}}>
     <div style={{padding:36,width:"min(88vw,760px)"}}>

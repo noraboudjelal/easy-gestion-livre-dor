@@ -1556,8 +1556,8 @@ export default function AdminPage() {
                             <a href={`/admin/le-fil/${ev.id}#tables`} style={styles.iconButton}>
                               cartons de table
                             </a>
-                            <a href={`/admin/le-fil/${ev.id}#couverture-ipad`} style={styles.iconButton}>
-                              Générer la couverture iPad
+                            <a href={`/admin/le-fil/${ev.id}/ecran-veille`} style={styles.iconButton}>
+                              Écran de veille
                             </a>
                             <a href={`/admin/le-fil/${ev.id}#faire-part`} style={styles.iconButton}>
                               QR pour faire-part
@@ -1661,8 +1661,8 @@ export default function AdminPage() {
                         <a href={`/admin/le-fil/${ev.id}#tables`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
                           cartons de table
                         </a>
-                        <a href={`/admin/le-fil/${ev.id}#couverture-ipad`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
-                          Générer la couverture iPad
+                        <a href={`/admin/le-fil/${ev.id}/ecran-veille`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
+                          Écran de veille
                         </a>
                         <a href={`/admin/le-fil/${ev.id}#faire-part`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
                           QR pour faire-part
@@ -2631,6 +2631,3 @@ const styles = {
   removePollLink: { background: "none", border: "none", color: "#B5402D", fontSize: "0.7rem", textDecoration: "underline", padding: 0 },
   addPollButton: { background: "none", border: "1.5px dashed #D8CCAB", borderRadius: "12px", padding: "10px", fontSize: "0.8rem", fontWeight: 600, color: "#8A7F66" },
 };
-
-
-

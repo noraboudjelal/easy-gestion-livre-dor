@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
-export default function IdleCover({ timeoutMs = 60000 }) {
+export default function IdleCover({ timeoutMs = 30000 }) {
   const { slug } = useParams();
   const [event, setEvent] = useState(null);
   const [visible, setVisible] = useState(true);

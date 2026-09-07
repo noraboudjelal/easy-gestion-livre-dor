@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { addTableCardPage, getTableCardEventWording } from "./tableCardPdf";
 import { addInvitationQrSheet } from "./invitationQrPdf";
+import IpadCoverEditor from "./IpadCoverEditor";
 
 const COLORS = {
   page: "#F7F4EF",
@@ -238,9 +239,11 @@ export default function EventFilAdminPage() {
         </div>
         <p style={styles.kicker}>LE FIL · ADMINISTRATION</p>
         <h1 style={styles.title}>{event.event_title}</h1>
-        <p style={styles.subtitle}>Phrase d’accueil et cartons de table</p>
+        <p style={styles.subtitle}>Couverture iPad, phrase d’accueil et papeterie de l’événement</p>
 
         {error && <p style={styles.error}>{error}</p>}
+
+        <IpadCoverEditor key={event.id} event={event} />
 
         <section id="phrase" style={styles.panel}>
           <h2 style={styles.panelTitle}>Phrase d’accueil</h2>

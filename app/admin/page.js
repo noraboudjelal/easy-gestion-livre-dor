@@ -1556,6 +1556,9 @@ export default function AdminPage() {
                             <a href={`/admin/le-fil/${ev.id}#tables`} style={styles.iconButton}>
                               cartons de table
                             </a>
+                            <a href={`/admin/le-fil/${ev.id}#couverture-ipad`} style={styles.iconButton}>
+                              Générer la couverture iPad
+                            </a>
                             <a href={`/admin/le-fil/${ev.id}#faire-part`} style={styles.iconButton}>
                               QR pour faire-part
                             </a>
@@ -1657,6 +1660,9 @@ export default function AdminPage() {
                         </a>
                         <a href={`/admin/le-fil/${ev.id}#tables`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
                           cartons de table
+                        </a>
+                        <a href={`/admin/le-fil/${ev.id}#couverture-ipad`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
+                          Générer la couverture iPad
                         </a>
                         <a href={`/admin/le-fil/${ev.id}#faire-part`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
                           QR pour faire-part

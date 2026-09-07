@@ -1,5 +1,10 @@
 import IdleCover from "./IdleCover";
 
 export default function LeFilEventLayout({ children }) {
-  return <><IdleCover />{children}</>;
+  return (
+    <>
+      {children}
+      <IdleCover timeoutMs={30000} />
+    </>
+  );
 }

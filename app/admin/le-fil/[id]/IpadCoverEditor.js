@@ -84,15 +84,18 @@ export default function IpadCoverEditor({ event }) {
       a.download = `couverture-ipad-${(event.slug || "le-fil").replace(/[^a-z0-9-]/gi, "-")}-${config.style}.png`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-      setStatus("Image téléchargée. Enregistrez-la dans Photos sur l’iPad, puis choisissez-la comme fond de l’écran verrouillé.");
+      setStatus("Image téléchargée. Vous pouvez maintenant l’utiliser comme écran de veille de ce Fil.");
     } catch (e) { setError(e.message || "Téléchargement impossible. Réessayez."); }
     finally { setBusy(false); }
   }
 
   return <section id="couverture-ipad" className={styles.section}>
     <div><p className={styles.kicker}>LA PREMIÈRE IMPRESSION</p><h2>Une couverture pour votre borne</h2>
-      <p className={styles.help}>Une papeterie numérique assortie à votre événement, à installer sur l’écran verrouillé de l’iPad.</p></div>
-    <button className={styles.primary} type="button" onClick={() => setOpen(true)}>Générer la couverture iPad</button>
+      <p className={styles.help}>Créez la couverture de cet événement puis utilisez-la comme écran de veille de la borne.</p></div>
+    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+      <button className={styles.primary} type="button" onClick={() => setOpen(true)}>Générer la couverture iPad</button>
+      <a className={styles.secondary} href={`/admin/le-fil/${event.id}/ecran-veille`} style={{textDecoration:"none",display:"inline-flex",alignItems:"center"}}>Écran de veille / Couverture</a>
+    </div>
     <dialog ref={dialog} className={styles.dialog} onCancel={() => setOpen(false)} onClose={() => setOpen(false)} aria-labelledby="ipad-cover-title">
       <div className={styles.header}><div><p className={styles.kicker}>LE FIL · ATELIER DE COUVERTURE</p><h2 id="ipad-cover-title">L’art de leur souhaiter la bienvenue.</h2></div><button type="button" className={styles.close} aria-label="Fermer l’aperçu" onClick={() => setOpen(false)}>×</button></div>
       <div className={styles.layout}>
@@ -120,7 +123,7 @@ export default function IpadCoverEditor({ event }) {
             <label>Dimensions en portrait<select value={customSize ? "custom" : `${config.width}x${config.height}`} onChange={(e) => { if (e.target.value === "custom") { setCustomSize(true); return; } setCustomSize(false); const [width, height] = e.target.value.split("x").map(Number); setReady(false); setConfig((prev) => ({ ...prev, width, height })); }}>
               <option value="2048x2732">2048 × 2732 px</option><option value="1668x2388">1668 × 2388 px</option><option value="1640x2360">1640 × 2360 px</option><option value="1536x2048">1536 × 2048 px</option><option value="custom">Dimensions personnalisées</option>
             </select></label>
-            {customSize && <div className={styles.two}>{[["width", "Largeur (px)"], ["height", "Hauteur (px)"]].map(([key, label]) => <label key={key}>{label}<input type="number" min="1000" max="4096" step="1" value={config[key] || ""} onChange={(e) => set(key, Number(e.target.value))} /></label>)}</div>}
+            {customSize && <div className={styles.two}>{[["width", "Largeur (px)"], ["height", "Hauteur (px)" ]].map(([key, label]) => <label key={key}>{label}<input type="number" min="1000" max="4096" step="1" value={config[key] || ""} onChange={(e) => set(key, Number(e.target.value))} /></label>)}</div>}
             {!validSize && <p role="alert" className={styles.error}>Choisissez un format portrait de 1 000 à 4 096 px, avec une hauteur comprise entre 1 et 1,6 fois la largeur.</p>}
           </fieldset>
         </div>
@@ -132,9 +135,10 @@ export default function IpadCoverEditor({ event }) {
             {(!ready || photoBusy) && <div className={styles.pending}>{photoBusy ? "Chargement de la photo…" : !config.title.trim() ? "Renseignez les prénoms pour générer la couverture." : !validSize ? "Vérifiez les dimensions." : "Préparation de la couverture…"}</div>}
           </div>
           <label className={styles.guide}><input type="checkbox" checked={guides} onChange={(e) => setGuides(e.target.checked)} />Simuler l’horloge (absente de l’image téléchargée)</label>
-          <p className={styles.help}>L’emplacement de l’horloge est indicatif. Vérifiez le cadrage sur l’iPad au moment de définir le fond d’écran.</p>
+          <p className={styles.help}>L’emplacement de l’horloge est indicatif.</p>
           {error && <p role="alert" className={styles.error}>{error}</p>}
           <button type="button" className={styles.primary} disabled={!ready || busy || photoBusy} onClick={download}>{busy ? "Création du PNG…" : "Télécharger la couverture PNG"}</button>
+          <a className={styles.secondary} href={`/admin/le-fil/${event.id}/ecran-veille`} style={{textDecoration:"none",display:"inline-flex",alignItems:"center",justifyContent:"center",marginTop:10}}>Utiliser une couverture comme écran de veille</a>
           <p className={styles.status} role="status">{status}</p>
         </div>
       </div>

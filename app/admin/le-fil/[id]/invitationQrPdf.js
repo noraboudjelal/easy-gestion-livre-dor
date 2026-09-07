@@ -1,16 +1,16 @@
 const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
 const MARGIN = 8;
-const COLUMNS = 3;
-const ROWS = 4;
+const COLUMNS = 4;
+const ROWS = 5;
 const CARD_WIDTH = (PAGE_WIDTH - MARGIN * 2) / COLUMNS;
 const CARD_HEIGHT = (PAGE_HEIGHT - MARGIN * 2) / ROWS;
 
 function fitCenteredText(doc, text, centerX, y, maxWidth) {
-  let size = 14;
+  let size = 11;
   doc.setFont("times", "italic");
   doc.setFontSize(size);
-  while (doc.getTextWidth(text) > maxWidth && size > 8) {
+  while (doc.getTextWidth(text) > maxWidth && size > 7) {
     size -= 0.5;
     doc.setFontSize(size);
   }
@@ -21,9 +21,9 @@ function fitCenteredText(doc, text, centerX, y, maxWidth) {
 function drawMinimalOrnament(doc, centerX, y) {
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.18);
-  doc.line(centerX - 8, y, centerX - 2, y);
-  doc.circle(centerX, y, 0.8, "S");
-  doc.line(centerX + 2, y, centerX + 8, y);
+  doc.line(centerX - 7, y, centerX - 2, y);
+  doc.circle(centerX, y, 0.7, "S");
+  doc.line(centerX + 2, y, centerX + 7, y);
 }
 
 export function addInvitationQrSheet(doc, event, qrData) {
@@ -55,17 +55,17 @@ export function addInvitationQrSheet(doc, event, qrData) {
 
       doc.setTextColor(0, 0, 0);
       doc.setFont("times", "bold");
-      doc.setFontSize(9);
-      doc.text("LE FIL", centerX, y + 7.5, { align: "center", charSpace: 0.7 });
-      drawMinimalOrnament(doc, centerX, y + 11);
+      doc.setFontSize(8);
+      doc.text("LE FIL", centerX, y + 6, { align: "center", charSpace: 0.6 });
+      drawMinimalOrnament(doc, centerX, y + 9);
 
-      fitCenteredText(doc, eventTitle, centerX, y + 16.5, CARD_WIDTH - 10);
-      doc.addImage(qrData, "PNG", centerX - 17, y + 25, 34, 34);
+      fitCenteredText(doc, eventTitle, centerX, y + 13.5, CARD_WIDTH - 7);
+      doc.addImage(qrData, "PNG", centerX - 12, y + 21, 24, 24);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.text("Scannez pour confirmer", centerX, y + 63.5, { align: "center" });
-      doc.text("votre présence", centerX, y + 67.3, { align: "center" });
+      doc.setFontSize(6.5);
+      doc.text("Scannez pour confirmer", centerX, y + 49, { align: "center" });
+      doc.text("votre présence", centerX, y + 52.3, { align: "center" });
     }
   }
 }
@@ -77,4 +77,3 @@ export const INVITATION_QR_LAYOUT = {
   cardWidth: CARD_WIDTH,
   cardHeight: CARD_HEIGHT,
 };
-

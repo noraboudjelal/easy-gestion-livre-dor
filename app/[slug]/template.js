@@ -49,6 +49,22 @@ export default function PublicEventTemplate({ children }) {
       card.style.setProperty("min-height", mobile ? "330px" : "390px", "important");
       card.style.setProperty("padding-top", mobile ? "62px" : "100px", "important");
 
+      const context = card.querySelector(".event-title-context");
+      const title = card.querySelector(".event-title-names");
+      const date = card.querySelector(".event-date");
+
+      if (context) {
+        context.style.setProperty("font-size", mobile ? "1.45rem" : "1.7rem", "important");
+        context.style.setProperty("line-height", "1.05", "important");
+      }
+      if (title) {
+        title.style.setProperty("font-size", mobile ? "clamp(3.25rem, 15vw, 4.6rem)" : "clamp(4.6rem, 8vw, 6.4rem)", "important");
+        title.style.setProperty("line-height", mobile ? ".94" : ".96", "important");
+      }
+      if (date) {
+        date.style.setProperty("font-size", mobile ? ".95rem" : "1.1rem", "important");
+      }
+
       card.querySelectorAll(".event-title-context,.event-title-names,.event-date,.lehnova-welcome-message").forEach((node) => {
         node.style.setProperty("color", "#fff", "important");
         node.style.setProperty("text-shadow", "0 2px 12px rgba(0,0,0,.72)", "important");

@@ -121,6 +121,8 @@ export default function AdminPage() {
   // --- Lehnova Ticket ---
   const [ticketBusinesses, setTicketBusinesses] = useState([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [ticketToDelete, setTicketToDelete] = useState(null);
+  const [ticketNotice, setTicketNotice] = useState("");
   const [ticketsError, setTicketsError] = useState("");
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [creatingTicket, setCreatingTicket] = useState(false);
@@ -925,7 +927,8 @@ export default function AdminPage() {
   }
 
   async function handleDeleteTicketBusiness(business) {
-    if (!window.confirm("Supprimer définitivement ce commerce Ticket ?")) return;
+    if (updatingTicketId) return;
+    setTicketNotice("");
 
     setUpdatingTicketId(business.id);
     setTicketsError("");
@@ -934,6 +937,8 @@ export default function AdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Suppression impossible.");
       setTicketBusinesses((current) => current.filter((item) => item.id !== business.id));
+      setTicketToDelete(null);
+      setTicketNotice(`Le commerce « ${business.name} » a été supprimé.`);
     } catch (error) {
       setTicketsError(error.message || "Suppression impossible.");
     } finally {
@@ -1923,6 +1928,8 @@ export default function AdminPage() {
 
         {view === "tickets" && (
           <>
+            {ticketNotice && <p role="status" style={{color:'#287A45'}}>{ticketNotice}</p>}
+            {ticketToDelete && <div style={{position:'fixed',inset:0,zIndex:10000,background:'rgba(0,0,0,.55)',display:'grid',placeItems:'center',padding:20}}><section role="dialog" aria-modal="true" aria-labelledby="delete-ticket-title" style={{background:'#fff',padding:24,borderRadius:18,maxWidth:440,width:'100%',boxSizing:'border-box'}}><h2 id="delete-ticket-title">Supprimer ce commerce ?</h2><p>« {ticketToDelete.name} » : sa file, ses tickets et son historique seront supprimés définitivement.</p><p>Les autres commerces seront conservés.</p>{ticketsError&&<p role="alert" style={{color:'#B5402D'}}>{ticketsError}</p>}<div style={{display:'flex',gap:12,flexWrap:'wrap'}}><button type="button" autoFocus disabled={Boolean(updatingTicketId)} onClick={()=>setTicketToDelete(null)} style={{padding:12}}>Annuler</button><button type="button" disabled={Boolean(updatingTicketId)} onClick={()=>handleDeleteTicketBusiness(ticketToDelete)} style={{padding:12,background:'#B5402D',color:'#fff',border:0,borderRadius:8}}>{updatingTicketId?'Suppression…':'Confirmer la suppression'}</button></div></section></div>}
             {ticketsError && <p style={{ color: "#B5402D", fontSize: "0.85rem" }}>{ticketsError}</p>}
 
             {showTicketForm && (
@@ -2053,7 +2060,7 @@ export default function AdminPage() {
                               >
                                 {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
                               </button>
-                              <button style={styles.iconButtonDanger} disabled={updatingTicketId === business.id} onClick={() => handleDeleteTicketBusiness(business)}>Supprimer</button>
+                              <button style={styles.iconButtonDanger} disabled={updatingTicketId === business.id} type="button" onClick={() => { setTicketsError(""); setTicketNotice(""); setTicketToDelete(business); }}>Supprimer</button>
                             </div>
                           </td>
                         </tr>
@@ -2093,7 +2100,7 @@ export default function AdminPage() {
                           <button style={business.is_active ? styles.iconButtonDanger : styles.iconButton} disabled={updatingTicketId === business.id} onClick={() => handleToggleTicketBusiness(business)}>
                             {updatingTicketId === business.id ? "mise à jour…" : business.is_active ? "désactiver" : "réactiver"}
                           </button>
-                          <button style={styles.iconButtonDanger} disabled={updatingTicketId === business.id} onClick={() => handleDeleteTicketBusiness(business)}>Supprimer</button>
+                          <button style={styles.iconButtonDanger} disabled={updatingTicketId === business.id} type="button" onClick={() => { setTicketsError(""); setTicketNotice(""); setTicketToDelete(business); }}>Supprimer</button>
                         </div>
                       </div>
                     );

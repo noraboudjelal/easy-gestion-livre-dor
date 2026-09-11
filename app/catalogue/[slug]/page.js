@@ -11,6 +11,8 @@ const FONTS = {
   elegante: { title: "'Playfair Display', serif", titleWeight: 700, titleSize: "2.2rem" },
 };
 
+function categoryAnchor(value) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
 function groupByCategory(products) {
   const groups = [];
   const map = new Map();
@@ -441,6 +443,14 @@ export default function CatalogPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (loading) return;
+    const scrollToCategory = () => { try { const id=decodeURIComponent(window.location.hash.slice(1)); if(id) document.getElementById(id)?.scrollIntoView({block:'start'}); } catch {} };
+    scrollToCategory();
+    window.addEventListener('hashchange',scrollToCategory);
+    return () => window.removeEventListener('hashchange',scrollToCategory);
+  }, [loading, products]);
+
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -528,7 +538,7 @@ export default function CatalogPage() {
 
         {!loading &&
           groups.map((group, gi) => (
-            <section key={gi} style={styles.section}>
+            <section key={gi} id={categoryAnchor(group.category)} style={{...styles.section,scrollMarginTop:20}}>
               {group.category && (
                 <h2 style={{ ...styles.categoryTitle, fontFamily: font.title, color: accent }}>
                   {group.category}

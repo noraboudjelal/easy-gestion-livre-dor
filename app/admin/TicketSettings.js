@@ -1,8 +1,10 @@
 "use client";
 import {useState} from 'react';
+import {OfferFields} from '../ticket/OfferEditor';
 import AdminTicketAffluence from './AdminTicketAffluence';
 
 export default function TicketSettings({business,onSaved}){
+  const [offers,setOffers]=useState(Array.isArray(business.offer_previews)?business.offer_previews:[]);
   const [url,setUrl]=useState(business.offers_url||'');
   const [enabled,setEnabled]=useState(business.public_screen_enabled!==false);
   const [queueOpen,setQueueOpen]=useState(Boolean(business.queue?.is_open));
@@ -14,7 +16,7 @@ export default function TicketSettings({business,onSaved}){
   async function save(){
     setBusy(true);setMessage('');
     try{
-      const response=await fetch(`/api/admin/tickets/${business.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({offers_url:url,public_screen_enabled:enabled})});
+      const response=await fetch(`/api/admin/tickets/${business.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({offers_url:url,offer_previews:offers,public_screen_enabled:enabled})});
       const data=await response.json();if(!response.ok)throw new Error(data.error);
       setMessage('Paramètres enregistrés.');onSaved?.();
     }catch(err){setMessage(err.message||'Enregistrement impossible.');}finally{setBusy(false);}
@@ -49,6 +51,7 @@ export default function TicketSettings({business,onSaved}){
     <label style={{display:'grid',minWidth:0,gap:6,fontWeight:700}}>Offres / promotions
       <input type="url" placeholder="https://…" maxLength={2000} value={url} onChange={e=>setUrl(e.target.value)} style={{minWidth:0,width:'100%',boxSizing:'border-box',padding:10,fontSize:16,border:'1px solid #D8CCAB',borderRadius:8}}/>
     </label>
+    <OfferFields offers={offers} onChange={setOffers} disabled={busy}/>
     {url&&<div style={{display:'grid',gridTemplateColumns:'80px minmax(0,1fr)',gap:10,alignItems:'center',marginTop:10}}><img src={qr(url)} width="80" height="80" alt="QR des offres" style={{borderRadius:8,border:'1px solid #EAE3D6'}}/><div><strong>QR offres / promotions</strong><br/><a href={url} target="_blank" rel="noreferrer" style={{...button,marginTop:6}}>Voir les offres</a> <button type="button" style={{...button,marginTop:6}} onClick={()=>copy(url,'Lien offres')}>Copier</button></div></div>}
     <label style={{display:'flex',gap:8,margin:'12px 0',alignItems:'center'}}><input type="checkbox" checked={enabled} onChange={e=>setEnabled(e.target.checked)}/>Écran public activé</label>
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" disabled={busy} onClick={save} style={button}>{busy?'Enregistrement…':'Enregistrer les réglages'}</button><button type="button" onClick={()=>copy(screen,'Lien écran')} style={button}>Copier lien écran</button></div>

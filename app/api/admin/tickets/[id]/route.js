@@ -1,4 +1,4 @@
-import { offersUrl } from "../../../../../lib/ticket/publicSettings.mjs";
+import { offersUrl, offerPreviews } from "../../../../../lib/ticket/publicSettings.mjs";
 import { NextResponse } from "next/server";
 import { requestHasAdminSession, requestHasValidOrigin } from "../../../../../lib/admin/adminSession";
 import { getSupabaseAdmin } from "../../../../../lib/supabaseAdmin";
@@ -16,15 +16,17 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const isActive = body.is_active;
     const systemType = body.system_type;
+    const hasPreviews = Object.hasOwn(body, "offer_previews");
     const hasOffers = Object.hasOwn(body, "offers_url");
     const hasScreen = Object.hasOwn(body, "public_screen_enabled");
     const hasQueueOpen = Object.hasOwn(body, "is_open");
     if (systemType !== undefined && !["tickets", "manual"].includes(systemType)) throw new Error("Système invalide.");
     if (hasScreen && typeof body.public_screen_enabled !== "boolean") throw new Error("Écran invalide.");
     if (hasQueueOpen && typeof body.is_open !== "boolean") throw new Error("État de file invalide.");
-    if (typeof isActive !== "boolean" && !systemType && !hasOffers && !hasScreen && !hasQueueOpen) throw new Error("État invalide.");
+    if (typeof isActive !== "boolean" && !systemType && !hasOffers && !hasPreviews && !hasScreen && !hasQueueOpen) throw new Error("État invalide.");
     const changes = { updated_at: new Date().toISOString() };
     if (typeof isActive === "boolean") changes.is_active = isActive;
+    if (hasPreviews) changes.offer_previews = offerPreviews(body.offer_previews);
     if (hasOffers) changes.offers_url = offersUrl(body.offers_url);
     if (hasScreen) changes.public_screen_enabled = body.public_screen_enabled;
 
@@ -82,8 +84,9 @@ export async function DELETE(request, { params }) {
       .delete()
       .eq("id", id)
       .select("id")
-      .single();
+      .maybeSingle();
     if (error) throw error;
+    if (!data) return NextResponse.json({ error: "Ce commerce n’existe plus. Actualisez la liste." }, { status: 404 });
     return NextResponse.json({ success: true, id: data.id });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Suppression impossible." }, { status: 400 });

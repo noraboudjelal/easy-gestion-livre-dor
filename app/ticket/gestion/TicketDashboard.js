@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setPublicWaitDisplay, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
+import OfferEditor from '../OfferEditor';
 import TicketAffluence from "./TicketAffluence";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
@@ -83,8 +84,8 @@ export default function TicketDashboard() {
 
         {queues.length > 1 && <select value={businessId} onChange={(e) => setBusinessId(e.target.value)} style={styles.select}>{queues.map((item) => <option key={item.business_id} value={item.business_id}>{item.business_name}</option>)}</select>}
 
-        {queue && <nav aria-label="Gestion Ticket" style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:20}}><button onClick={()=>setTab("queue")} aria-pressed={tab==="queue"} style={{padding:12}}>File d’attente</button><button onClick={()=>setTab("stats")} aria-pressed={tab==="stats"} style={{padding:12}}>Affluence</button><a href={`/ticket/${queue.business_slug}/ecran`} target="_blank" rel="noreferrer" style={{padding:12,color:"inherit"}}>Écran public ↗</a></nav>}
-        {queue && tab === "stats" ? <TicketAffluence businessId={queue.business_id}/> : !queue ? (
+        {queue && <nav aria-label="Gestion Ticket" style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:20}}><button onClick={()=>setTab("queue")} aria-pressed={tab==="queue"} style={{padding:12}}>File d’attente</button><button onClick={()=>setTab("stats")} aria-pressed={tab==="stats"} style={{padding:12}}>Affluence</button><button onClick={()=>setTab("offers")} aria-pressed={tab==="offers"} style={{padding:12}}>Offres</button><a href={`/ticket/${queue.business_slug}/ecran`} target="_blank" rel="noreferrer" style={{padding:12,color:"inherit"}}>Écran public ↗</a></nav>}
+        {queue && tab === "offers" ? <OfferEditor key={queue.business_id}/> : queue && tab === "stats" ? <TicketAffluence businessId={queue.business_id}/> : !queue ? (
           <div style={styles.empty}>Aucun commerce Ticket n’est associé à ce compte.</div>
         ) : (
           <div style={styles.panel} aria-live="polite">

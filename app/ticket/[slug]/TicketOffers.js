@@ -15,13 +15,11 @@ export default function TicketOffers({slug}) {
     return ()=>controller.abort();
   },[slug]);
   if(!url&&!offers.length) return null;
-  return <aside style={{marginTop:24,paddingTop:18,borderTop:`1px solid ${ticketColors.border}`,textAlign:'center'}}>
-    <p style={{fontSize:14,color:ticketColors.muted}}>Pendant votre attente, découvrez nos offres</p>
-    <div style={{display:'grid',gap:10,margin:'16px 0'}}>{offers.map((offer,i)=><a key={i} href={offer.url||url} style={{display:'flex',alignItems:'center',gap:14,textAlign:'left',textDecoration:'none',color:ticketColors.ink,background:ticketColors.background,borderRadius:14,overflow:'hidden',minHeight:96}}>{offer.image_url&&<img src={offer.image_url} alt="" loading="lazy" style={{width:110,height:100,objectFit:'cover',flexShrink:0}}/>}<span style={{padding:'12px 8px',minWidth:0,overflowWrap:'anywhere'}}><strong style={{display:'block',fontSize:16}}>{offer.title}</strong>{offer.detail&&<span style={{display:'block',marginTop:6,fontSize:14,color:ticketColors.accent}}>{offer.detail}</span>}</span><span aria-hidden="true" style={{marginLeft:'auto',paddingRight:12}}>→</span></a>)}</div>
-    {url&&<a href={url} target="_blank" rel="noopener noreferrer" style={{display:'inline-block',padding:'12px 22px',borderRadius:12,background:ticketColors.background,color:ticketColors.accent,fontWeight:750}}>Voir toutes les offres →</a>}
-    {url&&<details style={{marginTop:14,fontSize:13,color:ticketColors.muted}}>
-      <summary style={{cursor:'pointer',padding:8}}>Afficher le QR code des offres</summary>
-      <TicketQr url={url} label="Découvrez les offres sur votre téléphone" size={180}/>
-    </details>}
+  return <aside style={{marginTop:28,paddingTop:24,borderTop:`1px solid ${ticketColors.border}`,textAlign:'center'}}>
+    <p style={{margin:'0 0 4px',fontSize:11,fontWeight:800,letterSpacing:'.22em',color:ticketColors.ink}}>NOS OFFRES</p>
+    <p style={{margin:'0 0 18px',fontSize:13,color:ticketColors.muted}}>À découvrir pendant votre attente</p>
+    <div style={{display:'grid',gap:10,margin:'0 0 18px'}}>{offers.map((offer,i)=><a key={i} href={offer.url||url} style={{display:'flex',alignItems:'center',gap:14,textAlign:'left',textDecoration:'none',color:ticketColors.ink,background:'#FAFAF9',border:`1px solid ${ticketColors.border}`,borderRadius:16,overflow:'hidden',minHeight:96,boxShadow:'0 8px 24px -22px rgba(0,0,0,.55)'}}>{offer.image_url&&<img src={offer.image_url} alt="" loading="lazy" style={{width:112,height:100,objectFit:'cover',filter:'grayscale(100%) contrast(1.05)',flexShrink:0}}/>}<span style={{padding:'12px 8px',minWidth:0,overflowWrap:'anywhere'}}><strong style={{display:'block',fontSize:16,lineHeight:1.25}}>{offer.title}</strong>{offer.detail&&<span style={{display:'block',marginTop:7,fontSize:14,color:ticketColors.muted}}>{offer.detail}</span>}</span><span aria-hidden="true" style={{marginLeft:'auto',paddingRight:15,fontSize:18}}>→</span></a>)}</div>
+    {url&&<a href={url} target="_blank" rel="noopener noreferrer" style={{display:'inline-block',padding:'11px 22px',border:`1px solid ${ticketColors.ink}`,borderRadius:999,background:'#fff',color:ticketColors.ink,textDecoration:'none',fontSize:13,fontWeight:750}}>Voir toutes les offres →</a>}
+    {url&&<details style={{marginTop:16,fontSize:12,color:ticketColors.muted}}><summary style={{cursor:'pointer',padding:8}}>Afficher le QR code des offres</summary><TicketQr url={url} label="Découvrez les offres sur votre téléphone" size={180}/></details>}
   </aside>;
 }

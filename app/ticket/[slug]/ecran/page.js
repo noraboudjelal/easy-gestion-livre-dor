@@ -3,17 +3,16 @@ import {useEffect,useRef,useState} from 'react';
 import {useParams} from 'next/navigation';
 import {subscribeToQueue} from '../../../../lib/ticket/ticketApi';
 import {formatTicketNumber} from '../../../../lib/ticket/formatTicketNumber';
-import TicketQr from '../../TicketQr';
 import {ticketBase,ticketColors} from '../../ticketStyles';
 
 export default function TicketScreen() {
   const {slug}=useParams();
-  const [state,setState]=useState(null),[error,setError]=useState(''),[origin,setOrigin]=useState('');
+  const [state,setState]=useState(null),[error,setError]=useState('');
   const refreshRef=useRef(()=>{});
   useEffect(()=>{
     let active=true,pending=false;
     let controller;
-    setOrigin(window.location.origin); setState(null);
+    setState(null);
     async function refresh(){
       if(pending) return;
       pending=true;
@@ -42,14 +41,11 @@ export default function TicketScreen() {
     <header><p className="brand">LEHNOVA TICKET</p><h1>{state?.business_name||'Bienvenue'}</h1></header>
     {error && <p role="status" className="connection">{error} {state && 'Dernier affichage connu — nouvelle tentative automatique.'}</p>}
     {!state ? <p>{error?'':'Chargement de la file…'}</p> : <>
-      <div className="screen-grid">
-        <section className="current" aria-live="polite" aria-atomic="true">
-          <h2>Numéro appelé</h2>
-          <div className="current-number">{state.current_number==null?'—':formatTicketNumber(state.current_number)}</div>
-          <p>{state.current_number==null?'Votre accueil se prépare':'Présentez-vous au comptoir'}</p>
-        </section>
-        <aside className="scan"><TicketQr url={origin?`${origin}/ticket/${encodeURIComponent(slug)}`:null} size={260}/></aside>
-      </div>
+      <section className="current" aria-live="polite" aria-atomic="true">
+        <h2>Numéro appelé</h2>
+        <div className="current-number">{state.current_number==null?'—':formatTicketNumber(state.current_number)}</div>
+        <p>{state.current_number==null?'Votre accueil se prépare':'Présentez-vous au comptoir'}</p>
+      </section>
       <footer className="screen-bottom">
         <section><h2>À suivre</h2><div className="next">{state.next_numbers.length?state.next_numbers.map(n=><span key={n}>{formatTicketNumber(n)}</span>):<p>Aucun ticket en attente</p>}</div></section>
         <section><strong className="count">{state.waiting_count}</strong><p>{state.waiting_count===1?'personne en attente':'personnes en attente'}</p>{state.estimated_wait!=null&&<p>Attente estimée : environ {state.estimated_wait} min</p>}</section>
@@ -61,15 +57,14 @@ export default function TicketScreen() {
       header .brand{letter-spacing:.2em;color:#d8b890;font-weight:800;font-size:14px;margin:0}
       h1{font-size:clamp(28px,4vw,66px);margin:10px 0 30px;overflow-wrap:anywhere}
       h2{font-size:clamp(18px,2vw,30px);font-weight:500;margin:0;color:#e8dac8}
-      .screen-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,28%);gap:40px;align-items:center}
-      .current-number{font-size:clamp(110px,19vw,340px);font-weight:900;line-height:1.1;letter-spacing:-.045em;overflow-wrap:anywhere}
+      .current{width:100%;text-align:center;padding:clamp(20px,3vw,50px) 0}
+      .current-number{font-size:clamp(130px,25vw,430px);font-weight:900;line-height:1;letter-spacing:-.045em;overflow-wrap:anywhere}
       .current p,.screen-bottom p{font-size:clamp(18px,1.7vw,28px);margin:8px 0}
-      .scan{background:#fff;color:#29251f;padding:24px;border-radius:24px;font-size:20px}
-      .screen-bottom{margin-top:38px;padding-top:28px;border-top:1px solid #64594d;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+      .screen-bottom{margin-top:24px;padding-top:28px;border-top:1px solid #64594d;display:grid;grid-template-columns:1fr 1fr;gap:24px}
       .next{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
       .next span{font-size:clamp(28px,3.6vw,64px);background:#403a33;border-radius:14px;padding:8px 18px;font-weight:750}
       .count{font-size:clamp(32px,4vw,60px)}.closed,.connection{padding:16px;background:#534234;border-radius:12px}
-      @media(max-width:650px){.screen-grid,.screen-bottom{grid-template-columns:1fr}.scan{max-width:330px}.current-number{font-size:clamp(100px,28vw,200px)}.screen-grid{gap:24px}}
+      @media(max-width:650px){.screen-bottom{grid-template-columns:1fr}.current-number{font-size:clamp(120px,35vw,240px)}}
     `}</style>
   </main>;
 }

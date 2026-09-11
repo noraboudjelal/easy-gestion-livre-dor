@@ -36,6 +36,7 @@ export default function PublicEventTemplate({ children }) {
     const applyCover = () => {
       const card = document.querySelector(".event-header-card");
       if (!card) return false;
+      const mobile = window.innerWidth <= 600;
 
       card.style.setProperty(
         "background-image",
@@ -45,8 +46,8 @@ export default function PublicEventTemplate({ children }) {
       card.style.setProperty("background-size", "cover", "important");
       card.style.setProperty("background-position", "center", "important");
       card.style.setProperty("background-repeat", "no-repeat", "important");
-      card.style.setProperty("min-height", "390px", "important");
-      card.style.setProperty("padding-top", "100px", "important");
+      card.style.setProperty("min-height", mobile ? "330px" : "390px", "important");
+      card.style.setProperty("padding-top", mobile ? "62px" : "100px", "important");
 
       card.querySelectorAll(".event-title-context,.event-title-names,.event-date,.lehnova-welcome-message").forEach((node) => {
         node.style.setProperty("color", "#fff", "important");
@@ -55,12 +56,15 @@ export default function PublicEventTemplate({ children }) {
       return true;
     };
 
-    if (applyCover()) return;
-    const observer = new MutationObserver(() => {
-      if (applyCover()) observer.disconnect();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    const handleResize = () => applyCover();
+    if (!applyCover()) {
+      const observer = new MutationObserver(() => {
+        if (applyCover()) observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [cover]);
 
   return <><IdleCover />{children}</>;

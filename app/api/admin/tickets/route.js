@@ -25,6 +25,8 @@ function serializeBusiness(row) {
     owner_id: row.owner_id,
     name: row.name,
     slug: row.slug,
+    offers_url: row.offers_url || null,
+    public_screen_enabled: row.public_screen_enabled !== false,
     is_active: row.is_active,
     created_at: row.created_at,
     access_code: decryptAccessCode(row.access_code_encrypted),
@@ -48,7 +50,7 @@ async function provisionAccessCode(admin, business) {
       .from("ticket_businesses")
       .update({ access_code_hash: hashAccessCode(accessCode), access_code_encrypted: encryptAccessCode(accessCode), updated_at: new Date().toISOString() })
       .eq("id", business.id)
-      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number, queue_mode)")
+      .select("id, owner_id, name, slug, offers_url, public_screen_enabled, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number, queue_mode)")
       .single();
     if (!error) return data;
     if (error.code !== "23505") throw error;
@@ -63,7 +65,7 @@ export async function GET(request) {
     const admin = getSupabaseAdmin();
     const { data, error } = await admin
       .from("ticket_businesses")
-      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number, queue_mode)")
+      .select("id, owner_id, name, slug, offers_url, public_screen_enabled, is_active, created_at, access_code_hash, access_code_encrypted, ticket_queues(id, is_open, current_number, last_issued_number, queue_mode)")
       .order("created_at", { ascending: false });
     if (error) throw error;
     const businesses = await Promise.all((data || []).map((business) => provisionAccessCode(admin, business)));
@@ -96,7 +98,7 @@ export async function POST(request) {
     const { data: business, error: businessError } = await admin
       .from("ticket_businesses")
       .insert({ name, slug, is_active: true, access_code_hash: hashAccessCode(accessCode), access_code_encrypted: encryptAccessCode(accessCode) })
-      .select("id, owner_id, name, slug, is_active, created_at, access_code_hash, access_code_encrypted")
+      .select("id, owner_id, name, slug, offers_url, public_screen_enabled, is_active, created_at, access_code_hash, access_code_encrypted")
       .single();
     if (businessError) throw businessError;
 

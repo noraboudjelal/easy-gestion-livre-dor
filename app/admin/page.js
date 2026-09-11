@@ -1,4 +1,5 @@
 "use client";
+import TicketSettings from "./TicketSettings";
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient";
@@ -2010,6 +2011,7 @@ export default function AdminPage() {
                           <td style={styles.td}>
                             <strong>{business.name}</strong>
                             <div style={styles.subText}>/{business.slug}</div>
+                            {business.queue?.queue_mode !== "manual" && <TicketSettings business={business} onSaved={loadTicketBusinesses}/>}
                             <select value={business.queue?.queue_mode || "tickets"} onChange={(e) => handleTicketSystemChange(business, e.target.value)} disabled={updatingTicketId === business.id} style={{ ...styles.input, marginTop: "6px", padding: "5px 7px", fontSize: "0.72rem" }}><option value="tickets">Lehnova Ticket</option><option value="manual">Lehnova Attente</option></select>
                             {!business.is_active && <span style={{ ...styles.badge, background: "#FBE9E4", color: "#B5402D" }}>Désactivé</span>}
                           </td>
@@ -2066,9 +2068,10 @@ export default function AdminPage() {
                     return (
                       <div style={styles.card} key={business.id}>
                         <div style={styles.cardHeader}>
-                          <div>
+                          <div style={{minWidth:0,flex:1}}>
                             <strong>{business.name}</strong>
                             <div style={styles.subText}>/{business.slug}</div>
+                            {business.queue?.queue_mode !== "manual" && <TicketSettings business={business} onSaved={loadTicketBusinesses}/>}
                             <select value={business.queue?.queue_mode || "tickets"} onChange={(e) => handleTicketSystemChange(business, e.target.value)} disabled={updatingTicketId === business.id} style={{ ...styles.input, marginTop: "6px", padding: "5px 7px", fontSize: "0.72rem" }}><option value="tickets">Lehnova Ticket</option><option value="manual">Lehnova Attente</option></select>
                             <span style={{ ...styles.badge, marginTop: "6px", background: business.queue?.is_open && business.is_active ? "#E9F3EA" : "#FBE9E4", color: business.queue?.is_open && business.is_active ? "#3F7A52" : "#B5402D" }}>
                               {business.queue?.queue_mode === "manual" ? "Lehnova Attente" : business.queue?.is_open && business.is_active ? "File ouverte" : "File fermée"}

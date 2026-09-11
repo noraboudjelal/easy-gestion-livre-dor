@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { callNextTicket, callPreviousTicket, getMerchantQueues, getMerchantSession, resetQueue, setEstimatedMinutes, setPublicWaitDisplay, setQueueOpen, signOutMerchant, subscribeToQueue } from "../../../lib/ticket/ticketApi";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
+import TicketAffluence from "./TicketAffluence";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
 export default function TicketDashboard() {
   const router = useRouter();
+  const [tab, setTab] = useState("queue");
   const [queues, setQueues] = useState([]);
   const [businessId, setBusinessId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ export default function TicketDashboard() {
   }
 
   function handleResetQueue() {
-    if (!window.confirm("Remettre la file à zéro ? Tous les tickets seront supprimés.")) return;
+    if (!window.confirm("Remettre la file à zéro ? Les tickets actifs seront supprimés. L’historique d’affluence sera conservé.")) return;
     run(resetQueue);
   }
 
@@ -81,7 +83,8 @@ export default function TicketDashboard() {
 
         {queues.length > 1 && <select value={businessId} onChange={(e) => setBusinessId(e.target.value)} style={styles.select}>{queues.map((item) => <option key={item.business_id} value={item.business_id}>{item.business_name}</option>)}</select>}
 
-        {!queue ? (
+        {queue && <nav aria-label="Gestion Ticket" style={{display:"flex",flexWrap:"wrap",gap:10,marginBottom:20}}><button onClick={()=>setTab("queue")} aria-pressed={tab==="queue"} style={{padding:12}}>File d’attente</button><button onClick={()=>setTab("stats")} aria-pressed={tab==="stats"} style={{padding:12}}>Affluence</button><a href={`/ticket/${queue.business_slug}/ecran`} target="_blank" rel="noreferrer" style={{padding:12,color:"inherit"}}>Écran public ↗</a></nav>}
+        {queue && tab === "stats" ? <TicketAffluence businessId={queue.business_id}/> : !queue ? (
           <div style={styles.empty}>Aucun commerce Ticket n’est associé à ce compte.</div>
         ) : (
           <div style={styles.panel} aria-live="polite">
@@ -118,8 +121,8 @@ export default function TicketDashboard() {
 }
 
 const styles = {
-  page: { ...ticketBase, display: "grid", padding: "22px 16px" },
-  shell: { width: "100%", maxWidth: "760px", margin: "0 auto" },
+  page: { ...ticketBase, boxSizing: "border-box", display: "grid", padding: "22px 16px" },
+  shell: { minWidth: 0, width: "100%", maxWidth: "760px", margin: "0 auto" },
   header: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "24px" },
   brand: { margin: 0, color: ticketColors.accent, fontSize: "11px", fontWeight: 800, letterSpacing: ".18em" },
   business: { margin: "5px 0 0", fontSize: "22px" },

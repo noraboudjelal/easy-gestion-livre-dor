@@ -1,3 +1,4 @@
+import { offersUrl } from "../../../../../lib/ticket/publicSettings.mjs";
 import { NextResponse } from "next/server";
 import { requestHasAdminSession, requestHasValidOrigin } from "../../../../../lib/admin/adminSession";
 import { getSupabaseAdmin } from "../../../../../lib/supabaseAdmin";
@@ -15,12 +16,20 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const isActive = body.is_active;
     const systemType = body.system_type;
-    if (typeof isActive !== "boolean" && !["tickets", "manual"].includes(systemType)) throw new Error("État invalide.");
+    const hasOffers = Object.hasOwn(body, "offers_url");
+    const hasScreen = Object.hasOwn(body, "public_screen_enabled");
+    if (systemType !== undefined && !["tickets", "manual"].includes(systemType)) throw new Error("Système invalide.");
+    if (hasScreen && typeof body.public_screen_enabled !== "boolean") throw new Error("Écran invalide.");
+    if (typeof isActive !== "boolean" && !systemType && !hasOffers && !hasScreen) throw new Error("État invalide.");
+    const changes = { updated_at: new Date().toISOString() };
+    if (typeof isActive === "boolean") changes.is_active = isActive;
+    if (hasOffers) changes.offers_url = offersUrl(body.offers_url);
+    if (hasScreen) changes.public_screen_enabled = body.public_screen_enabled;
 
     const admin = getSupabaseAdmin();
     const { data: business, error } = await admin
       .from("ticket_businesses")
-      .update(typeof isActive === "boolean" ? { is_active: isActive, updated_at: new Date().toISOString() } : { updated_at: new Date().toISOString() })
+      .update(changes)
       .eq("id", id)
       .select("id")
       .single();

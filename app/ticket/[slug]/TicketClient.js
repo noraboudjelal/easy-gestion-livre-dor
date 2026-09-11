@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getOrCreateDeviceToken } from "../../../lib/ticket/deviceToken";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { getPublicTicketState, subscribeToQueue, takeOrResumeTicket } from "../../../lib/ticket/ticketApi";
+import TicketOffers from "./TicketOffers";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
 export default function TicketClient() {
@@ -130,30 +131,31 @@ export default function TicketClient() {
         )}
 
         {error && state && <p style={styles.error}>{error}</p>}
+        {state && !isManualMode && <TicketOffers slug={slug} />}
       </section>
     </main>
   );
 }
 
 const styles = {
-  page: { ...ticketBase, display: "grid", placeItems: "center", padding: "20px 14px" },
-  card: { width: "100%", maxWidth: "440px", minHeight: "620px", background: ticketColors.paper, border: `1px solid ${ticketColors.border}`, borderRadius: "28px", padding: "28px 22px 20px", boxShadow: "0 22px 60px -40px rgba(34,29,24,.4)", display: "flex", flexDirection: "column" },
+  page: { ...ticketBase, boxSizing: "border-box", display: "grid", placeItems: "center", padding: "20px 14px" },
+  card: { boxSizing: "border-box", minWidth: 0, width: "100%", maxWidth: "440px", minHeight: "620px", background: ticketColors.paper, border: `1px solid ${ticketColors.border}`, borderRadius: "28px", padding: "28px 22px 20px", boxShadow: "0 22px 60px -40px rgba(34,29,24,.4)", display: "flex", flexDirection: "column" },
   brand: { margin: 0, color: ticketColors.accent, fontSize: "12px", fontWeight: 800, letterSpacing: ".18em", textAlign: "center" },
   business: { margin: "8px 0 30px", fontSize: "20px", textAlign: "center", fontWeight: 700 },
   center: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" },
   takeButton: { margin: "auto 0", width: "100%", minHeight: "92px", border: 0, borderRadius: "20px", background: ticketColors.accent, color: "#FFF", fontSize: "20px", fontWeight: 800, letterSpacing: ".04em", boxShadow: "0 16px 30px -18px rgba(181,64,45,.7)" },
-  publicWaitingBox: { width: "100%", marginBottom: "18px", padding: "18px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "5px", color: ticketColors.muted },
+  publicWaitingBox: { boxSizing: "border-box", width: "100%", marginBottom: "18px", padding: "18px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "5px", color: ticketColors.muted },
   manualWaiting: { margin: "14px 0 4px", color: ticketColors.ink, fontSize: "96px", lineHeight: 1, fontWeight: 900 },
   manualPeople: { margin: 0, color: ticketColors.muted, fontSize: "18px", fontWeight: 700 },
   publicEstimate: { marginTop: "20px", padding: "15px 18px", borderRadius: "14px", background: ticketColors.background, color: ticketColors.accent, fontSize: "18px", fontWeight: 800 },
   label: { margin: 0, color: ticketColors.gold, fontSize: "13px", fontWeight: 800, letterSpacing: ".16em" },
   number: { margin: "8px 0 30px", color: ticketColors.ink, fontSize: "clamp(76px, 24vw, 112px)", lineHeight: 1, fontWeight: 900, letterSpacing: "-.06em" },
-  statusBox: { width: "100%", padding: "22px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "8px", color: ticketColors.muted, fontSize: "14px" },
+  statusBox: { boxSizing: "border-box", width: "100%", padding: "22px", borderRadius: "18px", background: ticketColors.background, display: "flex", flexDirection: "column", gap: "8px", color: ticketColors.muted, fontSize: "14px" },
   ahead: { marginTop: "4px", color: ticketColors.ink, fontSize: "18px", fontWeight: 750 },
   estimate: { marginTop: "8px", color: ticketColors.accent, fontSize: "15px", fontWeight: 750 },
-  turnBox: { width: "100%", padding: "24px 18px", borderRadius: "18px", color: "#FFF", background: ticketColors.success, display: "flex", flexDirection: "column", gap: "7px" },
+  turnBox: { boxSizing: "border-box", width: "100%", padding: "24px 18px", borderRadius: "18px", color: "#FFF", background: ticketColors.success, display: "flex", flexDirection: "column", gap: "7px" },
   turnTitle: { fontSize: "24px", letterSpacing: ".04em" },
-  finishedBox: { width: "100%", padding: "20px", borderRadius: "18px", background: ticketColors.background, color: ticketColors.muted },
+  finishedBox: { boxSizing: "border-box", width: "100%", padding: "20px", borderRadius: "18px", background: ticketColors.background, color: ticketColors.muted },
   closedDot: { width: "12px", height: "12px", borderRadius: "50%", background: ticketColors.accent, marginBottom: "16px" },
   closedTitle: { margin: 0, fontSize: "30px" },
   closedNote: { margin: "18px 0 0", color: ticketColors.accent, fontSize: "13px", fontWeight: 650 },

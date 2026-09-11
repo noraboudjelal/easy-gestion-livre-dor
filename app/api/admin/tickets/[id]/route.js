@@ -18,9 +18,11 @@ export async function PATCH(request, { params }) {
     const systemType = body.system_type;
     const hasOffers = Object.hasOwn(body, "offers_url");
     const hasScreen = Object.hasOwn(body, "public_screen_enabled");
+    const hasQueueOpen = Object.hasOwn(body, "is_open");
     if (systemType !== undefined && !["tickets", "manual"].includes(systemType)) throw new Error("Système invalide.");
     if (hasScreen && typeof body.public_screen_enabled !== "boolean") throw new Error("Écran invalide.");
-    if (typeof isActive !== "boolean" && !systemType && !hasOffers && !hasScreen) throw new Error("État invalide.");
+    if (hasQueueOpen && typeof body.is_open !== "boolean") throw new Error("État de file invalide.");
+    if (typeof isActive !== "boolean" && !systemType && !hasOffers && !hasScreen && !hasQueueOpen) throw new Error("État invalide.");
     const changes = { updated_at: new Date().toISOString() };
     if (typeof isActive === "boolean") changes.is_active = isActive;
     if (hasOffers) changes.offers_url = offersUrl(body.offers_url);
@@ -31,13 +33,24 @@ export async function PATCH(request, { params }) {
       .from("ticket_businesses")
       .update(changes)
       .eq("id", id)
-      .select("id")
+      .select("id, is_active")
       .single();
     if (error) throw error;
 
     if (systemType) {
       const { error: modeError } = await admin.from("ticket_queues").update({ queue_mode: systemType, updated_at: new Date().toISOString() }).eq("business_id", business.id);
       if (modeError) throw modeError;
+    }
+
+    if (hasQueueOpen) {
+      if (body.is_open && business.is_active === false) {
+        return NextResponse.json({ error: "Activez d’abord le commerce avant d’ouvrir la file." }, { status: 400 });
+      }
+      const { error: queueOpenError } = await admin
+        .from("ticket_queues")
+        .update({ is_open: body.is_open, updated_at: new Date().toISOString() })
+        .eq("business_id", business.id);
+      if (queueOpenError) throw queueOpenError;
     }
 
     if (isActive === false) {
@@ -76,4 +89,3 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: error.message || "Suppression impossible." }, { status: 400 });
   }
 }
-

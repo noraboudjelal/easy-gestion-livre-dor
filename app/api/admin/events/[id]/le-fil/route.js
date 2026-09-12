@@ -31,6 +31,22 @@ export async function PATCH(request, { params }) {
   try {
     const body = await request.json();
     const supabase = getSupabaseAdmin();
+
+    let eventTitle;
+    if (Object.prototype.hasOwnProperty.call(body, "event_title")) {
+      eventTitle = typeof body.event_title === "string" ? body.event_title.trim() : "";
+      if (!eventTitle) return NextResponse.json({ error: "Le titre ne peut pas être vide." }, { status: 400 });
+      if (eventTitle.length > 120) return NextResponse.json({ error: "Le titre ne peut pas dépasser 120 caractères." }, { status: 400 });
+      const { data: updatedEvent, error: eventUpdateError } = await supabase
+        .from("events")
+        .update({ event_title: eventTitle })
+        .eq("id", params.id)
+        .select("event_title")
+        .single();
+      if (eventUpdateError) throw eventUpdateError;
+      eventTitle = updatedEvent.event_title;
+    }
+
     const { data: existing, error: existingError } = await supabase.from("event_fil_settings").select("welcome_message,cover_image_url").eq("event_id", params.id).maybeSingle();
     if (existingError) throw existingError;
 
@@ -47,14 +63,14 @@ export async function PATCH(request, { params }) {
     if (!welcomeMessage && !coverImageUrl) {
       const { error } = await supabase.from("event_fil_settings").delete().eq("event_id", params.id);
       if (error) throw error;
-      return NextResponse.json({ welcome_message: "", cover_image_url: "" });
+      return NextResponse.json({ welcome_message: "", cover_image_url: "", ...(eventTitle ? { event_title: eventTitle } : {}) });
     }
 
     const { data, error } = await supabase.from("event_fil_settings")
       .upsert({ event_id: params.id, welcome_message: welcomeMessage || null, cover_image_url: coverImageUrl || null, updated_at: new Date().toISOString() })
       .select("welcome_message,cover_image_url").single();
     if (error) throw error;
-    return NextResponse.json({ welcome_message: data.welcome_message || "", cover_image_url: data.cover_image_url || "" });
+    return NextResponse.json({ welcome_message: data.welcome_message || "", cover_image_url: data.cover_image_url || "", ...(eventTitle ? { event_title: eventTitle } : {}) });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Enregistrement impossible." }, { status: 500 });
   }

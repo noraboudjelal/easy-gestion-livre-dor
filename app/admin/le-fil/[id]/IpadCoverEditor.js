@@ -6,15 +6,41 @@ import styles from "./ipadCover.module.css";
 
 export default function IpadCoverEditor({ event }) {
   const [coverUrl, setCoverUrl] = useState("");
+  const [title, setTitle] = useState(event.event_title || "");
   const [busy, setBusy] = useState(false);
+  const [savingTitle, setSavingTitle] = useState(false);
   const [status, setStatus] = useState("");
+  const [titleStatus, setTitleStatus] = useState("");
 
   useEffect(() => {
     fetch(`/api/admin/events/${event.id}/le-fil`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((data) => setCoverUrl(data.cover_image_url || ""))
+      .then((data) => {
+        setCoverUrl(data.cover_image_url || "");
+        setTitle(data.event?.event_title || event.event_title || "");
+      })
       .catch(() => {});
-  }, [event.id]);
+  }, [event.id, event.event_title]);
+
+  async function saveTitle(e) {
+    e.preventDefault();
+    const cleanTitle = title.trim();
+    if (!cleanTitle) { setTitleStatus("Le titre ne peut pas être vide."); return; }
+    setSavingTitle(true); setTitleStatus("");
+    try {
+      const response = await fetch(`/api/admin/events/${event.id}/le-fil`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_title: cleanTitle }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Enregistrement impossible.");
+      setTitle(data.event_title || cleanTitle);
+      setTitleStatus("Titre enregistré ✓");
+    } catch (error) {
+      setTitleStatus(error.message || "Enregistrement impossible.");
+    } finally { setSavingTitle(false); }
+  }
 
   async function saveUrl(url) {
     const response = await fetch(`/api/admin/events/${event.id}/le-fil`, {
@@ -55,6 +81,28 @@ export default function IpadCoverEditor({ event }) {
 
   return (
     <>
+      <section id="titre-fil" className={styles.section}>
+        <div style={{ width: "100%" }}>
+          <p className={styles.kicker}>LE FIL</p>
+          <h2>Titre de la page</h2>
+          <p className={styles.help}>Modifiez ici le titre affiché sur le livre d’or. Exemple : « Baby Shower de Maya & Yasin ».</p>
+          <form onSubmit={saveTitle} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
+              placeholder="Baby Shower de Maya & Yasin"
+              style={{ flex: "1 1 300px", minWidth: 0, border: "1px solid #d8c8ae", borderRadius: 12, padding: "12px 14px", fontSize: 16, background: "white" }}
+            />
+            <button type="submit" className={styles.primary} disabled={savingTitle}>
+              {savingTitle ? "Enregistrement…" : "Enregistrer le titre"}
+            </button>
+          </form>
+          {titleStatus && <p className={styles.help} style={{ marginTop: 10 }}>{titleStatus}</p>}
+        </div>
+      </section>
+
       <section id="couverture-fil" className={styles.section}>
         <div style={{ width: "100%" }}>
           <p className={styles.kicker}>LE FIL</p>

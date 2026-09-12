@@ -9,6 +9,7 @@ export default function PublicEventTemplate({ children }) {
   const params = useParams();
   const slug = params?.slug;
   const [cover, setCover] = useState("");
+  const [eventTitle, setEventTitle] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -16,10 +17,11 @@ export default function PublicEventTemplate({ children }) {
       if (!supabase || !slug) return;
       const { data: event } = await supabase
         .from("events")
-        .select("id,cover_photo_url,fil_cover_url")
+        .select("id,event_title,cover_photo_url,fil_cover_url")
         .eq("slug", slug)
         .maybeSingle();
       if (!event?.id || !active) return;
+      setEventTitle((event.event_title || "").trim());
       const { data: settings } = await supabase
         .from("event_fil_settings")
         .select("cover_image_url")
@@ -53,13 +55,27 @@ export default function PublicEventTemplate({ children }) {
       const title = card.querySelector(".event-title-names");
       const date = card.querySelector(".event-date");
 
+      // Never leave a fixed “Mariage de” label on another kind of event.
+      // The editable event title is the source of truth for the cover.
       if (context) {
-        context.style.setProperty("font-size", mobile ? "1.45rem" : "1.7rem", "important");
-        context.style.setProperty("line-height", "1.05", "important");
+        const normalizedTitle = eventTitle.toLocaleLowerCase("fr-FR");
+        const normalizedContext = (context.textContent || "").toLocaleLowerCase("fr-FR");
+        const titleAlreadyDescribesEvent = /baby\s*shower|anniversaire|bapt[eê]me|fian[cç]ailles|retraite|henn[eé]|circoncision|inauguration|lancement|f[eê]te|d[eé]mo/.test(normalizedTitle);
+        const wrongMarriageLabel = normalizedContext.includes("mariage") && !normalizedTitle.includes("mariage");
+        if (titleAlreadyDescribesEvent || wrongMarriageLabel) {
+          context.style.setProperty("display", "none", "important");
+        } else {
+          context.style.removeProperty("display");
+          context.style.setProperty("font-size", mobile ? "1.45rem" : "1.7rem", "important");
+          context.style.setProperty("line-height", "1.05", "important");
+        }
       }
       if (title) {
-        title.style.setProperty("font-size", mobile ? "clamp(3.25rem, 15vw, 4.6rem)" : "clamp(4.6rem, 8vw, 6.4rem)", "important");
-        title.style.setProperty("line-height", mobile ? ".94" : ".96", "important");
+        title.style.setProperty("font-size", mobile ? "clamp(2.25rem, 10vw, 4.1rem)" : "clamp(4rem, 7vw, 6rem)", "important");
+        title.style.setProperty("line-height", mobile ? ".98" : ".96", "important");
+        title.style.setProperty("white-space", "normal", "important");
+        title.style.setProperty("overflow-wrap", "anywhere", "important");
+        title.style.setProperty("max-width", "100%", "important");
       }
       if (date) {
         date.style.setProperty("font-size", mobile ? ".95rem" : "1.1rem", "important");
@@ -81,7 +97,7 @@ export default function PublicEventTemplate({ children }) {
     }
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [cover]);
+  }, [cover, eventTitle]);
 
   return <><IdleCover />{children}</>;
 }

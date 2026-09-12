@@ -105,9 +105,9 @@ export default function CatalogueNumeriqueToulousePage() {
       <header className="hero">
         <div className="container heroGrid">
           <div>
-            <div className="eyebrow">Commerces & professionnels · Toulouse</div>
+            <div className="eyebrow">Accessoires & options · Toulouse</div>
             <h1>Catalogue numérique pour commerces à Toulouse</h1>
-            <p className="lead">Présentez vos produits, vos prestations, vos tarifs et toutes les informations utiles dans un catalogue élégant, pensé pour le téléphone et accessible instantanément par QR code ou NFC.</p>
+            <p className="lead">En complément de votre solution Lehnova, présentez vos produits, vos prestations, vos tarifs et toutes les informations utiles dans un catalogue élégant, pensé pour le téléphone et accessible instantanément par QR code ou NFC.</p>
             <div className="actions">
               <Link className="button primary" href="/demo-coiffeur">Voir une démo</Link>
               <a className="button secondary" href="tel:+33769215578">Me contacter · 07 69 21 55 78</a>
@@ -133,7 +133,7 @@ export default function CatalogueNumeriqueToulousePage() {
 
       <section>
         <div className="container">
-          <div className="heading"><div className="eyebrow">Une solution adaptée</div><h2>Conçu pour votre activité</h2><p>Chaque solution numérique pour commerce à Toulouse est organisée selon ce que vos clients ont réellement besoin de voir : vos offres, vos prix, vos réalisations et la bonne façon de vous contacter.</p></div>
+          <div className="heading"><div className="eyebrow">Un complément adapté</div><h2>Conçu pour votre activité</h2><p>Chaque solution numérique pour commerce à Toulouse est organisée selon ce que vos clients ont réellement besoin de voir : vos offres, vos prix, vos réalisations et la bonne façon de vous contacter.</p></div>
           <div className="audience">{audiences.map(([title,text],index)=><article key={title}><span className="number">0{index+1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
         </div>
       </section>

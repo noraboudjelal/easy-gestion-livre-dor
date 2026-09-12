@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { getSupabaseAdmin } from "../../../../../lib/supabaseAdmin";
 import { requestHasValidOrigin } from "../../../../../lib/admin/adminSession";
 import { merchantBusinessIdFromRequest } from "../../../../../lib/ticket/merchantSession";
@@ -31,11 +32,17 @@ export async function POST(request) {
   const business = await activeBusiness(request);
   if (!business) return unauthorized();
   const { action, isOpen, minutes, enabled } = await request.json();
+
+  if (action === "walk-in") {
+    const token = `sans-telephone-${crypto.randomBytes(32).toString("hex")}`;
+    const { data, error } = await getSupabaseAdmin().rpc("ticket_take_or_resume", { p_slug: business.slug, p_resume_token: token });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    const ticket = Array.isArray(data) ? data[0] : data;
+    return NextResponse.json({ success: true, ticket_number: ticket?.ticket_number ?? null });
+  }
   if (action === "estimate") {
     const parsedMinutes = minutes === null || minutes === "" ? null : Number(minutes);
-    if (parsedMinutes !== null && (!Number.isInteger(parsedMinutes) || parsedMinutes < 1 || parsedMinutes > 180)) {
-      return NextResponse.json({ error: "L’estimation doit être comprise entre 1 et 180 minutes." }, { status: 400 });
-    }
+    if (parsedMinutes !== null && (!Number.isInteger(parsedMinutes) || parsedMinutes < 1 || parsedMinutes > 180)) return NextResponse.json({ error: "L’estimation doit être comprise entre 1 et 180 minutes." }, { status: 400 });
     const { error } = await getSupabaseAdmin().from("ticket_queues").update({ estimated_minutes_per_client: parsedMinutes, updated_at: new Date().toISOString() }).eq("business_id", business.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true });
@@ -52,4 +59,3 @@ export async function POST(request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ success: true });
 }
-

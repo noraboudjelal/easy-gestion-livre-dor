@@ -12,6 +12,7 @@ export default function TicketScreen() {
   const refreshRef=useRef(()=>{});
   const previousNumberRef=useRef(undefined);
   const audioContextRef=useRef(null);
+  const voiceRef=useRef(null);
 
   useEffect(()=>{
     let active=true,pending=false;
@@ -45,12 +46,38 @@ export default function TicketScreen() {
   },[state?.business_id]);
 
   useEffect(()=>{
+    if(!('speechSynthesis' in window)) return;
+    const loadVoice=()=>{
+      const voices=window.speechSynthesis.getVoices();
+      voiceRef.current=voices.find(v=>v.lang?.toLowerCase()==='fr-fr')||voices.find(v=>v.lang?.toLowerCase().startsWith('fr'))||voices[0]||null;
+    };
+    loadVoice();
+    window.speechSynthesis.addEventListener?.('voiceschanged',loadVoice);
+    return ()=>window.speechSynthesis.removeEventListener?.('voiceschanged',loadVoice);
+  },[]);
+
+  function speakTicket(number){
+    if(!('speechSynthesis' in window)) return;
+    try{
+      const synth=window.speechSynthesis;
+      synth.cancel();
+      synth.resume?.();
+      const utterance=new SpeechSynthesisUtterance(`Ticket numéro ${number}.`);
+      utterance.lang='fr-FR';
+      utterance.rate=0.82;
+      utterance.pitch=1;
+      utterance.volume=1;
+      if(voiceRef.current) utterance.voice=voiceRef.current;
+      synth.speak(utterance);
+      window.setTimeout(()=>synth.resume?.(),150);
+      window.setTimeout(()=>synth.resume?.(),700);
+    }catch{}
+  }
+
+  useEffect(()=>{
     const current=state?.current_number;
     if(current==null) return;
-    if(previousNumberRef.current===undefined){
-      previousNumberRef.current=current;
-      return;
-    }
+    if(previousNumberRef.current===undefined){previousNumberRef.current=current;return;}
     if(current===previousNumberRef.current) return;
     previousNumberRef.current=current;
     if(!audioEnabled) return;
@@ -70,21 +97,7 @@ export default function TicketScreen() {
         osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.24);
       }
     }catch{}
-
-    window.setTimeout(()=>{
-      try{
-        if(!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        const utterance=new SpeechSynthesisUtterance(`Ticket numéro ${current}`);
-        utterance.lang='fr-FR';
-        utterance.rate=0.92;
-        utterance.pitch=1;
-        const voices=window.speechSynthesis.getVoices();
-        const frenchVoice=voices.find(v=>v.lang?.toLowerCase().startsWith('fr'));
-        if(frenchVoice) utterance.voice=frenchVoice;
-        window.speechSynthesis.speak(utterance);
-      }catch{}
-    },280);
+    window.setTimeout(()=>speakTicket(current),350);
   },[state?.current_number,audioEnabled]);
 
   function enableAudio(){
@@ -97,9 +110,12 @@ export default function TicketScreen() {
         ctx.resume?.();
       }
       if('speechSynthesis' in window){
-        const unlock=new SpeechSynthesisUtterance('');
-        unlock.volume=0;
-        window.speechSynthesis.speak(unlock);
+        const synth=window.speechSynthesis;
+        synth.cancel();synth.resume?.();
+        const unlock=new SpeechSynthesisUtterance('Son activé');
+        unlock.lang='fr-FR';unlock.volume=1;
+        if(voiceRef.current) unlock.voice=voiceRef.current;
+        synth.speak(unlock);
       }
     }catch{}
   }

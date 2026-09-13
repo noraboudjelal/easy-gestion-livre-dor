@@ -473,11 +473,11 @@ export default function CatalogPage() {
   return (
     <div style={styles.page}>
       <ActiveTicketBanner/>
-      <style>{`
+      <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
         * { box-sizing: border-box; }
         @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
-      `}</style>
+      `}}/>
 
       <header
         style={{
@@ -977,5 +977,3 @@ const styles = {
     alignSelf: "flex-start",
   },
 };
-
-

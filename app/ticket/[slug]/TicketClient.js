@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getOrCreateDeviceToken } from "../../../lib/ticket/deviceToken";
+import { getOrCreateDeviceToken, rememberActiveTicket } from "../../../lib/ticket/deviceToken";
 import { formatTicketNumber } from "../../../lib/ticket/formatTicketNumber";
 import { getPublicTicketState, subscribeToQueue, takeOrResumeTicket } from "../../../lib/ticket/ticketApi";
+import {estimatedWait,hasActiveTicket} from '../../../lib/ticket/estimate.mjs';
 import TicketOffers from "./TicketOffers";
 import { ticketBase, ticketColors } from "../ticketStyles";
 
@@ -63,12 +64,15 @@ export default function TicketClient() {
     }
   }
 
+  useEffect(()=>{if(hasActiveTicket(state)) rememberActiveTicket(slug);},[slug,state?.ticket_number,state?.ticket_status]);
+
   const hasTicket = state?.ticket_number != null;
   const isTurn = state?.ticket_status === "called";
   const isFinished = state?.ticket_status === "served";
   const isManualMode = state?.queue_mode === "manual";
   const showPublicWait = state?.public_wait_display_enabled !== false;
-  const publicEstimate = state?.estimated_minutes_per_client ? state.public_waiting_count * state.estimated_minutes_per_client : null;
+  const publicEstimate = estimatedWait(state?.public_waiting_count,state?.estimated_minutes_per_client);
+  const ticketEstimate = estimatedWait(state?.people_ahead,state?.estimated_minutes_per_client);
 
   useEffect(() => {
     if (isManualMode && slug) router.replace(`/attente/${slug}`);
@@ -97,6 +101,7 @@ export default function TicketClient() {
               <span>{state.public_waiting_count === 1 ? "personne en attente" : "personnes en attente"}</span>
               {publicEstimate !== null && <small>Environ {publicEstimate} minutes</small>}
             </div>}
+            {!showPublicWait && publicEstimate !== null && <p style={styles.estimate}>Attente estimée : environ {publicEstimate} min</p>}
             <button style={styles.takeButton} onClick={takeTicket} disabled={taking}>{taking ? "ATTRIBUTION…" : "PRENDRE UN TICKET"}</button>
           </div>
         ) : (
@@ -120,8 +125,8 @@ export default function TicketClient() {
                     ? "Vous êtes le prochain"
                     : `${state.people_ahead} ${state.people_ahead === 1 ? "personne" : "personnes"} avant vous`}
                 </span>}
-                {showPublicWait && state.estimated_minutes_per_client && state.people_ahead > 0 && (
-                  <span style={styles.estimate}>Temps d’attente estimé : environ {state.people_ahead * state.estimated_minutes_per_client} min</span>
+                {ticketEstimate !== null && (
+                  <span style={styles.estimate}>Temps d’attente estimé : environ {ticketEstimate} min</span>
                 )}
               </div>
             )}
@@ -131,7 +136,7 @@ export default function TicketClient() {
         )}
 
         {error && state && <p style={styles.error}>{error}</p>}
-        {state && !isManualMode && <TicketOffers slug={slug} />}
+        {state && !isManualMode && <>{state.public_screen_enabled !== false && <a href={`/ticket/${encodeURIComponent(slug)}/ecran`} style={{textAlign:"center",padding:"16px 8px",color:ticketColors.ink}}>Voir la file d’attente →</a>}<TicketOffers slug={slug} /></>}
       </section>
     </main>
   );

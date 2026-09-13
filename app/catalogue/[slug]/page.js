@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
+import ActiveTicketBanner from '../../ticket/ActiveTicketBanner';
 import { supabase } from "../../../lib/supabaseClient";
 
 const FONTS = {
@@ -127,7 +128,7 @@ function Lightbox({ photos, startIndex, onClose }) {
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div style={styles.lightboxOverlay} onClick={onClose}>
+    <div data-catalogue-lightbox style={styles.lightboxOverlay} onClick={onClose}>
       <button style={styles.lightboxClose} onClick={onClose} aria-label="Fermer">
         ✕
       </button>
@@ -471,6 +472,7 @@ export default function CatalogPage() {
 
   return (
     <div style={styles.page}>
+      <ActiveTicketBanner/>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
         * { box-sizing: border-box; }

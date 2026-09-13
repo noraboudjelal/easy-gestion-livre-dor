@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '../../../../../lib/supabaseAdmin';
 import { offersUrl, offerPreviews } from '../../../../../lib/ticket/publicSettings.mjs';
 
+import {estimatedWait} from '../../../../../lib/ticket/estimate.mjs';
+
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 export async function GET(request, { params }) {
@@ -18,18 +20,21 @@ export async function GET(request, { params }) {
     try { offers = offersUrl(business.offers_url); } catch {}
     // This endpoint never accepts a device token or exposes a merchant code.
     const base = {business_id:business.id,business_name:business.name,slug:business.slug,offers_url:offers,offer_previews:previews,public_screen_enabled:business.public_screen_enabled};
-    if (new URL(request.url).searchParams.get('screen') !== '1') return reply(base);
-    if (!business.public_screen_enabled) return reply({error:'Écran public désactivé.'},404);
-    const {data:queue,error:queueError} = await admin.from('ticket_queues').select('is_open,queue_mode,estimated_minutes_per_client').eq('business_id',business.id).maybeSingle();
+    const query = new URL(request.url).searchParams;
+    const screen = query.get('screen') === '1';
+    if (!screen && query.get('queue') !== '1') return reply(base);
+    if (screen && !business.public_screen_enabled) return reply({error:'Écran public désactivé.'},404);
+    const {data:queue,error:queueError} = await admin.from('ticket_queues').select('is_open,queue_mode,estimated_minutes_per_client,manual_waiting_count,public_wait_display_enabled').eq('business_id',business.id).maybeSingle();
     if (queueError) throw queueError;
-    if (!queue || queue.queue_mode !== 'tickets') return reply({error:'Écran Ticket indisponible.'},404);
+    if (!queue || (screen && queue.queue_mode !== 'tickets')) return reply({error:'Écran Ticket indisponible.'},404);
+    if (queue.queue_mode === 'manual') return reply({...base,...queue,waiting_count:queue.manual_waiting_count ?? 0});
     const [waiting,called] = await Promise.all([
       admin.from('ticket_entries').select('number',{count:'exact'}).eq('business_id',business.id).eq('status','waiting').order('number').limit(5),
       admin.from('ticket_entries').select('number').eq('business_id',business.id).eq('status','called').order('number').limit(1),
     ]);
     if (waiting.error || called.error) throw waiting.error || called.error;
-    return reply({...base,is_open:queue.is_open,current_number:called.data[0]?.number ?? null,
+    return reply({...base,is_open:queue.is_open,queue_mode:queue.queue_mode,estimated_minutes_per_client:queue.estimated_minutes_per_client,public_wait_display_enabled:queue.public_wait_display_enabled,current_number:called.data[0]?.number ?? null,
       next_numbers:waiting.data.map(t=>t.number),waiting_count:waiting.count,
-      estimated_wait:queue.estimated_minutes_per_client > 0 ? waiting.count * queue.estimated_minutes_per_client : null});
+      estimated_wait:estimatedWait(waiting.count,queue.estimated_minutes_per_client)});
   } catch { return reply({error:'La file est temporairement indisponible.'},503); }
 }

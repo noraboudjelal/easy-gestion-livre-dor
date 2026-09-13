@@ -63,14 +63,41 @@ export default function TicketScreen() {
       synth.cancel();
       synth.resume?.();
       const utterance=new SpeechSynthesisUtterance(`Ticket numéro ${number}.`);
-      utterance.lang='fr-FR';
-      utterance.rate=0.82;
-      utterance.pitch=1;
-      utterance.volume=1;
+      utterance.lang='fr-FR';utterance.rate=0.82;utterance.pitch=1;utterance.volume=1;
       if(voiceRef.current) utterance.voice=voiceRef.current;
       synth.speak(utterance);
       window.setTimeout(()=>synth.resume?.(),150);
       window.setTimeout(()=>synth.resume?.(),700);
+    }catch{}
+  }
+
+  function playLoudAlert(){
+    try{
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      if(!AudioContextClass) return;
+      const ctx=audioContextRef.current||new AudioContextClass();
+      audioContextRef.current=ctx;
+      if(ctx.state==='suspended') ctx.resume?.();
+      const master=ctx.createGain();
+      master.gain.value=0.95;
+      master.connect(ctx.destination);
+      const notes=[
+        {at:0,freq:880,duration:.28},
+        {at:.36,freq:1175,duration:.34},
+        {at:.82,freq:880,duration:.28},
+        {at:1.18,freq:1175,duration:.42}
+      ];
+      notes.forEach(({at,freq,duration})=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        const start=ctx.currentTime+at;
+        osc.type='square';osc.frequency.value=freq;
+        gain.gain.setValueAtTime(0.0001,start);
+        gain.gain.exponentialRampToValueAtTime(0.55,start+.015);
+        gain.gain.setValueAtTime(0.55,start+Math.max(.02,duration-.06));
+        gain.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+        osc.connect(gain);gain.connect(master);osc.start(start);osc.stop(start+duration+.02);
+      });
     }catch{}
   }
 
@@ -81,23 +108,8 @@ export default function TicketScreen() {
     if(current===previousNumberRef.current) return;
     previousNumberRef.current=current;
     if(!audioEnabled) return;
-
-    try{
-      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
-      if(AudioContextClass){
-        const ctx=audioContextRef.current||new AudioContextClass();
-        audioContextRef.current=ctx;
-        if(ctx.state==='suspended') ctx.resume();
-        const osc=ctx.createOscillator();
-        const gain=ctx.createGain();
-        osc.type='sine';osc.frequency.value=880;
-        gain.gain.setValueAtTime(0.0001,ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.16,ctx.currentTime+0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.22);
-        osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.24);
-      }
-    }catch{}
-    window.setTimeout(()=>speakTicket(current),350);
+    playLoudAlert();
+    window.setTimeout(()=>speakTicket(current),1750);
   },[state?.current_number,audioEnabled]);
 
   function enableAudio(){
@@ -106,16 +118,16 @@ export default function TicketScreen() {
       const AudioContextClass=window.AudioContext||window.webkitAudioContext;
       if(AudioContextClass){
         const ctx=audioContextRef.current||new AudioContextClass();
-        audioContextRef.current=ctx;
-        ctx.resume?.();
+        audioContextRef.current=ctx;ctx.resume?.();
       }
+      playLoudAlert();
       if('speechSynthesis' in window){
         const synth=window.speechSynthesis;
         synth.cancel();synth.resume?.();
         const unlock=new SpeechSynthesisUtterance('Son activé');
         unlock.lang='fr-FR';unlock.volume=1;
         if(voiceRef.current) unlock.voice=voiceRef.current;
-        synth.speak(unlock);
+        window.setTimeout(()=>synth.speak(unlock),1750);
       }
     }catch{}
   }

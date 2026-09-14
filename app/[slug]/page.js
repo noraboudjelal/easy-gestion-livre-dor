@@ -2784,7 +2784,7 @@ export default function GuestbookPage() {
 
         <section id="feed" className="event-section feed-section">
         <h2 className="event-section-title">Le Fil</h2>
-        <p className="event-section-subtitle">Les souvenirs de la soirée</p>
+        <p className="event-section-subtitle">Les souvenirs</p>
         <div style={styles.dividerRow}>
           <span style={styles.liveDot} />
           <span style={styles.dividerLabel}>Le Fil</span>

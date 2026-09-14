@@ -359,9 +359,9 @@ function QuizWidget({ questions, products, accent, unavailability, onDone }) {
   );
 }
 
-export default function CatalogPage() {
+export default function CatalogPage({ catalogSlug, categoryPages = false, categorySlug = null }) {
   const params = useParams();
-  const slug = params?.slug;
+  const slug = catalogSlug || params?.slug;
 
   const [catalog, setCatalog] = useState(null);
   const [products, setProducts] = useState([]);
@@ -469,6 +469,9 @@ export default function CatalogPage() {
   const accent = catalog?.accent_color || "#B5402D";
   const font = FONTS[catalog?.font_style] || FONTS.manuscrite;
   const groups = groupByCategory(products);
+  const visibleGroups = categoryPages
+    ? groups.filter((group) => categoryAnchor(group.category) === categorySlug)
+    : groups;
 
   return (
     <div style={styles.page}>
@@ -516,6 +519,18 @@ export default function CatalogPage() {
       <main style={styles.main} ref={mainRef}>
         {loading && <p style={{ color: "#8A7F66" }}>Chargement…</p>}
 
+        {!loading && categoryPages && (
+          <>
+            <p>Choisissez votre modèle pendant l’attente. Votre ticket reste visible en haut de la page.</p>
+            <nav aria-label="Catégories de dessins" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+              {categorySlug && <a href={`/catalogue/${slug}`} style={{ padding: 12, color: accent }}>← Toutes les catégories</a>}
+              {groups.map((group) => <a key={group.category} href={`/catalogue/${slug}/${categoryAnchor(group.category)}`} aria-current={categorySlug === categoryAnchor(group.category) ? 'page' : undefined} style={{ padding: '14px 18px', borderRadius: 12, border: `1px solid ${accent}`, color: categorySlug === categoryAnchor(group.category) ? '#fff' : accent, background: categorySlug === categoryAnchor(group.category) ? accent : '#fff', textDecoration: 'none', fontWeight: 700 }}>{group.category} · {group.items.length} modèles</a>)}
+            </nav>
+            <p style={{ fontSize: 12, color: '#756553' }}>Démonstration · Visuels générés pour illustrer les modèles.</p>
+            <a href={`/ticket/${slug}`} style={{ color: accent }}>Revenir à mon ticket →</a>
+          </>
+        )}
+
         {quizLoadError && (
           <p style={{ color: "#B5402D", fontSize: "0.8rem", fontWeight: 600 }}>
             Erreur chargement quiz : {quizLoadError}
@@ -539,7 +554,7 @@ export default function CatalogPage() {
         )}
 
         {!loading &&
-          groups.map((group, gi) => (
+          visibleGroups.map((group, gi) => (
             <section key={gi} id={categoryAnchor(group.category)} style={{...styles.section,scrollMarginTop:20}}>
               {group.category && (
                 <h2 style={{ ...styles.categoryTitle, fontFamily: font.title, color: accent }}>

@@ -17,43 +17,42 @@ export default function TrophyAdminSettings({ event }) {
   const [busy, setBusy] = useState(false);
 
   async function action(name, value = null) {
-    const { data, error } = await supabase.rpc("trophy_action", {
-      p_event: event.id,
-      p_action: name,
-      p_category: null,
-      p_look: null,
-      p_voter: crypto.randomUUID(),
-      p_reveal: value,
-    });
+    const { data, error } = await supabase.rpc("trophy_action", { p_event:event.id, p_action:name, p_category:null, p_look:null, p_voter:crypto.randomUUID(), p_reveal:value });
     if (error) throw error;
     return data;
   }
 
   useEffect(() => {
-    action("state").then((data) => {
-      setVoteAt(toLocalInput(data?.vote_at));
-      setRevealAt(toLocalInput(data?.reveal_at));
-    }).catch(() => {});
+    action("state").then((data) => { setVoteAt(toLocalInput(data?.vote_at)); setRevealAt(toLocalInput(data?.reveal_at)); }).catch(() => {});
   }, [event.id]);
 
   async function save() {
     if (!voteAt || !revealAt) { setStatus("Choisissez l’heure du vote et l’heure de révélation."); return; }
     if (new Date(voteAt) >= new Date(revealAt)) { setStatus("La révélation doit être après le début des votes."); return; }
     setBusy(true); setStatus("Enregistrement…");
-    try {
-      await action("configure", new Date(revealAt).toISOString());
-      await action("configure_vote", new Date(voteAt).toISOString());
-      setStatus("Horaires des Trophées enregistrés ✓");
-    } catch (e) { setStatus(e.message || "Enregistrement impossible."); }
-    finally { setBusy(false); }
+    try { await action("configure",new Date(revealAt).toISOString()); await action("configure_vote",new Date(voteAt).toISOString()); setStatus("Horaires des Trophées enregistrés ✓"); }
+    catch(e){ setStatus(e.message||"Enregistrement impossible."); }
+    finally{ setBusy(false); }
   }
 
   async function revealNow() {
     if (!window.confirm("Clôturer les votes et rendre les Trophées disponibles maintenant ?")) return;
     setBusy(true);
     try { await action("reveal"); setStatus("Les Trophées sont prêts à être découverts ✓"); }
-    catch (e) { setStatus(e.message || "Action impossible."); }
-    finally { setBusy(false); }
+    catch(e){ setStatus(e.message||"Action impossible."); }
+    finally{ setBusy(false); }
+  }
+
+  async function resetTrophies() {
+    if (!window.confirm("Réinitialiser les Trophées ? Les votes seront effacés et les horaires remis à zéro. Les photos des participants seront conservées.")) return;
+    setBusy(true); setStatus("Réinitialisation…");
+    try {
+      const { error } = await supabase.rpc("trophy_reset", { p_event:event.id });
+      if (error) throw error;
+      setVoteAt(""); setRevealAt("");
+      setStatus("Trophées réinitialisés ✓ Tu peux refaire la démo.");
+    } catch(e){ setStatus(e.message||"Réinitialisation impossible."); }
+    finally{ setBusy(false); }
   }
 
   return <section style={{padding:20,border:"1px solid #e4d7c2",borderRadius:18,background:"#fff",margin:"18px 0"}}>
@@ -67,7 +66,9 @@ export default function TrophyAdminSettings({ event }) {
     <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:14}}>
       <button type="button" onClick={save} disabled={busy} style={{border:0,borderRadius:12,padding:"11px 16px",background:"#30242a",color:"white",fontWeight:900}}>Enregistrer les horaires</button>
       <button type="button" onClick={revealNow} disabled={busy} style={{border:"1px solid #b75b67",borderRadius:12,padding:"11px 16px",background:"white",color:"#7b2634",fontWeight:900}}>Révéler maintenant</button>
+      <button type="button" onClick={resetTrophies} disabled={busy} style={{border:"1px solid #d9a8b9",borderRadius:12,padding:"11px 16px",background:"#fff5f8",color:"#9b5570",fontWeight:900}}>🔄 Réinitialiser les Trophées</button>
     </div>
-    {status && <p style={{fontWeight:800,marginBottom:0}}>{status}</p>}
+    <p style={{fontSize:12,color:"#7a6b70",margin:"10px 0 0"}}>La réinitialisation efface les votes et les horaires, mais conserve les photos des participants.</p>
+    {status&&<p style={{fontWeight:800,marginBottom:0}}>{status}</p>}
   </section>;
 }

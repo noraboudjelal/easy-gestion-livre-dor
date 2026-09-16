@@ -1,3 +1,5 @@
+import "./lehnova-game-cards.css";
+
 export const metadata = {
   title: "Lehnova — Supports numériques personnalisés",
   description: "Solutions numériques accessibles par QR code pour les événements, les commerces et les artisans.",
@@ -24,4 +26,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-

@@ -74,6 +74,7 @@ export default function PublicEventTemplate({ children }) {
         header.style.setProperty("margin", "0", "important");
         header.style.setProperty("padding", "0", "important");
         header.style.setProperty("text-align", "center", "important");
+        header.style.setProperty("align-items", "center", "important");
         header.style.setProperty("min-width", "0", "important");
       }
       if (nav) {
@@ -92,7 +93,11 @@ export default function PublicEventTemplate({ children }) {
         title.style.setProperty("line-height", ".96", "important");
         title.style.setProperty("white-space", "normal", "important");
         title.style.setProperty("overflow-wrap", "anywhere", "important");
+        title.style.setProperty("width", "100%", "important");
         title.style.setProperty("max-width", "100%", "important");
+        title.style.setProperty("margin-left", "auto", "important");
+        title.style.setProperty("margin-right", "auto", "important");
+        title.style.setProperty("text-align", "center", "important");
       }
       if (date) date.style.setProperty("font-size", mobile ? ".72rem" : ".82rem", "important");
 
@@ -126,6 +131,13 @@ export default function PublicEventTemplate({ children }) {
 
   return (
     <PublicEventCoverContext.Provider value={{ cover, eventTitle }}>
+      <style jsx global>{`
+        .fun-card:has(svg[viewBox="0 0 200 200"]) svg[viewBox="0 0 200 200"] g:nth-child(4n+1) path{fill:#B85C7A!important}
+        .fun-card:has(svg[viewBox="0 0 200 200"]) svg[viewBox="0 0 200 200"] g:nth-child(4n+2) path{fill:#D9A0AF!important}
+        .fun-card:has(svg[viewBox="0 0 200 200"]) svg[viewBox="0 0 200 200"] g:nth-child(4n+3) path{fill:#E8D9C5!important}
+        .fun-card:has(svg[viewBox="0 0 200 200"]) svg[viewBox="0 0 200 200"] g:nth-child(4n+4) path{fill:#C6A46A!important}
+        .fun-card:has(svg[viewBox="0 0 200 200"]) .fun-spin-btn{background:#754357!important;color:#FFF9F7!important;box-shadow:0 6px 0 #5C3344,0 10px 18px -6px rgba(56,36,46,.28)!important}
+      `}</style>
       <IdleCover />
       {openedFromAdmin && (
         <a href="/admin" style={{ position: "fixed", top: 10, left: 10, zIndex: 1000001, padding: "8px 12px", borderRadius: 999, background: "rgba(20,20,20,.72)", color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700, backdropFilter: "blur(6px)" }}>

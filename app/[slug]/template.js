@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import IdleCover from "../le-fil/[slug]/IdleCover";
+import TrophyExperience from "./TrophyExperience";
 import { PublicEventCoverContext } from "../../lib/publicEventCover";
 
 export default function PublicEventTemplate({ children }) {
@@ -147,6 +148,11 @@ export default function PublicEventTemplate({ children }) {
         </a>
       )}
       {children}
+      <TrophyExperience slug={slug} adminMode={openedFromAdmin} />
+      <style jsx global>{`
+        @keyframes trophyPulse { from { transform: scale(.94) rotate(-3deg); } to { transform: scale(1.06) rotate(3deg); } }
+        @keyframes trophyPop { from { transform: scale(.65); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+      `}</style>
     </PublicEventCoverContext.Provider>
   );
 }

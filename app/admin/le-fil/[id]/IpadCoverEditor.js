@@ -81,25 +81,6 @@ export default function IpadCoverEditor({ event }) {
 
   return (
     <>
-      {event.slug && (
-        <section className={styles.section}>
-          <div>
-            <p className={styles.kicker}>ACCÈS RAPIDE</p>
-            <h2>Ouvrir Le Fil</h2>
-            <p className={styles.help}>Ouvrez directement le Fil de cet événement sur votre iPad, sans avoir à rechercher ou recopier son lien.</p>
-          </div>
-          <a
-            className={styles.primary}
-            href={`/le-fil/${event.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-          >
-            Ouvrir Le Fil
-          </a>
-        </section>
-      )}
-
       <section id="titre-fil" className={styles.section}>
         <div style={{ width: "100%" }}>
           <p className={styles.kicker}>LE FIL</p>

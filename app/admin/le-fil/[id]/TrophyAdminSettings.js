@@ -22,8 +22,13 @@ export default function TrophyAdminSettings({ event }) {
     return data;
   }
 
+  function syncFields(data) {
+    setVoteAt(toLocalInput(data?.vote_at));
+    setRevealAt(toLocalInput(data?.reveal_at));
+  }
+
   useEffect(() => {
-    action("state").then((data) => { setVoteAt(toLocalInput(data?.vote_at)); setRevealAt(toLocalInput(data?.reveal_at)); }).catch(() => {});
+    action("state").then(syncFields).catch(() => {});
   }, [event.id]);
 
   async function save() {
@@ -49,7 +54,21 @@ export default function TrophyAdminSettings({ event }) {
     try {
       const { error } = await supabase.rpc("trophy_reset", { p_event:event.id });
       if (error) throw error;
-      setVoteAt(""); setRevealAt("");
+
+      const freshState = await action("state");
+      if (freshState?.vote_at || freshState?.reveal_at || freshState?.closed) {
+        throw new Error("La réinitialisation n’a pas été confirmée par Supabase.");
+      }
+      syncFields(freshState);
+
+      const resetMessage = { type:"trophy-reset", eventId:event.id, at:Date.now() };
+      try { window.localStorage.setItem("lehnova-trophy-reset", JSON.stringify(resetMessage)); } catch {}
+      if (typeof BroadcastChannel !== "undefined") {
+        const channel = new BroadcastChannel("lehnova-trophies");
+        channel.postMessage(resetMessage);
+        channel.close();
+      }
+
       setStatus("Trophées réinitialisés ✓ Tu peux refaire la démo.");
     } catch(e){ setStatus(e.message||"Réinitialisation impossible."); }
     finally{ setBusy(false); }

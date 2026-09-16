@@ -62,7 +62,9 @@ export default function PublicEventTemplate({ children }) {
       card.style.setProperty("max-height", "7cm", "important");
       card.style.setProperty("padding", "0", "important");
       card.style.setProperty("display", "block", "important");
-      card.style.setProperty("position", "relative", "important");
+      card.style.setProperty("position", "sticky", "important");
+      card.style.setProperty("top", "0", "important");
+      card.style.setProperty("z-index", "100", "important");
       card.style.setProperty("overflow", "hidden", "important");
 
       const header = card.querySelector(".event-header");

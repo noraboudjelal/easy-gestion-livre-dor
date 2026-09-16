@@ -46,14 +46,14 @@ export default function FilPhotoCover() {
         {date && <div className="leFilCoverDate">{date}</div>}
       </div>
       <style>{`
-        .leFilCoverHero{position:relative;width:100%;max-width:760px;height:clamp(320px,72vw,500px);margin:0 auto;overflow:hidden;background:#2b241f}
+        .leFilCoverHero{position:relative;width:100%;max-width:760px;height:clamp(250px,52vw,365px);margin:0 auto;overflow:hidden;background:#2b241f}
         .leFilCoverHero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-        .leFilCoverShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,14,12,.04) 18%,rgba(18,14,12,.72) 100%)}
-        .leFilCoverText{position:absolute;left:20px;right:20px;bottom:30px;text-align:center;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.68)}
-        .leFilCoverType{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}
-        .leFilCoverText h1{max-width:680px;margin:0 auto;font-family:Georgia,serif;font-style:italic;font-size:clamp(32px,7.2vw,50px);line-height:1.04}
-        .leFilCoverText p{max-width:650px;margin:16px auto 0;font-family:Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(24px,5.2vw,34px);line-height:1.18}
-        .leFilCoverDate{margin-top:13px;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+        .leFilCoverShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,14,12,.02) 20%,rgba(18,14,12,.62) 100%)}
+        .leFilCoverText{position:absolute;left:20px;right:20px;bottom:20px;text-align:center;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.62)}
+        .leFilCoverType{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px}
+        .leFilCoverText h1{max-width:680px;margin:0 auto;font-family:Georgia,serif;font-style:italic;font-size:clamp(27px,5.8vw,42px);line-height:1.04}
+        .leFilCoverText p{max-width:650px;margin:10px auto 0;font-family:Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(18px,3.8vw,27px);line-height:1.16}
+        .leFilCoverDate{margin-top:9px;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
       `}</style>
     </section>
   );

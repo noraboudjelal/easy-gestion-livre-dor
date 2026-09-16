@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { usePublicEventCover } from "../../lib/publicEventCover";
 
 const THEMES = {
   "Mariage": {
@@ -68,7 +69,7 @@ const THEMES = {
     accentText: "#1A1C22",
     ivory: "#F5F3EC",
     muted: "#CDD3DE",
-    avatarPalette: ["#B9C7DD", "#D9B98A", "#9FB4CC", "#E3D2A8"],
+    avatarPalette: ["#B9C7DD", "#D9B98A", "#9FB4CC", "#E3D2A8"],
     pageGradient: "linear-gradient(135deg, #1A1C22 0%, #303846 58%, #425369 100%)",
     headerGradient: "linear-gradient(120deg, #1A1C22 0%, #303846 100%)",
     cardGradient: "linear-gradient(145deg, #425369 0%, #303846 48%, #1A1C22 100%)",
@@ -82,7 +83,7 @@ const THEMES = {
     accentText: "#20180A",
     ivory: "#EEF3EE",
     muted: "#BFCDC2",
-    avatarPalette: ["#4E7A5E", "#C9A24B", "#6FA083", "#8FBF9F"],
+    avatarPalette: ["#4E7A5E", "#C9A24B", "#6FA083", "#8FBF9F"],
     pageGradient: "linear-gradient(135deg, #102019 0%, #254333 58%, #3B5140 100%)",
     headerGradient: "linear-gradient(120deg, #102019 0%, #254333 100%)",
     cardGradient: "linear-gradient(145deg, #3B5140 0%, #254333 48%, #102019 100%)",
@@ -96,7 +97,7 @@ const THEMES = {
     accentText: "#20180A",
     ivory: "#EEF3F3",
     muted: "#C2D3D6",
-    avatarPalette: ["#3E6B75", "#C9A24B", "#5C8993", "#7FADB5"],
+    avatarPalette: ["#3E6B75", "#C9A24B", "#5C8993", "#7FADB5"],
     pageGradient: "linear-gradient(135deg, #12232A 0%, #274854 58%, #3A5A60 100%)",
     headerGradient: "linear-gradient(120deg, #12232A 0%, #274854 100%)",
     cardGradient: "linear-gradient(145deg, #3A5A60 0%, #274854 48%, #12232A 100%)",
@@ -110,7 +111,7 @@ const THEMES = {
     accentText: "#20180A",
     ivory: "#EFF3EA",
     muted: "#C5D2BD",
-    avatarPalette: ["#4E7A4F", "#C9A24B", "#6FA070", "#8FBF8F"],
+    avatarPalette: ["#4E7A4F", "#C9A24B", "#6FA070", "#8FBF8F"],
     pageGradient: "linear-gradient(135deg, #152016 0%, #314A30 58%, #495839 100%)",
     headerGradient: "linear-gradient(120deg, #152016 0%, #314A30 100%)",
     cardGradient: "linear-gradient(145deg, #495839 0%, #314A30 48%, #152016 100%)",
@@ -124,7 +125,7 @@ const THEMES = {
     accentText: "#0F2A38",
     ivory: "#EAF6FB",
     muted: "#D0E6EF",
-    avatarPalette: ["#8FCFEA", "#C9A24B", "#6BAFCE", "#B8E2F2"],
+    avatarPalette: ["#8FCFEA", "#C9A24B", "#6BAFCE", "#B8E2F2"],
     pageGradient: "linear-gradient(135deg, #0F2A38 0%, #24556D 58%, #356B82 100%)",
     headerGradient: "linear-gradient(120deg, #0F2A38 0%, #24556D 100%)",
     cardGradient: "linear-gradient(145deg, #356B82 0%, #24556D 48%, #0F2A38 100%)",
@@ -138,7 +139,7 @@ const THEMES = {
     accentText: "#241A1E",
     ivory: "#F7EFEA",
     muted: "#D6C2BB",
-    avatarPalette: ["#D4A574", "#C9A24B", "#B88A63", "#E3C39D"],
+    avatarPalette: ["#D4A574", "#C9A24B", "#B88A63", "#E3C39D"],
     pageGradient: "linear-gradient(135deg, #241A1E 0%, #4C3239 58%, #66483F 100%)",
     headerGradient: "linear-gradient(120deg, #241A1E 0%, #4C3239 100%)",
     cardGradient: "linear-gradient(145deg, #66483F 0%, #4C3239 48%, #241A1E 100%)",
@@ -152,7 +153,7 @@ const THEMES = {
     accentText: "#1C1A16",
     ivory: "#F5F1E6",
     muted: "#CEC2AB",
-    avatarPalette: ["#D4AF37", "#8A7B5C", "#C9A24B", "#B5A278"],
+    avatarPalette: ["#D4AF37", "#8A7B5C", "#C9A24B", "#B5A278"],
     pageGradient: "linear-gradient(135deg, #1C1A16 0%, #423A29 58%, #584B30 100%)",
     headerGradient: "linear-gradient(120deg, #1C1A16 0%, #423A29 100%)",
     cardGradient: "linear-gradient(145deg, #584B30 0%, #423A29 48%, #1C1A16 100%)",
@@ -166,7 +167,7 @@ const THEMES = {
     accentText: "#0F1F1C",
     ivory: "#EAF6F3",
     muted: "#BDCDC8",
-    avatarPalette: ["#4FB8A8", "#C9A24B", "#6FCFC0", "#8BD9CC"],
+    avatarPalette: ["#4FB8A8", "#C9A24B", "#6FCFC0", "#8BD9CC"],
     pageGradient: "linear-gradient(135deg, #151833 0%, #293858 58%, #285450 100%)",
     headerGradient: "linear-gradient(120deg, #151833 0%, #293858 100%)",
     cardGradient: "linear-gradient(145deg, #285450 0%, #293858 48%, #151833 100%)",
@@ -180,7 +181,7 @@ const THEMES = {
     accentText: "#17181C",
     ivory: "#F2F2F4",
     muted: "#C1C4CE",
-    avatarPalette: ["#B7B9C0", "#C9A24B", "#8E9098", "#D3D4D9"],
+    avatarPalette: ["#B7B9C0", "#C9A24B", "#8E9098", "#D3D4D9"],
     pageGradient: "linear-gradient(135deg, #17181C 0%, #30343F 58%, #444954 100%)",
     headerGradient: "linear-gradient(120deg, #17181C 0%, #30343F 100%)",
     cardGradient: "linear-gradient(145deg, #444954 0%, #30343F 48%, #17181C 100%)",
@@ -194,7 +195,7 @@ const THEMES = {
     accentText: "#151515",
     ivory: "#F2F0EC",
     muted: "#C7C2B6",
-    avatarPalette: ["#D9C9A3", "#8C8A85", "#B7B4AC", "#6E6C67"],
+    avatarPalette: ["#D9C9A3", "#8C8A85", "#B7B4AC", "#6E6C67"],
     pageGradient: "linear-gradient(135deg, #151515 0%, #33302B 58%, #494235 100%)",
     headerGradient: "linear-gradient(120deg, #151515 0%, #33302B 100%)",
     cardGradient: "linear-gradient(145deg, #494235 0%, #33302B 48%, #151515 100%)",
@@ -203,7 +204,7 @@ const THEMES = {
     ink: "#241B3D", surface: "#32245A", surface2: "#3D2C6E",
     accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
     ivory: "#FBF6FF", muted: "#C7B8E8",
-    avatarPalette: ["#FF6FB5", "#8B7FD9", "#5FCBB8", "#FFC15E"],
+    avatarPalette: ["#FF6FB5", "#8B7FD9", "#5FCBB8", "#FFC15E"],
     pageGradient: "linear-gradient(135deg, #241B3D 0%, #453064 58%, #633D70 100%)",
     headerGradient: "linear-gradient(120deg, #241B3D 0%, #453064 100%)",
     cardGradient: "linear-gradient(145deg, #633D70 0%, #453064 48%, #241B3D 100%)",
@@ -212,7 +213,7 @@ const THEMES = {
     ink: "#241B3D", surface: "#32245A", surface2: "#3D2C6E",
     accent: "#FF6FB5", accentSoft: "rgba(255,111,181,0.28)", accentText: "#2A1230",
     ivory: "#FBF6FF", muted: "#C7B8E8",
-    avatarPalette: ["#FF6FB5", "#8B7FD9", "#5FCBB8", "#FFC15E"],
+    avatarPalette: ["#FF6FB5", "#8B7FD9", "#5FCBB8", "#FFC15E"],
     pageGradient: "linear-gradient(135deg, #241B3D 0%, #453064 58%, #633D70 100%)",
     headerGradient: "linear-gradient(120deg, #241B3D 0%, #453064 100%)",
     cardGradient: "linear-gradient(145deg, #633D70 0%, #453064 48%, #241B3D 100%)",
@@ -226,7 +227,7 @@ const THEMES = {
     accentText: "#20180A",
     ivory: "#F4EFE4",
     muted: "#C4BED1",
-    avatarPalette: ["#1E2A3A", "#8B3A2B", "#355E3B", "#5B4636"],
+    avatarPalette: ["#1E2A3A", "#8B3A2B", "#355E3B", "#5B4636"],
     pageGradient: "linear-gradient(135deg, #14131C 0%, #332C43 58%, #4D4052 100%)",
     headerGradient: "linear-gradient(120deg, #14131C 0%, #332C43 100%)",
     cardGradient: "linear-gradient(145deg, #4D4052 0%, #332C43 48%, #14131C 100%)",
@@ -723,7 +724,10 @@ export default function GuestbookPage() {
     today.setHours(0, 0, 0, 0);
     return eventDay.getTime() > today.getTime();
   })();
-  const displayTitle = splitEventTitle(event?.event_title, event?.event_type);
+  const publicCover = usePublicEventCover();
+  const displayTitle = publicCover?.cover
+    ? { context: "", names: publicCover.eventTitle || event?.event_title || "" }
+    : splitEventTitle(event?.event_title, event?.event_type);
   const wordCloud = useMemo(() => {
     const counts = {};
     wordCloudEntries.forEach(({ word }) => {

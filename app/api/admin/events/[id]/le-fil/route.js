@@ -32,6 +32,17 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const supabase = getSupabaseAdmin();
 
+    if (Object.prototype.hasOwnProperty.call(body, "idle_cover_text")) {
+      if (typeof body.idle_cover_text !== "string" || body.idle_cover_text.trim().length > 120) {
+        return NextResponse.json({ error: "Le texte de veille doit contenir au maximum 120 caractères." }, { status: 400 });
+      }
+      const { data, error } = await supabase.from("events")
+        .update({ idle_cover_text: body.idle_cover_text.trim() || null })
+        .eq("id", params.id).select("idle_cover_text").single();
+      if (error) throw error;
+      return NextResponse.json({ idle_cover_text: data.idle_cover_text || "" });
+    }
+
     let eventTitle;
     if (Object.prototype.hasOwnProperty.call(body, "event_title")) {
       eventTitle = typeof body.event_title === "string" ? body.event_title.trim() : "";

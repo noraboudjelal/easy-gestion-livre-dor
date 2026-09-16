@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import IdleCover from "../le-fil/[slug]/IdleCover";
+import { PublicEventCoverContext } from "../../lib/publicEventCover";
 
 export default function PublicEventTemplate({ children }) {
   const params = useParams();
@@ -13,7 +14,7 @@ export default function PublicEventTemplate({ children }) {
 
   useEffect(() => {
     let active = true;
-    (async () => {
+    const refresh = async () => {
       if (!supabase || !slug) return;
       const { data: event } = await supabase
         .from("events")
@@ -28,8 +29,18 @@ export default function PublicEventTemplate({ children }) {
         .eq("event_id", event.id)
         .maybeSingle();
       if (active) setCover(settings?.cover_image_url || event.fil_cover_url || event.cover_photo_url || "");
-    })();
-    return () => { active = false; };
+    };
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    refresh();
+    const timer = setInterval(refreshVisible, 15000);
+    window.addEventListener("focus", refreshVisible);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", refreshVisible);
+    };
   }, [slug]);
 
   useEffect(() => {
@@ -55,21 +66,8 @@ export default function PublicEventTemplate({ children }) {
       const title = card.querySelector(".event-title-names");
       const date = card.querySelector(".event-date");
 
-      // Never leave a fixed “Mariage de” label on another kind of event.
-      // The editable event title is the source of truth for the cover.
-      if (context) {
-        const normalizedTitle = eventTitle.toLocaleLowerCase("fr-FR");
-        const normalizedContext = (context.textContent || "").toLocaleLowerCase("fr-FR");
-        const titleAlreadyDescribesEvent = /baby\s*shower|anniversaire|bapt[eê]me|fian[cç]ailles|retraite|henn[eé]|circoncision|inauguration|lancement|f[eê]te|d[eé]mo/.test(normalizedTitle);
-        const wrongMarriageLabel = normalizedContext.includes("mariage") && !normalizedTitle.includes("mariage");
-        if (titleAlreadyDescribesEvent || wrongMarriageLabel) {
-          context.style.setProperty("display", "none", "important");
-        } else {
-          context.style.removeProperty("display");
-          context.style.setProperty("font-size", mobile ? "1.45rem" : "1.7rem", "important");
-          context.style.setProperty("line-height", "1.05", "important");
-        }
-      }
+      // React renders the full editable title in the large title element.
+      if (context) context.style.setProperty("display", "none", "important");
       if (title) {
         title.style.setProperty("font-size", mobile ? "clamp(2.25rem, 10vw, 4.1rem)" : "clamp(4rem, 7vw, 6rem)", "important");
         title.style.setProperty("line-height", mobile ? ".98" : ".96", "important");
@@ -89,15 +87,19 @@ export default function PublicEventTemplate({ children }) {
     };
 
     const handleResize = () => applyCover();
+    let observer;
     if (!applyCover()) {
-      const observer = new MutationObserver(() => {
+      observer = new MutationObserver(() => {
         if (applyCover()) observer.disconnect();
       });
       observer.observe(document.body, { childList: true, subtree: true });
     }
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
   }, [cover, eventTitle]);
 
-  return <><IdleCover />{children}</>;
+  return <PublicEventCoverContext.Provider value={{ cover, eventTitle }}><IdleCover />{children}</PublicEventCoverContext.Provider>;
 }

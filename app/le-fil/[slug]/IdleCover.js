@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import IdleCoverText from "../../../components/IdleCoverText";
 
 export default function IdleCover({ timeoutMs = 30000 }) {
   const { slug } = useParams();
@@ -13,10 +14,20 @@ export default function IdleCover({ timeoutMs = 30000 }) {
   useEffect(() => {
     let active = true;
     if (!slug || !supabase) return;
-    supabase.from("events").select("event_title,client,event_date,event_type,idle_cover_url").eq("slug", slug).single().then(({ data }) => {
-      if (active) setEvent(data || null);
+    const refresh = () => supabase.from("events").select("event_title,client,event_date,event_type,idle_cover_url,idle_cover_text").eq("slug", slug).single().then(({ data, error }) => {
+      if (active && !error) setEvent(data || null);
     });
-    return () => { active = false; };
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    refresh();
+    const timer = setInterval(refreshVisible, 15000);
+    window.addEventListener("focus", refreshVisible);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", refreshVisible);
+    };
   }, [slug]);
 
   function arm() {
@@ -42,8 +53,9 @@ export default function IdleCover({ timeoutMs = 30000 }) {
   const title = (event.event_title || event.client || "Bienvenue").replace(/^mariage\s+(?:de|d[’'])\s*/i, "");
   const date = event.event_date ? new Date(`${event.event_date}T00:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
 
-  if (event.idle_cover_url) return <button type="button" onClick={() => setVisible(false)} aria-label="Entrer dans Le Fil" style={{position:"fixed",inset:0,zIndex:9999,border:0,padding:0,cursor:"pointer",background:"#111",display:"block",width:"100vw",height:"100vh",overflow:"hidden"}}>
+  if (event.idle_cover_url) return <button type="button" onClick={() => setVisible(false)} aria-label="Entrer dans Le Fil" style={{position:"fixed",inset:0,zIndex:9999,border:0,padding:0,cursor:"pointer",background:"#111",display:"block",width:"100vw",height:"100vh",overflow:"hidden",containerType:"inline-size"}}>
     <img src={event.idle_cover_url} alt="Couverture de l’événement" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />
+    <IdleCoverText text={event.idle_cover_text} />
     <span style={{position:"absolute",left:"50%",bottom:28,transform:"translateX(-50%)",background:"rgba(0,0,0,.48)",color:"white",padding:"10px 18px",borderRadius:999,fontSize:14,letterSpacing:".04em",whiteSpace:"nowrap"}}>Touchez l’écran pour entrer</span>
   </button>;
 

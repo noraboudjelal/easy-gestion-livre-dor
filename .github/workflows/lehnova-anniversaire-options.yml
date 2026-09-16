@@ -1,0 +1,52 @@
+name: Add anniversary wheel and best outfit
+
+on:
+  push:
+    paths:
+      - '.github/workflows/lehnova-anniversaire-options.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Enable wheel and best outfit for birthdays
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/[slug]/page.js')
+          s = p.read_text()
+
+          wheel_old = '''        {isJournal && (\n          <div className="fun-card" style={styles.wheelCard}>\n            <p style={styles.wheelTitle}>🎡 La Roue Folle</p>'''
+          wheel_new = '''        {(isJournal || event?.event_type === "Anniversaire") && (\n          <div className="fun-card" style={styles.wheelCard}>\n            <p style={styles.wheelTitle}>🎡 La Roue des défis</p>'''
+          if wheel_old not in s:
+              raise SystemExit('Wheel block not found; no changes made')
+          s = s.replace(wheel_old, wheel_new, 1)
+
+          look_old = '''        {isJournal && (\n          <div className="fun-card" style={styles.lookCard}>\n            <p style={styles.lookTitle}>✨ Look du Jour ✨</p>\n            <p style={styles.lookSub}>Poste ta tenue et vote pour tes préférées !</p>'''
+          look_new = '''        {(isJournal || event?.event_type === "Anniversaire") && (\n          <div className="fun-card" style={styles.lookCard}>\n            <p style={styles.lookTitle}>{event?.event_type === "Anniversaire" ? "🏆 Meilleure tenue" : "✨ Look du Jour ✨"}</p>\n            <p style={styles.lookSub}>{event?.event_type === "Anniversaire" ? "Poste ta tenue et vote pour ta préférée !" : "Poste ta tenue et vote pour tes préférées !"}</p>'''
+          if look_old not in s:
+              raise SystemExit('Look block not found; no changes made')
+          s = s.replace(look_old, look_new, 1)
+
+          s = s.replace(
+              '<span style={styles.lookLeaderLabel}>Le boss du jour</span>',
+              '<span style={styles.lookLeaderLabel}>{event?.event_type === "Anniversaire" ? "La tenue préférée" : "Le boss du jour"}</span>',
+              1,
+          )
+
+          p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "Lehnova Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add 'app/[slug]/page.js'
+          git diff --cached --quiet && exit 0
+          git commit -m "Enable birthday wheel and best outfit vote"
+          git push origin main

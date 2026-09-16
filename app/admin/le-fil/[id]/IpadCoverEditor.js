@@ -81,23 +81,27 @@ export default function IpadCoverEditor({ event }) {
 
   return (
     <>
+      {event.slug && (
+        <section className={styles.section}>
+          <div>
+            <p className={styles.kicker}>ACCÈS DIRECT</p>
+            <h2>Ouvrir la borne Le Fil</h2>
+            <p className={styles.help}>Ouvre directement l’écran de veille de cet événement. Touchez ensuite l’écran pour entrer dans Le Fil.</p>
+          </div>
+          <a className={styles.primary} href={`/le-fil/${event.slug}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            ▶ Ouvrir la borne
+          </a>
+        </section>
+      )}
+
       <section id="titre-fil" className={styles.section}>
         <div style={{ width: "100%" }}>
           <p className={styles.kicker}>LE FIL</p>
           <h2>Titre de la page</h2>
           <p className={styles.help}>Modifiez ici le titre affiché sur le livre d’or. Exemple : « Baby Shower de Maya & Yasin ».</p>
           <form onSubmit={saveTitle} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 14 }}>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={120}
-              placeholder="Baby Shower de Maya & Yasin"
-              style={{ flex: "1 1 300px", minWidth: 0, border: "1px solid #d8c8ae", borderRadius: 12, padding: "12px 14px", fontSize: 16, background: "white" }}
-            />
-            <button type="submit" className={styles.primary} disabled={savingTitle}>
-              {savingTitle ? "Enregistrement…" : "Enregistrer le titre"}
-            </button>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Baby Shower de Maya & Yasin" style={{ flex: "1 1 300px", minWidth: 0, border: "1px solid #d8c8ae", borderRadius: 12, padding: "12px 14px", fontSize: 16, background: "white" }} />
+            <button type="submit" className={styles.primary} disabled={savingTitle}>{savingTitle ? "Enregistrement…" : "Enregistrer le titre"}</button>
           </form>
           {titleStatus && <p className={styles.help} style={{ marginTop: 10 }}>{titleStatus}</p>}
         </div>

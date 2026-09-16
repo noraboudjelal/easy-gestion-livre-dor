@@ -45,27 +45,27 @@ export default function TrophyExperience({ slug, adminMode = false }) {
     let alive = true;
     (async () => {
       if (!slug || !supabase) return;
-      const { data } = await supabase.from("events").select("id,slug,event_title,best_outfit_enabled").eq("slug", slug).maybeSingle();
-      if (!alive || !data) return;
+      const { data, error } = await supabase.from("events").select("id,slug,event_title").eq("slug", slug).maybeSingle();
+      if (!alive) return;
+      if (error || !data) { setStatus(error?.message || "Événement introuvable pour les Trophées."); return; }
       setEvent(data);
-      if (data.best_outfit_enabled) {
-        const { data: photos } = await supabase.from("daily_looks").select("id,name,photo_url,created_at").eq("event_id", data.id).not("photo_url", "is", null).order("created_at", { ascending: true });
-        if (alive) setLooks(photos || []);
-      }
+      const { data: photos, error: photoError } = await supabase.from("daily_looks").select("id,name,photo_url,created_at").eq("event_id", data.id).not("photo_url", "is", null).order("created_at", { ascending: true });
+      if (!alive) return;
+      if (photoError) setStatus(photoError.message || "Impossible de charger les photos.");
+      else setLooks(photos || []);
     })();
     return () => { alive = false; };
   }, [slug]);
 
-  useEffect(() => { if (event?.best_outfit_enabled && voter) rpc().catch((e) => setStatus(e?.message || "Impossible de charger les Trophées.")); }, [event?.best_outfit_enabled, voter, rpc]);
+  useEffect(() => { if (event?.id && voter) rpc().catch((e) => setStatus(e?.message || "Impossible de charger les Trophées.")); }, [event?.id, voter, rpc]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
   useEffect(() => {
-    if (!event?.best_outfit_enabled || !voter) return;
+    if (!event?.id || !voter) return;
     const t = setInterval(() => rpc().catch(() => {}), 15000);
     return () => clearInterval(t);
-  }, [event?.best_outfit_enabled, voter, rpc]);
+  }, [event?.id, voter, rpc]);
 
   useEffect(() => {
-    if (!event?.best_outfit_enabled) return;
     const locate = () => {
       const cards = Array.from(document.querySelectorAll(".fun-card"));
       const card = cards.find((c) => /Les Trophées|Les Awards/.test(c.textContent || "") && /Meilleure tenue/.test(c.textContent || ""));
@@ -90,7 +90,7 @@ export default function TrophyExperience({ slug, adminMode = false }) {
     locate();
     const timer = setInterval(locate, 500);
     return () => clearInterval(timer);
-  }, [event?.best_outfit_enabled]);
+  }, []);
 
   const voted = state?.voted_categories || [];
   const serverNow = now + serverOffset;
@@ -122,7 +122,8 @@ export default function TrophyExperience({ slug, adminMode = false }) {
     catch (e) { setStatus(e.message || "Impossible de clôturer."); }
   }
 
-  if (!event?.best_outfit_enabled || !state || !portalTarget) return null;
+  if (!portalTarget) return null;
+  if (!state) return createPortal(<section id="trophees-vote" style={S.wrap}><p style={S.note}>{status || "Chargement des Trophées…"}</p></section>, portalTarget);
   const results = state.results || [];
   const currentResult = results[revealIndex];
 

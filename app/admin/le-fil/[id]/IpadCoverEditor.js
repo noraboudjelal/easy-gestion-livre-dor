@@ -88,7 +88,7 @@ export default function IpadCoverEditor({ event }) {
             <h2>Ouvrir la borne Le Fil</h2>
             <p className={styles.help}>Ouvre directement la vraie page de cet événement avec son écran de veille.</p>
           </div>
-          <a className={styles.primary} href={`/${event.slug}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <a className={styles.primary} href={`/${event.slug}?from=admin`} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
             ▶ Ouvrir la borne
           </a>
         </section>

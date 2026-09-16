@@ -139,6 +139,38 @@ export default function PublicEventTemplate({ children }) {
     };
   }, [cover, eventTitle]);
 
+  useEffect(() => {
+    const categoryLabels = new Set(["👗 Meilleure tenue", "💇 Meilleure coiffure", "😂 Plus drôle", "📸 Meilleure pose"]);
+    const mountTrophies = () => {
+      const module = document.getElementById("trophees-vote");
+      if (!module) return false;
+      const titleNode = Array.from(document.querySelectorAll("p")).find((node) => node.textContent?.includes("Les Trophées") && !module.contains(node));
+      const card = titleNode?.closest(".fun-card");
+      if (!card || card.contains(module)) return Boolean(card);
+
+      card.querySelectorAll("span").forEach((node) => {
+        if (categoryLabels.has((node.textContent || "").trim())) node.style.setProperty("display", "none", "important");
+      });
+      const moduleTitle = module.querySelector("h2");
+      if (moduleTitle) moduleTitle.style.setProperty("display", "none", "important");
+      module.style.setProperty("max-width", "none", "important");
+      module.style.setProperty("margin", "18px 0 0", "important");
+      module.style.setProperty("padding", "16px 0 0", "important");
+      module.style.setProperty("border-radius", "0", "important");
+      module.style.setProperty("background", "transparent", "important");
+      module.style.setProperty("box-shadow", "none", "important");
+      module.style.setProperty("border-top", "1px solid rgba(80,48,63,.15)", "important");
+      card.appendChild(module);
+      return true;
+    };
+
+    mountTrophies();
+    const observer = new MutationObserver(() => mountTrophies());
+    observer.observe(document.body, { childList: true, subtree: true });
+    const timer = setInterval(mountTrophies, 1000);
+    return () => { observer.disconnect(); clearInterval(timer); };
+  }, [slug]);
+
   return (
     <PublicEventCoverContext.Provider value={{ cover, eventTitle }}>
       <IdleCover />

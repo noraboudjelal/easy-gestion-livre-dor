@@ -57,12 +57,15 @@ export default function PublicEventTemplate({ children }) {
       card.style.setProperty("background-size", "cover", "important");
       card.style.setProperty("background-position", "center", "important");
       card.style.setProperty("background-repeat", "no-repeat", "important");
-      card.style.setProperty("min-height", mobile ? "420px" : "520px", "important");
-      card.style.setProperty("padding-top", "28px", "important");
-      card.style.setProperty("padding-bottom", "18px", "important");
+      card.style.setProperty("height", "7cm", "important");
+      card.style.setProperty("min-height", "7cm", "important");
+      card.style.setProperty("max-height", "7cm", "important");
+      card.style.setProperty("padding-top", "12px", "important");
+      card.style.setProperty("padding-bottom", "8px", "important");
       card.style.setProperty("display", "grid", "important");
-      card.style.setProperty("grid-template-rows", "1fr auto 1fr", "important");
-      card.style.setProperty("row-gap", "20px", "important");
+      card.style.setProperty("grid-template-rows", "1fr auto auto", "important");
+      card.style.setProperty("row-gap", "7px", "important");
+      card.style.setProperty("overflow", "hidden", "important");
 
       const header = card.querySelector(".event-header");
       const nav = card.querySelector(".event-nav");
@@ -85,18 +88,24 @@ export default function PublicEventTemplate({ children }) {
       const date = card.querySelector(".event-date");
       if (context) context.style.setProperty("display", "none", "important");
       if (title) {
-        title.style.setProperty("font-size", mobile ? "clamp(2.75rem, 12vw, 4.75rem)" : "clamp(4.5rem, 8vw, 6.75rem)", "important");
-        title.style.setProperty("line-height", mobile ? ".98" : ".96", "important");
+        title.style.setProperty("font-size", mobile ? "clamp(1.7rem, 8vw, 2.7rem)" : "clamp(2.4rem, 5vw, 3.6rem)", "important");
+        title.style.setProperty("line-height", ".96", "important");
         title.style.setProperty("white-space", "normal", "important");
         title.style.setProperty("overflow-wrap", "anywhere", "important");
         title.style.setProperty("max-width", "100%", "important");
       }
-      if (date) date.style.setProperty("font-size", mobile ? ".95rem" : "1.1rem", "important");
+      if (date) date.style.setProperty("font-size", mobile ? ".72rem" : ".82rem", "important");
 
       card.querySelectorAll(".event-title-context,.event-title-names,.event-date,.lehnova-welcome-message").forEach((node) => {
         node.style.setProperty("color", "#fff", "important");
         node.style.setProperty("text-shadow", "0 2px 12px rgba(0,0,0,.72)", "important");
       });
+      const welcome = card.querySelector(".lehnova-welcome-message");
+      if (welcome) {
+        welcome.style.setProperty("font-size", mobile ? "1rem" : "1.25rem", "important");
+        welcome.style.setProperty("margin-top", "7px", "important");
+        welcome.style.setProperty("line-height", "1.15", "important");
+      }
       return true;
     };
 

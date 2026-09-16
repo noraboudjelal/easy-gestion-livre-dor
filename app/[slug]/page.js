@@ -1961,9 +1961,9 @@ export default function GuestbookPage() {
           )}
         </div>
 
-        {isJournal && (
+        {(isJournal || event?.event_type === "Anniversaire") && (
           <div className="fun-card" style={styles.wheelCard}>
-            <p style={styles.wheelTitle}>🎡 La Roue Folle</p>
+            <p style={styles.wheelTitle}>🎡 La Roue des défis</p>
             <p style={styles.wheelSub}>Ajoute les joueurs présents et lance la roue !</p>
 
             <form onSubmit={handleAddWheelPlayer} style={styles.wheelInputRow}>
@@ -2396,16 +2396,16 @@ export default function GuestbookPage() {
           </div>
         )}
 
-        {isJournal && (
+        {(isJournal || event?.event_type === "Anniversaire") && (
           <div className="fun-card" style={styles.lookCard}>
-            <p style={styles.lookTitle}>✨ Look du Jour ✨</p>
-            <p style={styles.lookSub}>Poste ta tenue et vote pour tes préférées !</p>
+            <p style={styles.lookTitle}>{event?.event_type === "Anniversaire" ? "🏆 Meilleure tenue" : "✨ Look du Jour ✨"}</p>
+            <p style={styles.lookSub}>{event?.event_type === "Anniversaire" ? "Poste ta tenue et vote pour ta préférée !" : "Poste ta tenue et vote pour tes préférées !"}</p>
 
             {leaderLook && (
               <div style={styles.lookLeaderBanner}>
                 <span style={{ fontSize: "1.5rem" }}>👑</span>
                 <span>
-                  <span style={styles.lookLeaderLabel}>Le boss du jour</span>
+                  <span style={styles.lookLeaderLabel}>{event?.event_type === "Anniversaire" ? "La tenue préférée" : "Le boss du jour"}</span>
                   <span style={styles.lookLeaderName}>
                     {leaderLook.name} — {leaderLook.votes || 0} vote{(leaderLook.votes || 0) > 1 ? "s" : ""}
                   </span>

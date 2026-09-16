@@ -4,84 +4,31 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabaseClient";
 
-const newToken = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+const newToken=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`;
+const confetti=Array.from({length:32},(_,i)=>({id:i,left:`${(i*37)%100}%`,delay:`${(i%8)*.08}s`,char:["🎉","✨","🌸","🎊"][i%4]}));
 
-export default function TrophyExperience({ slug }) {
-  const [event, setEvent] = useState(null);
-  const [looks, setLooks] = useState([]);
-  const [state, setState] = useState(null);
-  const [voter, setVoter] = useState("");
-  const [category, setCategory] = useState(null);
-  const [selected, setSelected] = useState(null);
-  const [status, setStatus] = useState("");
-  const [now, setNow] = useState(Date.now());
-  const [serverOffset, setServerOffset] = useState(0);
-  const [revealing, setRevealing] = useState(false);
-  const [revealIndex, setRevealIndex] = useState(0);
-  const [portalTarget, setPortalTarget] = useState(null);
-
-  useEffect(() => {
-    const key = `trophy-voter-${slug}`;
-    let token = sessionStorage.getItem(key);
-    if (!token) { token = newToken(); sessionStorage.setItem(key, token); }
-    setVoter(token);
-  }, [slug]);
-
-  const rpc = useCallback(async (action = "state", extra = {}) => {
-    if (!event?.id || !voter) return null;
-    const { data, error } = await supabase.rpc("trophy_action", { p_event:event.id, p_action:action, p_category:extra.category||null, p_look:extra.look||null, p_voter:voter, p_reveal:null });
-    if (error) throw error;
-    if (data?.server_now) setServerOffset(new Date(data.server_now).getTime() - Date.now());
-    setState(data); return data;
-  }, [event?.id, voter]);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const { data, error } = await supabase.from("events").select("id,slug,event_title").eq("slug", slug).maybeSingle();
-      if (!alive) return;
-      if (error || !data) { setStatus(error?.message || "Événement introuvable."); return; }
-      setEvent(data);
-      const { data: photos } = await supabase.from("daily_looks").select("id,name,photo_url,created_at").eq("event_id", data.id).not("photo_url","is",null).order("created_at",{ascending:true});
-      if (alive) setLooks(photos || []);
-    })();
-    return () => { alive = false; };
-  }, [slug]);
-
-  useEffect(() => { if (event?.id && voter) rpc().catch(e => setStatus(e?.message || "Impossible de charger les Trophées.")); }, [event?.id,voter,rpc]);
-  useEffect(() => { const t=setInterval(()=>setNow(Date.now()),1000); return()=>clearInterval(t); },[]);
-  useEffect(() => { if (!event?.id || !voter) return; const t=setInterval(()=>rpc().catch(()=>{}),15000); return()=>clearInterval(t); },[event?.id,voter,rpc]);
-
-  useEffect(() => {
-    const locate=()=>{
-      const card=Array.from(document.querySelectorAll(".fun-card")).find(c=>/Les Trophées|Les Awards/.test(c.textContent||"") && /Meilleure tenue/.test(c.textContent||""));
-      if(!card) return;
-      card.querySelectorAll("p").forEach(n=>{ if(n.textContent?.includes("Les Awards")) n.textContent="🏆 Les Trophées"; if(n.textContent?.includes("participe aux Awards")) n.textContent="Ajoute ta photo pour participer aux Trophées !"; if(n.textContent?.includes("votes par catégorie")) n.style.display="none"; });
-      card.querySelectorAll("span").forEach(n=>{ if(["👗 Meilleure tenue","💇 Meilleure coiffure","😂 Plus drôle","📸 Meilleure pose"].includes((n.textContent||"").trim())) n.style.display="none"; });
-      let host=card.querySelector("[data-trophy-host='true']"); if(!host){host=document.createElement("div");host.dataset.trophyHost="true";card.appendChild(host);} setPortalTarget(host);
-    };
-    locate(); const t=setInterval(locate,500); return()=>clearInterval(t);
-  },[]);
-
-  const voted=state?.voted_categories||[];
-  const remaining=state?.reveal_at?Math.max(0,new Date(state.reveal_at).getTime()-(now+serverOffset)):null;
-  const countdown=useMemo(()=>{ if(remaining==null)return null; const x=Math.ceil(remaining/1000),h=Math.floor(x/3600),m=Math.floor((x%3600)/60),s=x%60; return [h,m,s].map(n=>String(n).padStart(2,"0")).join(":"); },[remaining]);
-
-  async function vote(){ if(!category||!selected)return; try{await rpc("vote",{category:category.id,look:selected});setStatus("Bravo, ton vote est enregistré ! 🎉");setSelected(null);setCategory(null);setTimeout(()=>setStatus(""),2500);}catch(e){setStatus(e.message||"Vote impossible.");} }
-
-  if(!portalTarget)return null;
-  if(!state)return createPortal(<p style={{textAlign:"center"}}>{status||"Chargement…"}</p>,portalTarget);
-  const results=state.results||[], current=results[revealIndex];
-  const content=<section style={S.wrap}>
-    {!state.closed&&<>
-      {!state.reveal_at&&<div style={S.intro}><div style={S.big}>📸</div><strong>Participe aux Trophées !</strong><p>Ajoute ton prénom et ta photo juste au-dessus pour tenter de gagner un Trophée 🏆</p><p style={S.small}>Les votes ouvriront plus tard.</p></div>}
-      {state.reveal_at&&remaining>0&&<><div style={S.egg}><div style={S.big}>🏆</div><strong>À vous de voter !</strong><div style={S.clock}>{countdown}</div><small>avant la découverte des Trophées</small></div><p>Choisis un trophée :</p><div style={S.categories}>{(state.categories||[]).map(c=><button key={c.id} disabled={voted.includes(c.id)} onClick={()=>{setCategory(c);setSelected(null);setStatus("");}} style={{...S.category,opacity:voted.includes(c.id)?.45:1}}>{c.label}{voted.includes(c.id)?" ✓":""}</button>)}</div>{category&&<div style={S.voteBox}><h3>{category.label}</h3><p>Touche ta photo préférée 👇</p><div style={S.grid}>{looks.map(l=><button key={l.id} onClick={()=>setSelected(l.id)} style={{...S.photoButton,outline:selected===l.id?"4px solid #d4a72c":"2px solid transparent"}}><img src={l.photo_url} alt={l.name||"Participant"} style={S.photo}/><span style={S.name}>{l.name||"Participant"}</span>{selected===l.id&&<span style={S.check}>✓</span>}</button>)}</div><button disabled={!selected} onClick={vote} style={{...S.vote,opacity:selected?1:.45}}>Je vote 🏆</button></div>}</>}
-    </>}
-    {state.closed&&!revealing&&<div style={S.egg}><div style={S.big}>🎁</div><strong>Les Trophées sont prêts !</strong><button onClick={()=>{setRevealIndex(0);setRevealing(true);}} style={S.discover}>Découvrir les gagnants 🏆</button></div>}
-    {state.closed&&revealing&&current&&<div style={S.reveal}><div style={S.confetti}>✨ 🎉 🏆 🎉 ✨</div><h2>{current.label}</h2>{(current.winners||[]).length?<div style={S.winners}>{current.winners.map(w=><div key={w.id} style={S.winner}><img src={w.photo_url} alt={w.name} style={S.winnerPhoto}/><strong>{w.name}</strong></div>)}</div>:<p>Aucun vote pour ce trophée.</p>}{(current.winners||[]).length>1&&<p>Ex æquo 🏆</p>}{revealIndex<results.length-1&&<button onClick={()=>setRevealIndex(i=>i+1)} style={S.discover}>Trophée suivant 🎁</button>}</div>}
-    {status&&<p style={S.status}>{status}</p>}
-  </section>;
-  return createPortal(content,portalTarget);
+export default function TrophyExperience({slug}){
+ const[event,setEvent]=useState(null),[looks,setLooks]=useState([]),[state,setState]=useState(null),[voter,setVoter]=useState(""),[category,setCategory]=useState(null),[selected,setSelected]=useState(null),[status,setStatus]=useState(""),[now,setNow]=useState(Date.now()),[serverOffset,setServerOffset]=useState(0),[revealing,setRevealing]=useState(false),[revealIndex,setRevealIndex]=useState(0),[finished,setFinished]=useState(false),[portalTarget,setPortalTarget]=useState(null);
+ useEffect(()=>{const k=`trophy-voter-${slug}`;let t=sessionStorage.getItem(k);if(!t){t=newToken();sessionStorage.setItem(k,t)}setVoter(t)},[slug]);
+ const rpc=useCallback(async(action="state",extra={})=>{if(!event?.id||!voter)return null;const{data,error}=await supabase.rpc("trophy_action",{p_event:event.id,p_action:action,p_category:extra.category||null,p_look:extra.look||null,p_voter:voter,p_reveal:null});if(error)throw error;if(data?.server_now)setServerOffset(new Date(data.server_now).getTime()-Date.now());setState(data);return data},[event?.id,voter]);
+ useEffect(()=>{let a=true;(async()=>{const{data,error}=await supabase.from("events").select("id,slug,event_title").eq("slug",slug).maybeSingle();if(!a)return;if(error||!data){setStatus(error?.message||"Événement introuvable.");return}setEvent(data);const{data:p}=await supabase.from("daily_looks").select("id,name,photo_url,created_at").eq("event_id",data.id).not("photo_url","is",null).order("created_at",{ascending:true});if(a)setLooks(p||[])})();return()=>{a=false}},[slug]);
+ useEffect(()=>{if(event?.id&&voter)rpc().catch(e=>setStatus(e?.message||"Impossible de charger les Trophées."))},[event?.id,voter,rpc]);
+ useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t)},[]);
+ useEffect(()=>{if(!event?.id||!voter)return;const t=setInterval(()=>rpc().catch(()=>{}),15000);return()=>clearInterval(t)},[event?.id,voter,rpc]);
+ useEffect(()=>{const locate=()=>{const card=Array.from(document.querySelectorAll(".fun-card")).find(c=>/Les Trophées|Les Awards/.test(c.textContent||"")&&/Meilleure tenue/.test(c.textContent||""));if(!card)return;card.querySelectorAll("p").forEach(n=>{if(n.textContent?.includes("Les Awards"))n.textContent="🏆 Les Trophées";if(n.textContent?.includes("participe aux Awards"))n.textContent="Ajoute ta photo pour participer aux Trophées !";if(n.textContent?.includes("votes par catégorie"))n.style.display="none"});card.querySelectorAll("span").forEach(n=>{if(["👗 Meilleure tenue","💇 Meilleure coiffure","😂 Plus drôle","📸 Meilleure pose"].includes((n.textContent||"").trim()))n.style.display="none"});let h=card.querySelector("[data-trophy-host='true']");if(!h){h=document.createElement("div");h.dataset.trophyHost="true";card.appendChild(h)}setPortalTarget(h)};locate();const t=setInterval(locate,500);return()=>clearInterval(t)},[]);
+ const voted=state?.voted_categories||[],remaining=state?.reveal_at?Math.max(0,new Date(state.reveal_at).getTime()-(now+serverOffset)):null;
+ const countdown=useMemo(()=>{if(remaining==null)return null;const x=Math.ceil(remaining/1000),h=Math.floor(x/3600),m=Math.floor((x%3600)/60),s=x%60;return[h,m,s].map(n=>String(n).padStart(2,"0")).join(":")},[remaining]);
+ async function vote(){if(!category||!selected)return;try{await rpc("vote",{category:category.id,look:selected});setStatus("Bravo, ton vote est enregistré ! 🎉");setSelected(null);setCategory(null)}catch(e){setStatus(e.message||"Vote impossible.")}}
+ function nextVoter(){const t=newToken();sessionStorage.setItem(`trophy-voter-${slug}`,t);setVoter(t);setCategory(null);setSelected(null);setStatus("À toi de voter ! 👋")}
+ if(!portalTarget)return null;if(!state)return createPortal(<p style={{textAlign:"center"}}>{status||"Chargement…"}</p>,portalTarget);
+ const results=state.results||[],current=results[revealIndex],allVoted=(state.categories||[]).length>0&&voted.length>=(state.categories||[]).length;
+ const content=<section style={S.wrap}>
+ {!state.closed&&<>{!state.reveal_at&&<div style={S.soft}><div style={S.big}>📸</div><strong>Participe aux Trophées !</strong><p>Ajoute ton prénom et ta photo pour tenter de gagner un Trophée 🏆</p><small>Les votes ouvriront plus tard.</small></div>}{state.reveal_at&&remaining>0&&<><div style={S.soft}><div style={S.big}>🏆</div><strong>À vous de voter !</strong><div style={S.clock}>{countdown}</div><small>avant la découverte des Trophées</small></div><p>Choisis un trophée :</p><div style={S.categories}>{(state.categories||[]).map(c=><button key={c.id} disabled={voted.includes(c.id)} onClick={()=>{setCategory(c);setSelected(null);setStatus("")}} style={{...S.category,opacity:voted.includes(c.id)?.48:1}}>{c.label}{voted.includes(c.id)?" ✓":""}</button>)}</div>{category&&<div style={S.voteBox}><h3>{category.label}</h3><p>Touche ta photo préférée 👇</p><div style={S.grid}>{looks.map(l=><button key={l.id} onClick={()=>setSelected(l.id)} style={{...S.photoButton,border:selected===l.id?"4px solid #d98faa":"2px solid #f1d8e2"}}><img src={l.photo_url} alt={l.name||"Participant"} style={S.photo}/><span style={S.name}>{l.name||"Participant"}</span>{selected===l.id&&<span style={S.check}>✓</span>}</button>)}</div><button disabled={!selected} onClick={vote} style={{...S.vote,opacity:selected?1:.45}}>Je vote 🏆</button></div>}{allVoted&&<div style={S.nextBox}><strong>Merci pour tes votes ! 💗</strong><button onClick={nextVoter} style={S.next}>👤 Au suivant !</button></div>}</>}</>}
+ {state.closed&&!revealing&&!finished&&<div style={S.soft}><div style={S.big}>🎁</div><strong>Les Trophées sont prêts !</strong><button onClick={()=>{setRevealIndex(0);setRevealing(true)}} style={S.discover}>Découvrir les gagnants 🏆</button></div>}
+ {state.closed&&revealing&&current&&!finished&&<div style={S.reveal} key={current.id}><style>{`@keyframes trophyFall{0%{transform:translateY(-70px) rotate(0);opacity:0}15%{opacity:1}100%{transform:translateY(360px) rotate(420deg);opacity:0}} @keyframes trophyPop{0%{transform:scale(.75);opacity:0}100%{transform:scale(1);opacity:1}}`}</style><div style={S.confettiLayer}>{confetti.map(x=><span key={x.id} style={{...S.piece,left:x.left,animationDelay:x.delay}}>{x.char}</span>)}</div><div style={S.pop}><h2>{current.label}</h2>{(current.winners||[]).length?<div style={S.winners}>{current.winners.map(w=><div key={w.id} style={S.winner}><img src={w.photo_url} alt={w.name} style={S.winnerPhoto}/><strong>{w.name}</strong></div>)}</div>:<p>Aucun vote pour ce trophée.</p>}{(current.winners||[]).length>1&&<p>Ex æquo 🏆</p>}{revealIndex<results.length-1?<button onClick={()=>setRevealIndex(i=>i+1)} style={S.discover}>Découvrir le trophée suivant 🎁</button>:<button onClick={()=>{setRevealing(false);setFinished(true)}} style={S.discover}>Voir tous les gagnants 🏆</button>}</div></div>}
+ {state.closed&&finished&&<div style={S.compact}><strong>🏆 Les gagnants</strong><div style={S.compactGrid}>{results.map(r=><div key={r.id} style={S.resultRow}><span>{r.label}</span><div style={S.people}>{(r.winners||[]).length?(r.winners||[]).map(w=><span key={w.id} style={S.person}>{w.photo_url&&<img src={w.photo_url} alt="" style={S.thumb}/>}<b>{w.name}</b></span>):<small>—</small>}</div></div>)}</div></div>}
+ {status&&<p style={S.status}>{status}</p>}</section>;
+ return createPortal(content,portalTarget)
 }
 
-const S={wrap:{margin:"18px 0 0",padding:"16px 0 0",borderTop:"1px solid rgba(80,48,63,.15)",textAlign:"center",color:"#30242a"},intro:{padding:"18px",borderRadius:22,background:"#fff8f2"},big:{fontSize:58},small:{fontSize:13,opacity:.7},categories:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10,margin:"14px 0"},category:{border:0,borderRadius:18,padding:"16px 10px",fontWeight:900,fontSize:15,cursor:"pointer",background:"#fff"},voteBox:{marginTop:16},grid:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:12,margin:"14px 0"},photoButton:{position:"relative",padding:0,border:0,borderRadius:18,overflow:"hidden",background:"#fff"},photo:{display:"block",width:"100%",aspectRatio:"1 / 1",objectFit:"cover"},name:{display:"block",padding:8,fontWeight:900},check:{position:"absolute",top:8,right:8,width:32,height:32,borderRadius:99,background:"#d4a72c",color:"white",fontWeight:900,lineHeight:"32px"},vote:{border:0,borderRadius:999,padding:"15px 28px",background:"#30242a",color:"white",fontWeight:900,fontSize:18},egg:{padding:20,borderRadius:24,background:"linear-gradient(145deg,#fff8dc,#f4e3a4)"},clock:{fontSize:"clamp(2rem,8vw,4rem)",fontWeight:900,margin:6},discover:{display:"block",margin:"14px auto 0",border:0,borderRadius:999,padding:"14px 22px",background:"#b88a22",color:"white",fontWeight:900,fontSize:17},reveal:{padding:22,borderRadius:24,background:"#fff8dc"},confetti:{fontSize:24},winners:{display:"flex",gap:14,justifyContent:"center",flexWrap:"wrap"},winner:{display:"grid",gap:8,fontSize:22},winnerPhoto:{width:190,height:190,objectFit:"cover",borderRadius:24},status:{fontWeight:900,marginTop:12}};
+const S={wrap:{margin:"18px 0 0",padding:"16px 0 0",borderTop:"1px solid #f1d8e2",textAlign:"center",color:"#4b3540"},soft:{padding:20,borderRadius:24,background:"linear-gradient(145deg,#fff8fb,#fbe8ef)"},big:{fontSize:58},clock:{fontSize:"clamp(2rem,8vw,4rem)",fontWeight:900,margin:6,color:"#b96f8c"},categories:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:10,margin:"14px 0"},category:{border:"1px solid #f1d8e2",borderRadius:18,padding:"16px 10px",fontWeight:900,fontSize:15,cursor:"pointer",background:"#fff5f8",color:"#5b3c49"},voteBox:{marginTop:16},grid:{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:12,margin:"14px 0"},photoButton:{position:"relative",padding:0,borderRadius:18,overflow:"hidden",background:"#fff",color:"#4b3540"},photo:{display:"block",width:"100%",aspectRatio:"1 / 1",objectFit:"cover"},name:{display:"block",padding:8,fontWeight:900},check:{position:"absolute",top:8,right:8,width:32,height:32,borderRadius:99,background:"#d98faa",color:"#fff",fontWeight:900,lineHeight:"32px"},vote:{border:0,borderRadius:999,padding:"15px 28px",background:"#c77f9a",color:"#fff",fontWeight:900,fontSize:18},nextBox:{marginTop:16,padding:16,borderRadius:20,background:"#fff2f6"},next:{display:"block",margin:"12px auto 0",border:0,borderRadius:999,padding:"14px 25px",background:"#c77f9a",color:"#fff",fontWeight:900,fontSize:18},discover:{display:"block",margin:"14px auto 0",border:0,borderRadius:999,padding:"14px 22px",background:"#c77f9a",color:"#fff",fontWeight:900,fontSize:17},reveal:{position:"relative",overflow:"hidden",minHeight:360,padding:22,borderRadius:24,background:"linear-gradient(145deg,#fff7fa,#f9e1ea)"},confettiLayer:{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"},piece:{position:"absolute",top:-35,fontSize:22,animation:"trophyFall 2.6s ease-in forwards"},pop:{position:"relative",zIndex:2,animation:"trophyPop .45s ease-out"},winners:{display:"flex",gap:14,justifyContent:"center",flexWrap:"wrap"},winner:{display:"grid",gap:8,fontSize:22},winnerPhoto:{width:190,height:190,objectFit:"cover",borderRadius:24,border:"4px solid #f2cbd9"},compact:{padding:"14px 16px",borderRadius:20,background:"#fff7fa",textAlign:"left"},compactGrid:{display:"grid",gap:8,marginTop:10},resultRow:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"7px 0",borderBottom:"1px solid #f3dce4",fontSize:13},people:{display:"flex",gap:7,flexWrap:"wrap",justifyContent:"flex-end"},person:{display:"inline-flex",alignItems:"center",gap:5,fontSize:13},thumb:{width:30,height:30,borderRadius:99,objectFit:"cover"},status:{fontWeight:900,marginTop:12,color:"#a85f7c"}};

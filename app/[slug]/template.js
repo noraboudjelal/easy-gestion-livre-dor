@@ -60,32 +60,34 @@ export default function PublicEventTemplate({ children }) {
       card.style.setProperty("height", "7cm", "important");
       card.style.setProperty("min-height", "7cm", "important");
       card.style.setProperty("max-height", "7cm", "important");
-      card.style.setProperty("padding-top", "12px", "important");
-      card.style.setProperty("padding-bottom", "8px", "important");
-      card.style.setProperty("display", "grid", "important");
-      card.style.setProperty("grid-template-rows", "1fr auto auto", "important");
-      card.style.setProperty("row-gap", "7px", "important");
+      card.style.setProperty("padding", "0", "important");
+      card.style.setProperty("display", "block", "important");
+      card.style.setProperty("position", "relative", "important");
       card.style.setProperty("overflow", "hidden", "important");
 
       const header = card.querySelector(".event-header");
       const nav = card.querySelector(".event-nav");
       if (header) {
-        header.style.setProperty("grid-row", "2", "important");
-        header.style.setProperty("margin", "0 auto", "important");
-        header.style.setProperty("padding", "0", "important");
+        header.style.setProperty("position", "absolute", "important");
+        header.style.setProperty("top", "50%", "important");
+        header.style.setProperty("left", "50%", "important");
+        header.style.setProperty("transform", "translate(-50%,-50%)", "important");
+        header.style.setProperty("margin", "0", "important");
+        header.style.setProperty("padding", "0 16px", "important");
         header.style.setProperty("width", "100%", "important");
         header.style.setProperty("max-width", "100%", "important");
         header.style.setProperty("box-sizing", "border-box", "important");
         header.style.setProperty("text-align", "center", "important");
-        header.style.setProperty("align-items", "center", "important");
-        header.style.setProperty("justify-items", "center", "important");
         header.style.setProperty("min-width", "0", "important");
+        header.style.setProperty("z-index", "2", "important");
       }
       if (nav) {
-        nav.style.setProperty("grid-row", "3", "important");
-        nav.style.setProperty("align-self", "end", "important");
-        nav.style.setProperty("min-width", "0", "important");
-        nav.style.setProperty("max-width", "100%", "important");
+        nav.style.setProperty("position", "absolute", "important");
+        nav.style.setProperty("left", "16px", "important");
+        nav.style.setProperty("bottom", "10px", "important");
+        nav.style.setProperty("margin", "0", "important");
+        nav.style.setProperty("z-index", "3", "important");
+        nav.style.setProperty("max-width", "calc(100% - 32px)", "important");
       }
 
       const context = card.querySelector(".event-title-context");
@@ -98,9 +100,8 @@ export default function PublicEventTemplate({ children }) {
         title.style.setProperty("white-space", "normal", "important");
         title.style.setProperty("overflow-wrap", "anywhere", "important");
         title.style.setProperty("display", "block", "important");
-        title.style.setProperty("position", "relative", "important");
-        title.style.setProperty("left", "50%", "important");
-        title.style.setProperty("transform", "translateX(-50%)", "important");
+        title.style.setProperty("position", "static", "important");
+        title.style.setProperty("transform", "none", "important");
         title.style.setProperty("width", "100%", "important");
         title.style.setProperty("max-width", "100%", "important");
         title.style.setProperty("margin", "0", "important");

@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import IdleCover from "../le-fil/[slug]/IdleCover";
 import { PublicEventCoverContext } from "../../lib/publicEventCover";
 
 export default function PublicEventTemplate({ children }) {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params?.slug;
+  const openedFromAdmin = searchParams?.get("from") === "admin";
   const [cover, setCover] = useState("");
   const [eventTitle, setEventTitle] = useState("");
 
@@ -51,11 +53,7 @@ export default function PublicEventTemplate({ children }) {
       if (!card) return false;
       const mobile = window.innerWidth <= 600;
 
-      card.style.setProperty(
-        "background-image",
-        `linear-gradient(180deg,rgba(15,20,30,.08) 18%,rgba(15,20,30,.62) 100%),url("${cover}")`,
-        "important"
-      );
+      card.style.setProperty("background-image", `linear-gradient(180deg,rgba(15,20,30,.08) 18%,rgba(15,20,30,.62) 100%),url("${cover}")`, "important");
       card.style.setProperty("background-size", "cover", "important");
       card.style.setProperty("background-position", "center", "important");
       card.style.setProperty("background-repeat", "no-repeat", "important");
@@ -85,8 +83,6 @@ export default function PublicEventTemplate({ children }) {
       const context = card.querySelector(".event-title-context");
       const title = card.querySelector(".event-title-names");
       const date = card.querySelector(".event-date");
-
-      // React renders the full editable title in the large title element.
       if (context) context.style.setProperty("display", "none", "important");
       if (title) {
         title.style.setProperty("font-size", mobile ? "clamp(2.75rem, 12vw, 4.75rem)" : "clamp(4.5rem, 8vw, 6.75rem)", "important");
@@ -95,9 +91,7 @@ export default function PublicEventTemplate({ children }) {
         title.style.setProperty("overflow-wrap", "anywhere", "important");
         title.style.setProperty("max-width", "100%", "important");
       }
-      if (date) {
-        date.style.setProperty("font-size", mobile ? ".95rem" : "1.1rem", "important");
-      }
+      if (date) date.style.setProperty("font-size", mobile ? ".95rem" : "1.1rem", "important");
 
       card.querySelectorAll(".event-title-context,.event-title-names,.event-date,.lehnova-welcome-message").forEach((node) => {
         node.style.setProperty("color", "#fff", "important");
@@ -121,5 +115,15 @@ export default function PublicEventTemplate({ children }) {
     };
   }, [cover, eventTitle]);
 
-  return <PublicEventCoverContext.Provider value={{ cover, eventTitle }}><IdleCover />{children}</PublicEventCoverContext.Provider>;
+  return (
+    <PublicEventCoverContext.Provider value={{ cover, eventTitle }}>
+      <IdleCover />
+      {openedFromAdmin && (
+        <a href="/admin" style={{ position: "fixed", top: 10, left: 10, zIndex: 1000001, padding: "8px 12px", borderRadius: 999, background: "rgba(20,20,20,.72)", color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700, backdropFilter: "blur(6px)" }}>
+          ← Admin
+        </a>
+      )}
+      {children}
+    </PublicEventCoverContext.Provider>
+  );
 }

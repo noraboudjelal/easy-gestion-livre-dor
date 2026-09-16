@@ -1,0 +1,32 @@
+.event-shell .fun-card {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(12px);
+}
+
+.event-shell .fun-card > p:first-child {
+  font-family: 'Libre Baskerville', Georgia, serif !important;
+  font-style: italic !important;
+  font-size: 1.55rem !important;
+  line-height: 1.2 !important;
+  text-shadow: none !important;
+  color: #38242e !important;
+}
+
+.event-shell .fun-card > p:nth-child(2) {
+  font-family: 'DM Sans', Inter, sans-serif !important;
+  color: #6b5360 !important;
+}
+
+.event-shell .fun-card .fun-spin-btn {
+  border-radius: 13px !important;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .event-shell .fun-card {
+    backdrop-filter: blur(12px);
+  }
+}

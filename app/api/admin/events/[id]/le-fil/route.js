@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
   try {
     const supabase = getSupabaseAdmin();
     const [{ data: event, error: eventError }, { data: settings, error: settingsError }, { data: tables, error: tablesError }] = await Promise.all([
-      supabase.from("events").select("id, client, event_title, event_type, event_date, slug, playlist_enabled").eq("id", params.id).single(),
+      supabase.from("events").select("id, client, event_title, event_type, event_date, slug, playlist_enabled, wheel_enabled, best_outfit_enabled").eq("id", params.id).single(),
       supabase.from("event_fil_settings").select("welcome_message,cover_image_url").eq("event_id", params.id).maybeSingle(),
       supabase.from("event_table_cards").select("*").eq("event_id", params.id).order("position").order("created_at"),
     ]);
@@ -41,6 +41,15 @@ export async function PATCH(request, { params }) {
         .eq("id", params.id).select("idle_cover_text").single();
       if (error) throw error;
       return NextResponse.json({ idle_cover_text: data.idle_cover_text || "" });
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "wheel_enabled") || Object.prototype.hasOwnProperty.call(body, "best_outfit_enabled")) {
+      const updates = {};
+      if (Object.prototype.hasOwnProperty.call(body, "wheel_enabled")) updates.wheel_enabled = body.wheel_enabled === true;
+      if (Object.prototype.hasOwnProperty.call(body, "best_outfit_enabled")) updates.best_outfit_enabled = body.best_outfit_enabled === true;
+      const { data, error } = await supabase.from("events").update(updates).eq("id", params.id).select("wheel_enabled,best_outfit_enabled").single();
+      if (error) throw error;
+      return NextResponse.json(data);
     }
 
     let eventTitle;

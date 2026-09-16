@@ -11,6 +11,9 @@ export default function IpadCoverEditor({ event }) {
   const [savingTitle, setSavingTitle] = useState(false);
   const [status, setStatus] = useState("");
   const [titleStatus, setTitleStatus] = useState("");
+  const [wheelEnabled, setWheelEnabled] = useState(false);
+  const [bestOutfitEnabled, setBestOutfitEnabled] = useState(false);
+  const [featureStatus, setFeatureStatus] = useState("");
 
   useEffect(() => {
     fetch(`/api/admin/events/${event.id}/le-fil`, { cache: "no-store" })
@@ -18,9 +21,29 @@ export default function IpadCoverEditor({ event }) {
       .then((data) => {
         setCoverUrl(data.cover_image_url || "");
         setTitle(data.event?.event_title || event.event_title || "");
+        setWheelEnabled(!!data.event?.wheel_enabled);
+        setBestOutfitEnabled(!!data.event?.best_outfit_enabled);
       })
       .catch(() => {});
   }, [event.id, event.event_title]);
+
+  async function toggleFeature(field, value) {
+    setFeatureStatus("Enregistrement…");
+    try {
+      const response = await fetch(`/api/admin/events/${event.id}/le-fil`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Enregistrement impossible.");
+      if (field === "wheel_enabled") setWheelEnabled(!!data.wheel_enabled);
+      if (field === "best_outfit_enabled") setBestOutfitEnabled(!!data.best_outfit_enabled);
+      setFeatureStatus("Options enregistrées ✓");
+    } catch (error) {
+      setFeatureStatus(error.message || "Enregistrement impossible.");
+    }
+  }
 
   async function saveTitle(e) {
     e.preventDefault();
@@ -93,6 +116,25 @@ export default function IpadCoverEditor({ event }) {
           </a>
         </section>
       )}
+
+      <section id="animations-fil" className={styles.section}>
+        <div style={{ width: "100%" }}>
+          <p className={styles.kicker}>ANIMATIONS</p>
+          <h2>Options de l’événement</h2>
+          <p className={styles.help}>Activez seulement les animations que vous voulez proposer pour cet événement.</p>
+          <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 16px", border: "1px solid #e4d7c2", borderRadius: 14, background: "white" }}>
+              <span><strong>🎡 Roue des défis</strong><br/><small>Les invités ajoutent leurs prénoms puis lancent la roue.</small></span>
+              <input type="checkbox" checked={wheelEnabled} onChange={(e) => toggleFeature("wheel_enabled", e.target.checked)} style={{ width: 22, height: 22 }} />
+            </label>
+            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 16px", border: "1px solid #e4d7c2", borderRadius: 14, background: "white" }}>
+              <span><strong>🏆 Meilleure tenue</strong><br/><small>Les invités publient leur tenue et votent pour leur préférée.</small></span>
+              <input type="checkbox" checked={bestOutfitEnabled} onChange={(e) => toggleFeature("best_outfit_enabled", e.target.checked)} style={{ width: 22, height: 22 }} />
+            </label>
+          </div>
+          {featureStatus && <p className={styles.help} style={{ marginTop: 10 }}>{featureStatus}</p>}
+        </div>
+      </section>
 
       <section id="titre-fil" className={styles.section}>
         <div style={{ width: "100%" }}>

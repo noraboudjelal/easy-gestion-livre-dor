@@ -6,19 +6,24 @@ import { supabase } from "../../lib/supabaseClient";
 
 const THEMES = {
   "Mariage": {
-    ink: "#F5F0E6",
-    surface: "#FFFDF9",
-    surface2: "#F8F2E6",
-    accent: "#C89A3C",
-    accentSoft: "rgba(200,154,60,0.18)",
-    accentText: "#2D241E",
-    ivory: "#2D241E",
-    muted: "#705D45",
-    borderColor: "#D8B57A",
-    avatarPalette: ["#C89A3C", "#6E5B8C", "#8C6E4E", "#8A7A9C"],
-    pageGradient: "linear-gradient(135deg, #FFFDF9 0%, #F3E7D3 58%, #E9D3AA 100%)",
-    headerGradient: "linear-gradient(120deg, #FFFDF9 0%, #F3E7D3 100%)",
-    cardGradient: "linear-gradient(145deg, #E9D3AA 0%, #F3E7D3 48%, #FFFDF9 100%)",
+    ink: "#FBF8F3",
+    surface: "#FFFDFC",
+    surface2: "#FBF8F3",
+    accent: "#C6A46A",
+    accentSoft: "rgba(198,164,106,0.18)",
+    accentText: "#493F3B",
+    ivory: "#493F3B",
+    muted: "#766A64",
+    textAccent: "#766A64",
+    actionBackground: "#493F3B",
+    actionText: "#FFFDFC",
+    button: "#493F3B",
+    borderColor: "#C6A46A",
+    avatarPalette: ["#493F3B", "#766A64", "#887A73", "#9A827B"],
+    pageGradient: "linear-gradient(135deg, #FBF8F3 0%, #FBF8F3 55%, #F2E5E1 100%)",
+    contentGradient: "linear-gradient(160deg, #FBF8F3 0%, #FBF8F3 55%, #F2E5E1 100%)",
+    headerGradient: "linear-gradient(120deg, #FBF8F3 0%, #FBF8F3 70%, #F2E5E1 100%)",
+    cardGradient: "#FFFDFC",
   },
   "Anniversaire": {
     ink: "#241220",
@@ -388,7 +393,7 @@ function EggReveal({ revealAt, revealGender, theme }) {
         <div>
           <p style={{ fontSize: "0.9rem", color: theme.muted, marginBottom: "18px" }}>
             Révélation dans{" "}
-            <strong style={{ color: theme.accent, fontVariantNumeric: "tabular-nums" }}>
+            <strong style={{ color: theme.textAccent || theme.accent, fontVariantNumeric: "tabular-nums" }}>
               {hh}:{mm}:{ss}
             </strong>
           </p>
@@ -411,7 +416,7 @@ function EggReveal({ revealAt, revealGender, theme }) {
                 left: "50%",
                 transform: "translateX(-50%)",
                 fontSize: "0.82rem",
-                color: theme.accent,
+                color: theme.textAccent || theme.accent,
                 opacity: showPatience ? 1 : 0,
                 transition: "opacity 0.25s ease",
                 whiteSpace: "nowrap",
@@ -544,8 +549,8 @@ function PlaylistRequest({ eventId, theme }) {
         disabled={sending || !songTitle.trim()}
         style={{
           width: "100%",
-          background: theme.accent,
-          color: theme.ink,
+          background: theme.actionBackground || theme.accent,
+          color: theme.actionText || theme.ink,
           border: "none",
           borderRadius: "8px",
           padding: "11px",
@@ -1890,14 +1895,14 @@ export default function GuestbookPage() {
         .event-section { scroll-margin-top: 122px; position: relative; background: ${theme.cardGradient || `linear-gradient(160deg, ${theme.surface2}, ${theme.surface})`} !important; border: 1px solid ${theme.borderColor || theme.accent} !important; border-radius: 26px !important; padding: 28px 24px 24px !important; margin: 0 -9px 18px !important; box-shadow: 0 8px 22px rgba(0,0,0,.08) !important; overflow: hidden; }
         .event-section::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: ${theme.accent}; opacity: .55; }
         .event-section-title { margin: 0; text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-weight: 700; font-size: clamp(1.75rem, 7vw, 2.2rem); line-height: 1.2; letter-spacing: -.035em; color: ${theme.ivory}; }
-        .event-section-subtitle { text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-size: .95rem; color: ${theme.accent}; margin: 7px 0 19px; }
+        .event-section-subtitle { text-align: center; font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; font-size: .95rem; color: ${theme.textAccent || theme.accent}; margin: 7px 0 19px; }
         .event-section input, .event-section textarea { border-radius: 13px !important; background: ${theme.surface} !important; color: ${theme.ivory} !important; border-color: ${theme.borderColor || theme.muted} !important; }
         .event-section button { border-radius: 13px !important; }
         .feed-section .ld-entry { background: ${theme.surface} !important; border-color: ${theme.borderColor || theme.muted} !important; border-radius: 18px !important; }
         .fund-section { text-align: center; }
         .fund-section a { display: inline-flex !important; width: auto !important; margin: 0 auto !important; }
         .word-cloud { min-height: 160px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 9px 14px; padding: 18px; border-radius: 17px; background: ${theme.surface2}; border: 1px solid ${theme.borderColor || theme.accentSoft}; }
-        .word-cloud span { font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; color: ${theme.accent}; }
+        .word-cloud span { font-family: 'Libre Baskerville', Georgia, serif; font-style: italic; color: ${theme.textAccent || theme.accent}; }
         @media (max-width: 599px) { .event-content { border-radius: 0 !important; padding-left: 18px !important; padding-right: 18px !important; } .event-header-card { margin-left: -18px !important; margin-right: -18px !important; padding-left: 18px !important; padding-right: 18px !important; } .event-title-names { font-size: clamp(.65rem, var(--event-title-size, 7.2vw), 1.85rem) !important; } .event-section { padding: 25px 16px 20px !important; } }
         .ld-entry { transition: transform 0.15s ease, background 0.15s ease; animation: ldFadeIn 0.5s ease both; }
         .ld-entry:hover { transform: translateY(-2px); background: ${theme.surface2}; }
@@ -2400,7 +2405,7 @@ export default function GuestbookPage() {
 
             {hasPostedLookToday ? (
               <div style={styles.lookPostedBox}>
-                <p style={{ margin: 0, fontSize: "0.85rem", color: theme.accent, fontWeight: 700 }}>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: theme.textAccent || theme.accent, fontWeight: 700 }}>
                   ✅ Tu as déjà posté ton look aujourd'hui
                 </p>
               </div>
@@ -2607,7 +2612,7 @@ export default function GuestbookPage() {
                       border: `1px solid ${theme.accentSoft}`,
                     }}
                   >
-                    <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.5rem", color: theme.accent, lineHeight: 1 }}>
+                    <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.5rem", color: theme.textAccent || theme.accent, lineHeight: 1 }}>
                       {dt.getDate()}
                     </div>
                     <div style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>
@@ -2626,7 +2631,7 @@ export default function GuestbookPage() {
             <button
               type="button"
               onClick={() => setShowNewDateForm((v) => !v)}
-              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.accent, width: "100%" }}
+              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.textAccent || theme.accent, width: "100%" }}
             >
               + Ajouter une date
             </button>
@@ -2655,7 +2660,7 @@ export default function GuestbookPage() {
             <button
               type="button"
               onClick={() => setShowNewPollForm((v) => !v)}
-              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.accent, width: "100%" }}
+              style={{ ...styles.button, background: "transparent", border: `1px solid ${theme.accent}`, color: theme.textAccent || theme.accent, width: "100%" }}
             >
               + Lancer un sondage
             </button>
@@ -2963,10 +2968,10 @@ function getStyles(t, isFun) {
   const headStyle = "italic";
   return {
     page: { minHeight: "100vh", background: t.pageGradient || t.ink, display: "flex", justifyContent: "center", padding: 0, fontFamily: "'DM Sans', Inter, system-ui, sans-serif", color: t.ivory },
-    content: { width: "100%", maxWidth: "760px", minHeight: "100vh", background: t.cardGradient || t.surface2, border: "none", borderRadius: 0, padding: "0 26px 52px", boxShadow: "0 20px 60px rgba(0,0,0,.16)" },
+    content: { width: "100%", maxWidth: "760px", minHeight: "100vh", background: t.contentGradient || t.cardGradient || t.surface2, border: "none", borderRadius: 0, padding: "0 26px 52px", boxShadow: "0 20px 60px rgba(0,0,0,.16)" },
     headerCard: { background: "none", padding: 0, boxShadow: "none" },
     header: { borderBottom: `1px solid ${t.accentSoft}`, paddingBottom: "26px", marginBottom: "28px", textAlign: "center" },
-    eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
+    eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", color: t.textAccent || t.accent, margin: "0 0 10px 0", fontWeight: 700, textTransform: "uppercase" },
     title: {
       fontFamily: headFont,
       fontStyle: headStyle,
@@ -3031,7 +3036,7 @@ function getStyles(t, isFun) {
       fontStyle: headStyle,
       fontWeight: 400,
       fontSize: "1.15rem",
-      color: t.accent,
+      color: t.textAccent || t.accent,
       margin: "6px 0 0",
     },
     input: { fontFamily: "'DM Sans', Inter, sans-serif", fontSize: "0.9rem", padding: "12px 14px", border: `1px solid ${t.borderColor || t.muted}`, borderRadius: "13px", background: t.surface, color: t.ivory },
@@ -3311,12 +3316,12 @@ function getStyles(t, isFun) {
       padding: "12px 14px",
     },
     giftName: { fontSize: "0.85rem", fontWeight: 600, color: t.ivory, margin: "0 0 2px" },
-    giftPrice: { fontSize: "0.72rem", color: t.accent, fontWeight: 700, marginRight: "8px" },
+    giftPrice: { fontSize: "0.72rem", color: t.textAccent || t.accent, fontWeight: 700, marginRight: "8px" },
     giftLink: { fontSize: "0.72rem", color: t.muted, textDecoration: "underline" },
     giftReserveBtn: {
       flex: "none",
-      background: t.accent,
-      color: t.accentText,
+      background: t.actionBackground || t.accent,
+      color: t.actionText || t.accentText,
       border: "none",
       borderRadius: "10px",
       padding: "9px 14px",
@@ -3355,7 +3360,7 @@ function getStyles(t, isFun) {
       border: "1px solid rgba(255,255,255,0.08)",
     },
     divider: { textAlign: "center", margin: "10px 0 20px 0", borderTop: "1px solid rgba(255,255,255,0.08)", position: "relative" },
-    dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
+    dividerText: { fontSize: "0.7rem", letterSpacing: "0.1em", color: t.textAccent || t.accent, background: t.surface, padding: "0 12px", position: "relative", top: "-9px" },
     dividerRow: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", margin: "10px 0 18px 0" },
     liveDot: { width: "7px", height: "7px", borderRadius: "50%", background: "#6FAE7F", flex: "none", animation: "ldBlink 1.6s infinite" },
     dividerLabel: { fontSize: "0.78rem", fontWeight: 700, color: t.ivory, fontFamily: headFont, fontStyle: headStyle },
@@ -3365,7 +3370,7 @@ function getStyles(t, isFun) {
     entry: { background: t.surface, border: `1px solid ${t.borderColor || t.muted}`, borderRadius: isFun ? "20px" : "14px", padding: "14px 16px", boxShadow: "0 12px 24px -12px rgba(0,0,0,0.2)" },
     entryHead: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" },
     entryAvatar: { width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.72rem", fontWeight: 700, color: t.ivory, flex: "none" },
-    entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.accent, flex: 1 },
+    entryName: { fontSize: "0.85rem", fontWeight: 700, color: t.textAccent || t.accent, flex: 1 },
     entryDate: { fontSize: "0.68rem", color: t.muted },
     entryPhoto: { width: "100%", maxHeight: "260px", objectFit: "cover", borderRadius: "10px", marginBottom: "10px" },
     entryAudio: { width: "100%", marginTop: "8px", height: "36px" },
@@ -3408,7 +3413,7 @@ function getStyles(t, isFun) {
       borderRadius: "50%",
       background: t.surface2,
       border: "1px solid rgba(255,255,255,0.1)",
-      color: t.accent,
+      color: t.textAccent || t.accent,
       fontSize: "1.1rem",
       fontWeight: 700,
       fontFamily: "Inter, sans-serif",
@@ -3423,7 +3428,7 @@ function getStyles(t, isFun) {
     },
     rsvpConfirmedTitle: { fontFamily: "'Instrument Serif', serif", fontStyle: "italic", fontSize: "1.2rem", color: t.ivory, margin: "0 0 4px" },
     rsvpConfirmedSub: { fontSize: "0.82rem", color: t.muted, margin: "0 0 14px" },
-    rsvpEditLink: { fontSize: "0.78rem", color: t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
+    rsvpEditLink: { fontSize: "0.78rem", color: t.textAccent || t.accent, textDecoration: "underline", background: "none", border: "none", fontFamily: "Inter, sans-serif" },
   };
 }
 

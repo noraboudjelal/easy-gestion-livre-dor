@@ -235,6 +235,7 @@ const THEMES = {
 };
 
 const WHEEL_COLORS = ["#FF6B6B", "#4ECDC4", "#FFD93D", "#A78BFA", "#FF9F45", "#6BCB77", "#FF6FB5", "#5EC8F2"];
+const AWARD_CATEGORIES = ["👗 Meilleure tenue", "💇 Meilleure coiffure", "😂 Plus drôle", "📸 Meilleure pose"];
 
 function randomRotation() {
   return +(Math.random() * 6 - 3).toFixed(2);
@@ -712,6 +713,8 @@ export default function GuestbookPage() {
   const [deletingLookId, setDeletingLookId] = useState(null);
   const [lightboxLookPhoto, setLightboxLookPhoto] = useState(null);
   const [hasPostedLookToday, setHasPostedLookToday] = useState(false);
+  const [awardParticipating, setAwardParticipating] = useState(false);
+  const [awardStatus, setAwardStatus] = useState("");
 
   const theme = THEMES[event?.event_type] || THEMES.Autre;
   const isReview = event?.event_type === "Vos avis";
@@ -765,6 +768,7 @@ export default function GuestbookPage() {
 
   const todaysLooks = dailyLooks.filter((l) => (l.created_at || "").slice(0, 10) === todayKey());
   const leaderLook = todaysLooks.length > 0 ? todaysLooks[0] : null;
+  const visibleLooks = isJournal ? todaysLooks : [...dailyLooks].sort((a, b) => (a.created_at || "").localeCompare(b.created_at || "") || a.id.localeCompare(b.id));
 
   const [rsvpName, setRsvpName] = useState("");
   const [rsvpAttending, setRsvpAttending] = useState(null);
@@ -1193,11 +1197,11 @@ export default function GuestbookPage() {
 
   // --- Look du jour : hydrate "déjà posté aujourd'hui" ---
   useEffect(() => {
-    if (event?.id && typeof window !== "undefined") {
+    if (isJournal && event?.id && typeof window !== "undefined") {
       const key = `look-posted-${event.id}-${todayKey()}`;
       if (window.localStorage.getItem(key) === "1") setHasPostedLookToday(true);
     }
-  }, [event?.id]);
+  }, [event?.id, isJournal]);
 
   async function handleAddWheelPlayer(e) {
     e.preventDefault();
@@ -1245,6 +1249,9 @@ export default function GuestbookPage() {
   }
 
   function renderWheelSlices() {
+    const wheelColors = Array.isArray(theme.avatarPalette) && theme.avatarPalette.length
+      ? [...theme.avatarPalette, theme.accent, theme.surface2].filter(Boolean)
+      : WHEEL_COLORS;
     const n = wheelPlayers.length;
     if (n === 0) return null;
     const cx = 100, cy = 100, r = 98;
@@ -1254,7 +1261,7 @@ export default function GuestbookPage() {
       const path = describeWheelSlice(cx, cy, r, startAngle, endAngle);
       const mid = (startAngle + endAngle) / 2;
       const pos = wheelPolarToCartesian(cx, cy, r * 0.62, mid);
-      const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+      const color = wheelColors[i % wheelColors.length];
       const label = p.length > 10 ? p.slice(0, 9) + "…" : p;
       return (
         <g key={i}>
@@ -1295,8 +1302,9 @@ export default function GuestbookPage() {
 
   async function handlePostLook(e) {
     e.preventDefault();
-    if (!lookPhoto || !event || !supabase) return;
+    if (!lookPhoto || !event || !supabase || postingLook || (!isJournal && !lookName.trim())) return;
     setPostingLook(true);
+    setAwardStatus("");
 
     const ext = lookPhoto.name.split(".").pop() || "jpg";
     const path = `${event.id}/looks/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -1305,6 +1313,12 @@ export default function GuestbookPage() {
     if (!uploadError) {
       const { data: pub } = supabase.storage.from("guestbook-photos").getPublicUrl(path);
       photoUrl = pub?.publicUrl || null;
+    }
+
+    if (!isJournal && !photoUrl) {
+      setPostingLook(false);
+      setAwardStatus("La photo n’a pas pu être envoyée. Réessayez.");
+      return;
     }
 
     const { data: insertedLook, error: insertError } = await supabase
@@ -1320,16 +1334,23 @@ export default function GuestbookPage() {
     setPostingLook(false);
     if (!insertError) {
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(`look-posted-${event.id}-${todayKey()}`, "1");
+        if (isJournal) window.localStorage.setItem(`look-posted-${event.id}-${todayKey()}`, "1");
         if (insertedLook?.id) {
           window.localStorage.setItem(`look-owned-${insertedLook.id}`, "1");
           setOwnedLookIds((prev) => ({ ...prev, [insertedLook.id]: true }));
         }
       }
-      setHasPostedLookToday(true);
+      if (isJournal) setHasPostedLookToday(true);
+      else {
+        setLookName("");
+        setAwardParticipating(false);
+        setAwardStatus("Participation enregistrée ! La personne suivante peut participer.");
+      }
       setLookPhoto(null);
       setLookPhotoPreview(null);
       loadAll();
+    } else if (!isJournal) {
+      setAwardStatus("La participation n’a pas pu être enregistrée. Réessayez.");
     }
   }
 
@@ -2398,10 +2419,18 @@ export default function GuestbookPage() {
 
         {(isJournal || event?.best_outfit_enabled) && (
           <div className="fun-card" style={styles.lookCard}>
-            <p style={styles.lookTitle}>{isJournal ? "✨ Look du Jour ✨" : "🏆 Meilleure tenue"}</p>
-            <p style={styles.lookSub}>{isJournal ? "Poste ta tenue et vote pour tes préférées !" : "Poste ta tenue et vote pour ta préférée !"}</p>
+            <p style={styles.lookTitle}>{isJournal ? "✨ Look du Jour ✨" : "🏆 Les Awards de la soirée"}</p>
+            <p style={styles.lookSub}>{isJournal ? "Poste ta tenue et vote pour tes préférées !" : "Ajoute ta photo et participe aux Awards !"}</p>
+            {!isJournal && <>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                {AWARD_CATEGORIES.map((category) => <span key={category} style={{ ...styles.lookItemName, background: "rgba(255,255,255,.94)", borderRadius: 16, padding: "6px 10px" }}>{category}</span>)}
+              </div>
+              <p style={styles.lookSub}>Les votes par catégorie ne sont pas encore ouverts.</p>
+              {!awardParticipating && <button type="button" onClick={() => { setAwardParticipating(true); setAwardStatus(""); }} style={styles.lookPostBtn}>Participer</button>}
+              {awardStatus && <p role="status" style={styles.lookSub}>{awardStatus}</p>}
+            </>}
 
-            {leaderLook && (
+            {isJournal && leaderLook && (
               <div style={styles.lookLeaderBanner}>
                 <span style={{ fontSize: "1.5rem" }}>👑</span>
                 <span>
@@ -2413,17 +2442,19 @@ export default function GuestbookPage() {
               </div>
             )}
 
-            {hasPostedLookToday ? (
+            {isJournal && hasPostedLookToday ? (
               <div style={styles.lookPostedBox}>
                 <p style={{ margin: 0, fontSize: "0.85rem", color: theme.textAccent || theme.accent, fontWeight: 700 }}>
                   ✅ Tu as déjà posté ton look aujourd'hui
                 </p>
               </div>
-            ) : (
+            ) : (isJournal || awardParticipating) && (
               <form onSubmit={handlePostLook} style={styles.form}>
                 <input
                   type="text"
                   placeholder="Ton prénom"
+                  aria-label="Ton prénom"
+                  required={!isJournal}
                   value={lookName}
                   onChange={(e) => setLookName(e.target.value)}
                   maxLength={40}
@@ -2438,24 +2469,24 @@ export default function GuestbookPage() {
                   </div>
                 ) : (
                   <label style={styles.photoLabel}>
-                    📸 Ajouter une photo de ta tenue
+                    {isJournal ? "📸 Ajouter une photo de ta tenue" : "📸 Prendre ou importer une photo"}
                     <input type="file" accept="image/*" onChange={handleLookPhotoChange} style={{ display: "none" }} />
                   </label>
                 )}
-                <button type="submit" className="fun-spin-btn" disabled={postingLook || !lookPhoto} style={styles.lookPostBtn}>
-                  {postingLook ? "Envoi…" : "📸 Je poste ma tenue"}
+                <button type="submit" className="fun-spin-btn" disabled={postingLook || !lookPhoto || (!isJournal && !lookName.trim())} style={styles.lookPostBtn}>
+                  {postingLook ? "Envoi…" : isJournal ? "📸 Je poste ma tenue" : "Valider ma participation"}
                 </button>
               </form>
             )}
 
-            {todaysLooks.length > 0 && (
+            {visibleLooks.length > 0 && (
               <div style={styles.lookGrid}>
-                {todaysLooks.map((l, i) => {
+                {visibleLooks.map((l, i) => {
                   const voted = !!votedLookIds[l.id];
                   const owned = !!ownedLookIds[l.id];
                   return (
-                    <div key={l.id} style={{ ...styles.lookItem, ...(i === 0 ? styles.lookItemTop : {}) }}>
-                      {i === 0 && <span style={styles.lookCrown}>👑</span>}
+                    <div key={l.id} style={{ ...styles.lookItem, ...(isJournal && i === 0 ? styles.lookItemTop : {}) }}>
+                      {isJournal && i === 0 && <span style={styles.lookCrown}>👑</span>}
                       {owned && (
                         <button
                           type="button"
@@ -2481,7 +2512,7 @@ export default function GuestbookPage() {
                       )}
                       <div style={styles.lookItemInfo}>
                         <p style={styles.lookItemName}>{l.name}</p>
-                        <div style={styles.lookVoteRow}>
+                        {isJournal && <div style={styles.lookVoteRow}>
                           <span style={{ fontSize: "0.7rem", color: theme.muted }}>
                             {l.votes || 0} vote{(l.votes || 0) > 1 ? "s" : ""}
                           </span>
@@ -2493,7 +2524,7 @@ export default function GuestbookPage() {
                           >
                             {voted ? "✓" : "🤍"}
                           </button>
-                        </div>
+                        </div>}
                       </div>
                     </div>
                   );
@@ -3179,7 +3210,7 @@ function getStyles(t, isFun) {
       height: 0,
       borderLeft: "11px solid transparent",
       borderRight: "11px solid transparent",
-      borderTop: "18px solid #FFD93D",
+      borderTop: `18px solid ${t.accent}`,
       zIndex: 3,
       filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))",
     },
@@ -3191,8 +3222,8 @@ function getStyles(t, isFun) {
       width: "46px",
       height: "46px",
       borderRadius: "50%",
-      background: "#fff",
-      border: "3px solid #FFD93D",
+      background: t.surface2,
+      border: `3px solid ${t.accent}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -3207,12 +3238,12 @@ function getStyles(t, isFun) {
       fontWeight: 700,
       fontSize: "1rem",
       padding: "15px 20px",
-      background: "#FFD93D",
-      color: "#241a15",
+      background: t.accent,
+      color: t.accentText,
       border: "none",
       borderRadius: "999px",
       cursor: "pointer",
-      boxShadow: "0 6px 0 #C9A22E, 0 10px 18px -6px rgba(0,0,0,0.35)",
+      boxShadow: `0 6px 0 ${t.surface2}, 0 10px 18px -6px rgba(0,0,0,0.35)`,
       transition: "transform 0.12s ease",
       letterSpacing: "0.02em",
     },

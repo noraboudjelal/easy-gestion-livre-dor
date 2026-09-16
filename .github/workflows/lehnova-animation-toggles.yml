@@ -1,0 +1,65 @@
+name: Add optional event animations
+
+on:
+  push:
+    paths:
+      - '.github/workflows/lehnova-animation-toggles.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Add animation toggles
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Public Le Fil: use per-event flags, while preserving Journal behavior.
+          p = Path('app/[slug]/page.js')
+          s = p.read_text()
+          s = s.replace('{(isJournal || event?.event_type === "Anniversaire") && (\n          <div className="fun-card" style={styles.wheelCard}>', '{(isJournal || event?.wheel_enabled) && (\n          <div className="fun-card" style={styles.wheelCard}>', 1)
+          s = s.replace('{(isJournal || event?.event_type === "Anniversaire") && (\n          <div className="fun-card" style={styles.lookCard}>', '{(isJournal || event?.best_outfit_enabled) && (\n          <div className="fun-card" style={styles.lookCard}>', 1)
+          s = s.replace('<p style={styles.lookTitle}>{event?.event_type === "Anniversaire" ? "🏆 Meilleure tenue" : "✨ Look du Jour ✨"}</p>', '<p style={styles.lookTitle}>{isJournal ? "✨ Look du Jour ✨" : "🏆 Meilleure tenue"}</p>', 1)
+          s = s.replace('<p style={styles.lookSub}>{event?.event_type === "Anniversaire" ? "Poste ta tenue et vote pour ta préférée !" : "Poste ta tenue et vote pour tes préférées !"}</p>', '<p style={styles.lookSub}>{isJournal ? "Poste ta tenue et vote pour tes préférées !" : "Poste ta tenue et vote pour ta préférée !"}</p>', 1)
+          s = s.replace('<span style={styles.lookLeaderLabel}>{event?.event_type === "Anniversaire" ? "La tenue préférée" : "Le boss du jour"}</span>', '<span style={styles.lookLeaderLabel}>{isJournal ? "Le boss du jour" : "La tenue préférée"}</span>', 1)
+          p.write_text(s)
+
+          # Admin API: expose and save the two flags on events.
+          p = Path('app/api/admin/events/[id]/le-fil/route.js')
+          s = p.read_text()
+          s = s.replace('id, client, event_title, event_type, event_date, slug, playlist_enabled', 'id, client, event_title, event_type, event_date, slug, playlist_enabled, wheel_enabled, best_outfit_enabled', 1)
+          marker = '    let eventTitle;\n'
+          insert = '''    if (Object.prototype.hasOwnProperty.call(body, "wheel_enabled") || Object.prototype.hasOwnProperty.call(body, "best_outfit_enabled")) {\n      const updates = {};\n      if (Object.prototype.hasOwnProperty.call(body, "wheel_enabled")) updates.wheel_enabled = body.wheel_enabled === true;\n      if (Object.prototype.hasOwnProperty.call(body, "best_outfit_enabled")) updates.best_outfit_enabled = body.best_outfit_enabled === true;\n      const { data, error } = await supabase.from("events").update(updates).eq("id", params.id).select("wheel_enabled,best_outfit_enabled").single();\n      if (error) throw error;\n      return NextResponse.json(data);\n    }\n\n'''
+          if insert not in s:
+              s = s.replace(marker, insert + marker, 1)
+          p.write_text(s)
+
+          # Admin editor: controls available on every event.
+          p = Path('app/admin/le-fil/[id]/IpadCoverEditor.js')
+          s = p.read_text()
+          s = s.replace('  const [titleStatus, setTitleStatus] = useState("");', '  const [titleStatus, setTitleStatus] = useState("");\n  const [wheelEnabled, setWheelEnabled] = useState(false);\n  const [bestOutfitEnabled, setBestOutfitEnabled] = useState(false);\n  const [featureStatus, setFeatureStatus] = useState("");', 1)
+          s = s.replace('        setTitle(data.event?.event_title || event.event_title || "");', '        setTitle(data.event?.event_title || event.event_title || "");\n        setWheelEnabled(!!data.event?.wheel_enabled);\n        setBestOutfitEnabled(!!data.event?.best_outfit_enabled);', 1)
+          marker = '  async function saveTitle(e) {'
+          fn = '''  async function toggleFeature(field, value) {\n    setFeatureStatus("Enregistrement…");\n    try {\n      const response = await fetch(`/api/admin/events/${event.id}/le-fil`, {\n        method: "PATCH",\n        headers: { "Content-Type": "application/json" },\n        body: JSON.stringify({ [field]: value }),\n      });\n      const data = await response.json();\n      if (!response.ok) throw new Error(data.error || "Enregistrement impossible.");\n      if (field === "wheel_enabled") setWheelEnabled(!!data.wheel_enabled);\n      if (field === "best_outfit_enabled") setBestOutfitEnabled(!!data.best_outfit_enabled);\n      setFeatureStatus("Options enregistrées ✓");\n    } catch (error) {\n      setFeatureStatus(error.message || "Enregistrement impossible.");\n    }\n  }\n\n'''
+          if fn not in s:
+              s = s.replace(marker, fn + marker, 1)
+          marker = '      <section id="titre-fil" className={styles.section}>'
+          ui = '''      <section id="animations-fil" className={styles.section}>\n        <div style={{ width: "100%" }}>\n          <p className={styles.kicker}>ANIMATIONS</p>\n          <h2>Options de l’événement</h2>\n          <p className={styles.help}>Activez seulement les animations que vous voulez proposer pour cet événement.</p>\n          <div style={{ display: "grid", gap: 12, marginTop: 14 }}>\n            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 16px", border: "1px solid #e4d7c2", borderRadius: 14, background: "white" }}>\n              <span><strong>🎡 Roue des défis</strong><br/><small>Les invités ajoutent leurs prénoms puis lancent la roue.</small></span>\n              <input type="checkbox" checked={wheelEnabled} onChange={(e) => toggleFeature("wheel_enabled", e.target.checked)} style={{ width: 22, height: 22 }} />\n            </label>\n            <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 16px", border: "1px solid #e4d7c2", borderRadius: 14, background: "white" }}>\n              <span><strong>🏆 Meilleure tenue</strong><br/><small>Les invités publient leur tenue et votent pour leur préférée.</small></span>\n              <input type="checkbox" checked={bestOutfitEnabled} onChange={(e) => toggleFeature("best_outfit_enabled", e.target.checked)} style={{ width: 22, height: 22 }} />\n            </label>\n          </div>\n          {featureStatus && <p className={styles.help} style={{ marginTop: 10 }}>{featureStatus}</p>}\n        </div>\n      </section>\n\n'''
+          if ui not in s:
+              s = s.replace(marker, ui + marker, 1)
+          p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "Lehnova Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add 'app/[slug]/page.js' 'app/api/admin/events/[id]/le-fil/route.js' 'app/admin/le-fil/[id]/IpadCoverEditor.js'
+          git diff --cached --quiet && exit 0
+          git commit -m "Make wheel and best outfit optional per event"
+          git push origin main

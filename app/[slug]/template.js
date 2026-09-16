@@ -71,10 +71,14 @@ export default function PublicEventTemplate({ children }) {
       const nav = card.querySelector(".event-nav");
       if (header) {
         header.style.setProperty("grid-row", "2", "important");
-        header.style.setProperty("margin", "0", "important");
+        header.style.setProperty("margin", "0 auto", "important");
         header.style.setProperty("padding", "0", "important");
+        header.style.setProperty("width", "100%", "important");
+        header.style.setProperty("max-width", "100%", "important");
+        header.style.setProperty("box-sizing", "border-box", "important");
         header.style.setProperty("text-align", "center", "important");
         header.style.setProperty("align-items", "center", "important");
+        header.style.setProperty("justify-items", "center", "important");
         header.style.setProperty("min-width", "0", "important");
       }
       if (nav) {
@@ -93,10 +97,15 @@ export default function PublicEventTemplate({ children }) {
         title.style.setProperty("line-height", ".96", "important");
         title.style.setProperty("white-space", "normal", "important");
         title.style.setProperty("overflow-wrap", "anywhere", "important");
+        title.style.setProperty("display", "block", "important");
+        title.style.setProperty("position", "relative", "important");
+        title.style.setProperty("left", "50%", "important");
+        title.style.setProperty("transform", "translateX(-50%)", "important");
         title.style.setProperty("width", "100%", "important");
         title.style.setProperty("max-width", "100%", "important");
-        title.style.setProperty("margin-left", "auto", "important");
-        title.style.setProperty("margin-right", "auto", "important");
+        title.style.setProperty("margin", "0", "important");
+        title.style.setProperty("padding", "0", "important");
+        title.style.setProperty("box-sizing", "border-box", "important");
         title.style.setProperty("text-align", "center", "important");
       }
       if (date) date.style.setProperty("font-size", mobile ? ".72rem" : ".82rem", "important");

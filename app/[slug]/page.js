@@ -3287,8 +3287,8 @@ function getStyles(t, isFun) {
       boxShadow: "0 5px 0 #000, 0 9px 16px -6px rgba(0,0,0,0.35)",
       transition: "transform 0.12s ease",
     },
-    lookGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "14px" },
-    lookItem: { background: "rgba(255,255,255,0.94)", border: "none", borderRadius: "18px", overflow: "hidden", position: "relative" },
+    lookGrid: { display: "flex", overflowX: "auto", gap: "10px", WebkitOverflowScrolling: "touch", scrollSnapType: "x mandatory", marginTop: "14px" },
+    lookItem: { flex: "0 0 150px", scrollSnapAlign: "start", background: "rgba(255,255,255,0.94)", border: "none", borderRadius: "18px", overflow: "hidden", position: "relative" },
     lookItemTop: { boxShadow: "0 0 0 3px #FFD93D" },
     lookCrown: { position: "absolute", top: "6px", left: "6px", background: "#FFD93D", color: "#241a15", fontSize: "0.68rem", fontWeight: 700, fontFamily: "'Fredoka', sans-serif", borderRadius: "999px", padding: "3px 9px", zIndex: 2 },
     lookDeleteBtn: {

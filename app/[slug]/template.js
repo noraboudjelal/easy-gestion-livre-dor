@@ -59,8 +59,28 @@ export default function PublicEventTemplate({ children }) {
       card.style.setProperty("background-size", "cover", "important");
       card.style.setProperty("background-position", "center", "important");
       card.style.setProperty("background-repeat", "no-repeat", "important");
-      card.style.setProperty("min-height", mobile ? "330px" : "390px", "important");
-      card.style.setProperty("padding-top", mobile ? "62px" : "100px", "important");
+      card.style.setProperty("min-height", mobile ? "420px" : "520px", "important");
+      card.style.setProperty("padding-top", "28px", "important");
+      card.style.setProperty("padding-bottom", "18px", "important");
+      card.style.setProperty("display", "grid", "important");
+      card.style.setProperty("grid-template-rows", "1fr auto 1fr", "important");
+      card.style.setProperty("row-gap", "20px", "important");
+
+      const header = card.querySelector(".event-header");
+      const nav = card.querySelector(".event-nav");
+      if (header) {
+        header.style.setProperty("grid-row", "2", "important");
+        header.style.setProperty("margin", "0", "important");
+        header.style.setProperty("padding", "0", "important");
+        header.style.setProperty("text-align", "center", "important");
+        header.style.setProperty("min-width", "0", "important");
+      }
+      if (nav) {
+        nav.style.setProperty("grid-row", "3", "important");
+        nav.style.setProperty("align-self", "end", "important");
+        nav.style.setProperty("min-width", "0", "important");
+        nav.style.setProperty("max-width", "100%", "important");
+      }
 
       const context = card.querySelector(".event-title-context");
       const title = card.querySelector(".event-title-names");
@@ -69,7 +89,7 @@ export default function PublicEventTemplate({ children }) {
       // React renders the full editable title in the large title element.
       if (context) context.style.setProperty("display", "none", "important");
       if (title) {
-        title.style.setProperty("font-size", mobile ? "clamp(2.25rem, 10vw, 4.1rem)" : "clamp(4rem, 7vw, 6rem)", "important");
+        title.style.setProperty("font-size", mobile ? "clamp(2.75rem, 12vw, 4.75rem)" : "clamp(4.5rem, 8vw, 6.75rem)", "important");
         title.style.setProperty("line-height", mobile ? ".98" : ".96", "important");
         title.style.setProperty("white-space", "normal", "important");
         title.style.setProperty("overflow-wrap", "anywhere", "important");

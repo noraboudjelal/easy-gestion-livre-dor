@@ -46,7 +46,7 @@ export default function FilPhotoCover() {
         {date && <div className="leFilCoverDate">{date}</div>}
       </div>
       <style>{`
-        .leFilCoverHero{position:relative;width:100%;max-width:760px;height:clamp(155px,29vw,205px);margin:0 auto;overflow:hidden;background:#2b241f}
+        .leFilCoverHero{position:relative;width:100%;max-width:760px;height:7cm;margin:0 auto;overflow:hidden;background:#2b241f}
         .leFilCoverHero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;display:block}
         .leFilCoverShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,14,12,.01) 18%,rgba(18,14,12,.58) 100%)}
         .leFilCoverText{position:absolute;left:16px;right:16px;bottom:10px;text-align:center;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.62)}
@@ -54,7 +54,6 @@ export default function FilPhotoCover() {
         .leFilCoverText h1{max-width:680px;margin:0 auto;font-family:Georgia,serif;font-style:italic;font-size:clamp(20px,3.8vw,29px);line-height:1.02}
         .leFilCoverText p{max-width:650px;margin:4px auto 0;font-family:Georgia,serif;font-style:italic;font-weight:600;font-size:clamp(13px,2.3vw,18px);line-height:1.1}
         .leFilCoverDate{margin-top:4px;font-size:8px;letter-spacing:.08em;text-transform:uppercase}
-        @media (min-width:700px){.leFilCoverHero{height:190px}}
       `}</style>
     </section>
   );

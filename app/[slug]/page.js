@@ -613,6 +613,9 @@ export default function GuestbookPage() {
   const [reservingId, setReservingId] = useState(null);
   const [giftNamePrompt, setGiftNamePrompt] = useState(null);
   const [giftNameInput, setGiftNameInput] = useState("");
+  const [tableGuestName, setTableGuestName] = useState("");
+  const [tableResult, setTableResult] = useState(null);
+  const [tableSearching, setTableSearching] = useState(false);
 
   // --- Entre Nous ---
   const [wallRefs, setWallRefs] = useState([]);
@@ -1591,8 +1594,54 @@ export default function GuestbookPage() {
     return `${m}:${sec}`;
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+
+    async function handleTableSearch(e) {
+  e.preventDefault();
+
+  const guestName = tableGuestName.trim();
+  if (!guestName || tableSearching) return;
+
+  setTableSearching(true);
+  setTableResult(null);
+
+  try {
+    const response = await fetch(
+      `/api/events/${encodeURIComponent(slug)}/find-table`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: guestName }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setTableResult({
+        found: false,
+        message: data?.error || "La recherche n'a pas pu être effectuée.",
+      });
+    } else if (data.found) {
+      setTableResult(data);
+    } else {
+      setTableResult({
+        found: false,
+        message: data.ambiguous
+          ? "Plusieurs invités portent ce nom. Rapprochez-vous des mariés."
+          : "Nous n'avons pas trouvé votre nom. Vérifiez l'orthographe ou rapprochez-vous des mariés.",
+      });
+    }
+  } catch {
+    setTableResult({
+      found: false,
+      message: "La recherche n'est pas disponible pour le moment.",
+    });
+  } finally {
+    setTableSearching(false);
+  }
+}
+   async function handleSubmit(e) { 
+e.preventDefault();
     if (!event) return;
     if (!text.trim() && !audioBlob) {
       setError("Écrivez un petit mot ou enregistrez un message vocal avant d'envoyer.");
@@ -1974,6 +2023,7 @@ export default function GuestbookPage() {
               {pollQuestions.length > 0 && <a href="#quiz">Quiz</a>}
               {event?.playlist_enabled && <a href="#music">Playlist</a>}
               <a href="#memory">Souvenir</a>
+               <a href="#find-table">🔎 Trouvez votre table</a>
               {event?.riddles_enabled === true && riddles.length > 0 && <a href="#riddles">Devinettes</a>}
               <a href="#feed">Le Fil</a>
               {event?.cagnotte_url && <a href="#fund">Cagnotte</a>}
@@ -1981,6 +2031,50 @@ export default function GuestbookPage() {
             </nav>
           )}
         </div>
+               <section id="find-table" className="event-section">
+  <h2 className="event-section-title">🔎 Trouvez votre table</h2>
+
+  <p className="event-section-subtitle">
+    Entrez votre prénom et votre nom pour découvrir votre table.
+  </p>
+
+  <form onSubmit={handleTableSearch}>
+    <input
+      type="text"
+      value={tableGuestName}
+      onChange={(e) => setTableGuestName(e.target.value)}
+      placeholder="Prénom et nom"
+      autoComplete="name"
+      maxLength={120}
+      style={styles.input}
+    />
+
+    <button
+      type="submit"
+      disabled={tableSearching || tableGuestName.trim().length < 3}
+      style={styles.button}
+    >
+      {tableSearching ? "Recherche…" : "Trouver ma table"}
+    </button>
+  </form>
+
+  {tableResult?.found && (
+    <div style={{ marginTop: 18, textAlign: "center" }}>
+      <p style={{ margin: 0, fontWeight: 700 }}>🎉 Votre table</p>
+
+      <p style={{ margin: "8px 0 0", fontSize: "1.25rem", fontWeight: 800 }}>
+        Table {tableResult.table.number}
+        {tableResult.table.name ? ` — ${tableResult.table.name}` : ""}
+      </p>
+    </div>
+  )}
+
+  {tableResult && !tableResult.found && (
+    <p style={{ marginTop: 18, textAlign: "center" }}>
+      {tableResult.message}
+    </p>
+  )}
+</section>
 
         {(isJournal || event?.wheel_enabled) && (
           <div className="fun-card" style={styles.wheelCard}>

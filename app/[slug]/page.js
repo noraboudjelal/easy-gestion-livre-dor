@@ -1974,7 +1974,7 @@ export default function GuestbookPage() {
               {pollQuestions.length > 0 && <a href="#quiz">Quiz</a>}
               {event?.playlist_enabled && <a href="#music">Playlist</a>}
               <a href="#memory">Souvenir</a>
-              {riddles.length > 0 && <a href="#riddles">Devinettes</a>}
+              {event.riddles_enabled === true && riddles.length > 0 && <a href="#riddles">Devinettes</a>}
               <a href="#feed">Le Fil</a>
               {event?.cagnotte_url && <a href="#fund">Cagnotte</a>}
               {event?.word_cloud_enabled && <a href="#words">Nuage</a>}
@@ -2849,7 +2849,7 @@ export default function GuestbookPage() {
           </form>
         </section>
 
-        {riddles.length > 0 && (() => {
+        {event.riddles_enabled === true && riddles.length > 0 && (() => {
           const riddle = riddles[riddleIndex];
           return (
             <section id="riddles" className="event-section riddles-section">

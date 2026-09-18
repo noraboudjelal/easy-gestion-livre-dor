@@ -2023,7 +2023,9 @@ e.preventDefault();
               {pollQuestions.length > 0 && <a href="#quiz">Quiz</a>}
               {event?.playlist_enabled && <a href="#music">Playlist</a>}
               <a href="#memory">Souvenir</a>
-               <a href="#find-table">🔎 Trouvez votre table</a>
+               {event?.table_lookup_enabled && (
+  <a href="#find-table">🔎 Trouvez votre table</a>
+)}
               {event?.riddles_enabled === true && riddles.length > 0 && <a href="#riddles">Devinettes</a>}
               <a href="#feed">Le Fil</a>
               {event?.cagnotte_url && <a href="#fund">Cagnotte</a>}
@@ -2031,6 +2033,7 @@ e.preventDefault();
             </nav>
           )}
         </div>
+          {event?.table_lookup_enabled && (
                <section id="find-table" className="event-section">
   <h2 className="event-section-title">🔎 Trouvez votre table</h2>
 
@@ -2075,7 +2078,7 @@ e.preventDefault();
     </p>
   )}
 </section>
-
+)}
         {(isJournal || event?.wheel_enabled) && (
           <div className="fun-card" style={styles.wheelCard}>
             <p style={styles.wheelTitle}>🎡 La Roue des défis</p>

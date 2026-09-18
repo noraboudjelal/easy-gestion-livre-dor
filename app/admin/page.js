@@ -613,7 +613,16 @@ export default function AdminPage() {
     const { error } = await supabase.from("events").update({ playlist_enabled: nextValue }).eq("id", ev.id);
     if (!error) loadEvents();
   }
+async function handleToggleTableSearch(ev) {
+  if (!supabase) return;
+  const nextValue = !ev.table_lookup_enabled;
+  const { error } = await supabase
+    .from("events")
+    .update({ table_lookup_enabled: nextValue })
+    .eq("id", ev.id);
 
+  if (!error) loadEvents();
+}
   async function handleToggleRiddles(ev) {
     if (!supabase) return;
     const nextValue = !ev.riddles_enabled;
@@ -1562,6 +1571,9 @@ export default function AdminPage() {
                             <a href={`/admin/le-fil/${ev.id}#tables`} style={styles.iconButton}>
                               cartons de table
                             </a>
+                              <button style={styles.iconButton} onClick={() => handleToggleTableSearch(ev)}>
+                              recherche de table {ev.table_lookup_enabled ? "✓" : ""}
+                              </button>
                             <a href={`/admin/le-fil/${ev.id}/ecran-veille`} style={styles.iconButton}>
                               Écran de veille
                             </a>
@@ -1667,6 +1679,12 @@ export default function AdminPage() {
                         <a href={`/admin/le-fil/${ev.id}#tables`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
                           cartons de table
                         </a>
+                            <button
+                       style={{ ...styles.iconButton, flex: 1 }}
+                      onClick={() => handleToggleTableSearch(ev)}
+                      >
+                        recherche de table {ev.table_lookup_enabled ? "✓" : ""}
+                        </button>
                         <a href={`/admin/le-fil/${ev.id}/ecran-veille`} style={{ ...styles.iconButton, flex: 1, textAlign: "center" }}>
                           Écran de veille
                         </a>

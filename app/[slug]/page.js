@@ -615,6 +615,8 @@ export default function GuestbookPage() {
   const [plainCameraFacing, setPlainCameraFacing] = useState("user");
   const [plainCameraTarget, setPlainCameraTarget] = useState("message");
   const [plainCameraError, setPlainCameraError] = useState("");
+  const [plainCameraShot, setPlainCameraShot] = useState(null);
+  const [plainCameraShotUrl, setPlainCameraShotUrl] = useState("");
   const plainCameraVideoRef = useRef(null);
   const plainCameraStreamRef = useRef(null);
   const [video, setVideo] = useState(null);
@@ -1584,6 +1586,8 @@ export default function GuestbookPage() {
     setPlainCameraOpen(true);
     setPlainCameraFacing("user");
     setPlainCameraError("");
+    setPlainCameraShot(null);
+    setPlainCameraShotUrl("");
     setTimeout(() => startPlainCamera("user"), 0);
   }
 
@@ -1591,6 +1595,9 @@ export default function GuestbookPage() {
     stopPlainCamera();
     setPlainCameraOpen(false);
     setPlainCameraError("");
+    if (plainCameraShotUrl) URL.revokeObjectURL(plainCameraShotUrl);
+    setPlainCameraShot(null);
+    setPlainCameraShotUrl("");
   }
 
   function switchPlainCamera() {
@@ -1612,16 +1619,31 @@ export default function GuestbookPage() {
     canvas.toBlob((blob) => {
       if (!blob) return;
       const file = new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
-      const preview = URL.createObjectURL(file);
-      if (plainCameraTarget === "look") {
-        setLookPhoto(file);
-        setLookPhotoPreview(preview);
-      } else {
-        setPhotos((prev) => [...prev, file]);
-        setPhotoPreviews((prev) => [...prev, preview]);
-      }
-      closePlainCamera();
+      stopPlainCamera();
+      if (plainCameraShotUrl) URL.revokeObjectURL(plainCameraShotUrl);
+      setPlainCameraShot(file);
+      setPlainCameraShotUrl(URL.createObjectURL(file));
     }, "image/jpeg", 0.95);
+  }
+
+  function retakePlainCamera() {
+    if (plainCameraShotUrl) URL.revokeObjectURL(plainCameraShotUrl);
+    setPlainCameraShot(null);
+    setPlainCameraShotUrl("");
+    startPlainCamera(plainCameraFacing);
+  }
+
+  function confirmPlainCamera() {
+    if (!plainCameraShot) return;
+    const preview = URL.createObjectURL(plainCameraShot);
+    if (plainCameraTarget === "look") {
+      setLookPhoto(plainCameraShot);
+      setLookPhotoPreview(preview);
+    } else {
+      setPhotos((prev) => [...prev, plainCameraShot]);
+      setPhotoPreviews((prev) => [...prev, preview]);
+    }
+    closePlainCamera();
   }
 
   function removePhoto(index) {
@@ -3216,17 +3238,26 @@ e.preventDefault();
           <div style={{ position:"fixed", inset:0, zIndex:10000, background:"#000", width:"100vw", height:"100dvh", overflow:"hidden" }}>
             {plainCameraError ? (
               <div style={{ position:"absolute", inset:0, display:"grid", placeItems:"center", padding:28, color:"#fff", textAlign:"center" }}>{plainCameraError}</div>
+            ) : plainCameraShotUrl ? (
+              <img src={plainCameraShotUrl} alt="Aperçu de la photo" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />
             ) : (
               <video ref={plainCameraVideoRef} autoPlay muted playsInline style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", transform:plainCameraFacing === "user" ? "scaleX(-1)" : "none" }} />
             )}
             <div style={{ position:"absolute", top:"max(14px, env(safe-area-inset-top))", left:16, right:16, display:"flex", justifyContent:"space-between", zIndex:2 }}>
               <button type="button" onClick={closePlainCamera} aria-label="Fermer" style={{ width:46, height:46, borderRadius:"50%", border:"1px solid rgba(255,255,255,.65)", background:"rgba(0,0,0,.35)", color:"#fff", fontSize:24 }}>×</button>
-              <button type="button" onClick={switchPlainCamera} aria-label="Changer de caméra" style={{ width:46, height:46, borderRadius:"50%", border:"1px solid rgba(255,255,255,.65)", background:"rgba(0,0,0,.35)", color:"#fff", fontSize:22 }}>↻</button>
+              {!plainCameraShotUrl && <button type="button" onClick={switchPlainCamera} aria-label="Changer de caméra" style={{ width:46, height:46, borderRadius:"50%", border:"1px solid rgba(255,255,255,.65)", background:"rgba(0,0,0,.35)", color:"#fff", fontSize:22 }}>↻</button>}
             </div>
             {!plainCameraError && (
-              <div style={{ position:"absolute", left:0, right:0, bottom:"max(24px, env(safe-area-inset-bottom))", display:"flex", justifyContent:"center", zIndex:2 }}>
-                <button type="button" onClick={capturePlainCamera} aria-label="Prendre la photo" style={{ width:76, height:76, borderRadius:"50%", border:"5px solid #fff", background:"rgba(255,255,255,.18)", boxShadow:"inset 0 0 0 4px #000" }} />
-              </div>
+              plainCameraShotUrl ? (
+                <div style={{ position:"absolute", left:16, right:16, bottom:"max(24px, env(safe-area-inset-bottom))", display:"flex", gap:12, justifyContent:"center", zIndex:2 }}>
+                  <button type="button" onClick={retakePlainCamera} style={{ border:"1px solid rgba(255,255,255,.75)", borderRadius:999, padding:"14px 20px", background:"rgba(0,0,0,.5)", color:"#fff", fontWeight:800 }}>↻ Reprendre</button>
+                  <button type="button" onClick={confirmPlainCamera} style={{ border:"none", borderRadius:999, padding:"14px 22px", background:"#fff", color:"#241d18", fontWeight:800 }}>✓ Garder la photo</button>
+                </div>
+              ) : (
+                <div style={{ position:"absolute", left:0, right:0, bottom:"max(24px, env(safe-area-inset-bottom))", display:"flex", justifyContent:"center", zIndex:2 }}>
+                  <button type="button" onClick={capturePlainCamera} aria-label="Prendre la photo" style={{ width:76, height:76, borderRadius:"50%", border:"5px solid #fff", background:"rgba(255,255,255,.18)", boxShadow:"inset 0 0 0 4px #000" }} />
+                </div>
+              )
             )}
           </div>
         )}

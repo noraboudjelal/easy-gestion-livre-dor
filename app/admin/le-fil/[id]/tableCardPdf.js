@@ -49,13 +49,6 @@ export function addTableCardPage(doc, event, table, qrData) {
 
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
-  doc.setLineDashPattern([2, 2], 0);
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.25);
-  doc.line(PANEL_WIDTH, 6, PANEL_WIDTH, PAGE_HEIGHT - 6);
-  doc.line(PANEL_WIDTH * 2, 6, PANEL_WIDTH * 2, PAGE_HEIGHT - 6);
-  doc.setLineDashPattern([], 0);
-
   // Volet gauche : Le Fil et son QR code.
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");

@@ -49,10 +49,6 @@ export function addTableCardPage(doc, event, table, qrData) {
 
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.3);
-  doc.rect(6, 6, PAGE_WIDTH - 12, PAGE_HEIGHT - 12);
-
   doc.setLineDashPattern([2, 2], 0);
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.25);

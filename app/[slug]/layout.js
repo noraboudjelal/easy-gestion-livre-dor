@@ -200,16 +200,36 @@ export default function PublicEventLayout({ children }) {
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   }
 
-  function capture() {
+  async function capture() {
     const video = videoRef.current;
     if (!video?.videoWidth || !video?.videoHeight) return;
+    const activeTrack = streamRef.current?.getVideoTracks?.()[0];
+    const activeFacing = activeTrack?.getSettings?.().facingMode || cameraFacing;
+    const isFrontCamera = activeFacing === "user" || activeFacing === "front";
+
+    // The front-camera mirror belongs to the live preview only. Remove it from
+    // the rendered video before copying the frame (notably for mobile Safari),
+    // then restore it immediately after the capture.
+    if (isFrontCamera) {
+      video.classList.remove("is-front");
+      video.style.transform = "none";
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const context = canvas.getContext("2d");
-    if (cameraFacing === "user") { context.translate(canvas.width, 0); context.scale(-1, 1); }
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    if (cameraFacing === "user") context.setTransform(1, 0, 0, 1, 0, 0);
+    try {
+      if (!context) return;
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } finally {
+      if (isFrontCamera) {
+        video.style.removeProperty("transform");
+        video.classList.add("is-front");
+      }
+    }
 
     const overlayHeight = Math.max(150, canvas.height * 0.25);
     const gradient = context.createLinearGradient(0, canvas.height - overlayHeight, 0, canvas.height);

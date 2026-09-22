@@ -259,6 +259,32 @@ function formatDate(ts) {
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
+
+async function mirrorCameraPhoto(file) {
+  if (!file || !file.type?.startsWith("image/")) return file;
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const node = new Image();
+      node.onload = () => resolve(node);
+      node.onerror = reject;
+      node.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext("2d");
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, file.type === "image/png" ? "image/png" : "image/jpeg", 0.95));
+    if (!blob) return file;
+    const ext = blob.type === "image/png" ? "png" : "jpg";
+    return new File([blob], `camera-${Date.now()}.${ext}`, { type: blob.type, lastModified: Date.now() });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 function normalizeAnswer(value) {
   return (value || "")
     .toLowerCase()
@@ -1298,6 +1324,20 @@ export default function GuestbookPage() {
     setLookPhotoPreview(URL.createObjectURL(file));
   }
 
+  async function handleLookCameraPhotoChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const corrected = await mirrorCameraPhoto(file);
+      setLookPhoto(corrected);
+      setLookPhotoPreview(URL.createObjectURL(corrected));
+    } catch {
+      setLookPhoto(file);
+      setLookPhotoPreview(URL.createObjectURL(file));
+    }
+  }
+
   function removeLookPhoto() {
     setLookPhoto(null);
     setLookPhotoPreview(null);
@@ -1514,6 +1554,20 @@ export default function GuestbookPage() {
     setPhotos((prev) => [...prev, ...files]);
     setPhotoPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
     e.target.value = "";
+  }
+
+  async function handleCameraPhotoChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const corrected = await mirrorCameraPhoto(file);
+      setPhotos((prev) => [...prev, corrected]);
+      setPhotoPreviews((prev) => [...prev, URL.createObjectURL(corrected)]);
+    } catch {
+      setPhotos((prev) => [...prev, file]);
+      setPhotoPreviews((prev) => [...prev, URL.createObjectURL(file)]);
+    }
   }
 
   function removePhoto(index) {
@@ -2565,10 +2619,16 @@ e.preventDefault();
                     </button>
                   </div>
                 ) : (
-                  <label style={styles.photoLabel}>
-                    {isJournal ? "📸 Ajouter une photo de ta tenue" : "📸 Prendre ou importer une photo"}
-                    <input type="file" accept="image/*" onChange={handleLookPhotoChange} style={{ display: "none" }} />
-                  </label>
+                  <>
+                    <label style={styles.photoLabel}>
+                      📸 Prendre une photo
+                      <input type="file" accept="image/*" capture="user" onChange={handleLookCameraPhotoChange} style={{ display: "none" }} />
+                    </label>
+                    <label style={styles.photoLabel}>
+                      🖼️ Importer depuis la galerie
+                      <input type="file" accept="image/*" onChange={handleLookPhotoChange} style={{ display: "none" }} />
+                    </label>
+                  </>
                 )}
                 <button type="submit" className="fun-spin-btn" disabled={postingLook || !lookPhoto || (!isJournal && !lookName.trim())} style={styles.lookPostBtn}>
                   {postingLook ? "Envoi…" : isJournal ? "📸 Je poste ma tenue" : "Valider ma participation"}
@@ -2878,7 +2938,17 @@ e.preventDefault();
             </div>
           )}
           <label style={styles.photoLabel}>
-            📷 {photoPreviews.length > 0 ? "Ajouter d'autres photos" : "Ajouter une ou plusieurs photos (optionnel)"}
+            📸 Prendre une photo
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handleCameraPhotoChange}
+              style={{ display: "none" }}
+            />
+          </label>
+          <label style={styles.photoLabel}>
+            🖼️ {photoPreviews.length > 0 ? "Ajouter depuis la galerie" : "Importer une ou plusieurs photos (optionnel)"}
             <input
               type="file"
               accept="image/*"

@@ -42,30 +42,6 @@ export function getTableCardEventWording(event = {}) {
   return { intro: wording.intro, link: wording.link, title };
 }
 
-function drawFloralCorner(doc, x, y, flipX = 1, flipY = 1) {
-  const sage = [129, 142, 113];
-  const cream = [236, 228, 211];
-  doc.setDrawColor(...sage);
-  doc.setLineWidth(0.45);
-  const sx = (v) => x + v * flipX;
-  const sy = (v) => y + v * flipY;
-  doc.line(sx(0), sy(0), sx(24), sy(20));
-  doc.line(sx(8), sy(7), sx(18), sy(2));
-  doc.line(sx(12), sy(11), sx(5), sy(19));
-  doc.line(sx(17), sy(14), sx(29), sy(10));
-  doc.setFillColor(...sage);
-  [[12,4],[18,8],[8,13],[23,13],[15,18]].forEach(([dx,dy]) => {
-    doc.ellipse(sx(dx), sy(dy), 2.8, 1.15, "F");
-  });
-  doc.setFillColor(...cream);
-  doc.setDrawColor(190, 180, 158);
-  [[5,5],[25,6],[27,17]].forEach(([dx,dy]) => {
-    doc.circle(sx(dx), sy(dy), 2.4, "FD");
-    doc.circle(sx(dx + 2.2), sy(dy + 1), 2.2, "FD");
-    doc.circle(sx(dx - 1), sy(dy + 2.2), 2.1, "FD");
-  });
-}
-
 export function addTableCardPage(doc, event, table, qrData) {
   const guests = table.guest_names || [];
   const [leftX, centerX, rightX] = [PANEL_WIDTH / 2, PANEL_WIDTH * 1.5, PANEL_WIDTH * 2.5];
@@ -77,18 +53,11 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFillColor(255, 252, 246);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
 
-  // Décor floral discret : chaque face reste lisible et équilibrée.
-  drawFloralCorner(doc, 7, 8, 1, 1);
-  drawFloralCorner(doc, PANEL_WIDTH - 7, PAGE_HEIGHT - 8, -1, -1);
-  drawFloralCorner(doc, PANEL_WIDTH + 7, PAGE_HEIGHT - 8, 1, -1);
-  drawFloralCorner(doc, PANEL_WIDTH * 2 - 7, 8, -1, 1);
-  drawFloralCorner(doc, PANEL_WIDTH * 2 + 7, 8, 1, 1);
-  drawFloralCorner(doc, PAGE_WIDTH - 7, PAGE_HEIGHT - 8, -1, -1);
 
   // FACE 1 — table.
   doc.setTextColor(...ink);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(14);
   doc.text("TABLE", leftX, 39, { align: "center" });
 
   const tableNumber = String(table.table_number || "");
@@ -117,7 +86,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   // FACE 2 — Le Fil.
   doc.setTextColor(...ink);
   doc.setFont("times", "italic");
-  doc.setFontSize(30);
+  doc.setFontSize(38);
   doc.text("Le Fil", centerX, 39, { align: "center" });
 
   doc.setDrawColor(...soft);
@@ -128,7 +97,7 @@ export function addTableCardPage(doc, event, table, qrData) {
 
   doc.setTextColor(...ink);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9.2);
+  doc.setFontSize(11.5);
   doc.text("ÉCRIVEZ UN MOT", centerX, 66, { align: "center" });
   doc.text("LAISSEZ UNE PHOTO", centerX, 75, { align: "center" });
   doc.text("OU UNE VIDÉO", centerX, 84, { align: "center" });
@@ -148,7 +117,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   // FACE 3 — musique, même grille verticale que Le Fil.
   doc.setTextColor(...ink);
   doc.setFont("times", "italic");
-  doc.setFontSize(25);
+  doc.setFontSize(34);
   doc.text("Musique", rightX, 39, { align: "center" });
 
   doc.setDrawColor(...soft);
@@ -159,7 +128,7 @@ export function addTableCardPage(doc, event, table, qrData) {
 
   doc.setTextColor(...ink);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9.2);
+  doc.setFontSize(11.5);
   doc.text("CHOISISSEZ UNE MUSIQUE", rightX, 66, { align: "center" });
   doc.setFontSize(8);
   doc.setTextColor(...soft);

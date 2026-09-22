@@ -56,7 +56,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setTextColor(...ink);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("TABLE", leftX, 38, { align: "center", charSpace: 2.2 });
+  doc.text("TABLE", leftX, 38, { align: "center" });
 
   doc.setFont("times", "normal");
   const tableNumber = String(table.table_number || "");
@@ -67,10 +67,9 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setLineWidth(0.35);
   doc.line(leftX - 21, 107, leftX - 5, 107);
   doc.line(leftX + 5, 107, leftX + 21, 107);
-  doc.setFont("times", "italic");
-  doc.setFontSize(13);
-  doc.setTextColor(...soft);
-  doc.text("♡", leftX, 109, { align: "center" });
+  doc.setDrawColor(...soft);
+  doc.setLineWidth(0.35);
+  doc.circle(leftX, 107, 1.1, "S");
 
   const { title: eventTitle } = getTableCardEventWording(event);
   doc.setTextColor(...ink);
@@ -95,16 +94,16 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setLineWidth(0.35);
   doc.line(centerX - 18, 45, centerX - 4, 45);
   doc.line(centerX + 4, 45, centerX + 18, 45);
-  doc.setFontSize(11);
-  doc.setTextColor(...soft);
-  doc.text("♡", centerX, 47, { align: "center" });
+  doc.setDrawColor(...soft);
+  doc.setLineWidth(0.35);
+  doc.circle(centerX, 45, 1.1, "S");
 
   doc.setTextColor(...ink);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10.5);
-  doc.text("ÉCRIVEZ UN MOT", centerX, 61, { align: "center", charSpace: 1.2 });
-  doc.text("LAISSEZ UNE PHOTO", centerX, 69, { align: "center", charSpace: 1.05 });
-  doc.text("OU UNE VIDÉO", centerX, 77, { align: "center", charSpace: 1.2 });
+  doc.text("ÉCRIVEZ UN MOT", centerX, 61, { align: "center" });
+  doc.text("LAISSEZ UNE PHOTO", centerX, 69, { align: "center" });
+  doc.text("OU UNE VIDÉO", centerX, 77, { align: "center" });
 
   doc.addImage(qrData, "PNG", centerX - 22, 88, 44, 44);
   doc.setFont("times", "italic");
@@ -116,7 +115,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setTextColor(...soft);
   doc.text("UN MOT   ·   UNE PHOTO   ·   UNE VIDÉO", centerX, 163, { align: "center" });
   doc.setFontSize(7);
-  doc.text("MERCI D’ÊTRE LÀ", centerX, 188, { align: "center", charSpace: 1.5 });
+  doc.text("MERCI D’ÊTRE LÀ", centerX, 188, { align: "center" });
 
   // Face 3 — musique uniquement, sans cagnotte.
   doc.setTextColor(...ink);
@@ -125,13 +124,13 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.text("♫", rightX, 44, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11.5);
-  doc.text("CHOISISSEZ", rightX, 65, { align: "center", charSpace: 1.6 });
-  doc.text("UNE MUSIQUE", rightX, 75, { align: "center", charSpace: 1.6 });
+  doc.text("CHOISISSEZ", rightX, 65, { align: "center" });
+  doc.text("UNE MUSIQUE", rightX, 75, { align: "center" });
 
   doc.setFontSize(9);
   doc.setTextColor(...soft);
-  doc.text("POUR FAIRE DANSER", rightX, 90, { align: "center", charSpace: 1.1 });
-  doc.text("LA PISTE !", rightX, 98, { align: "center", charSpace: 1.2 });
+  doc.text("POUR FAIRE DANSER", rightX, 90, { align: "center" });
+  doc.text("LA PISTE !", rightX, 98, { align: "center" });
 
   // Le même QR ouvre Le Fil, où la demande de musique est accessible.
   doc.addImage(qrData, "PNG", rightX - 19, 112, 38, 38);
@@ -143,8 +142,8 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...soft);
-  doc.text("MERCI DE FAIRE PARTIE", rightX, 181, { align: "center", charSpace: 1.1 });
-  doc.text("DE CETTE BELLE JOURNÉE", rightX, 189, { align: "center", charSpace: 1.1 });
+  doc.text("MERCI DE FAIRE PARTIE", rightX, 181, { align: "center" });
+  doc.text("DE CETTE BELLE JOURNÉE", rightX, 189, { align: "center" });
 }
 
 export const TABLE_CARD_DIMENSIONS = { pageWidth: PAGE_WIDTH, pageHeight: PAGE_HEIGHT, panelWidth: PANEL_WIDTH };

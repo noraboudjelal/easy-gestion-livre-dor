@@ -46,111 +46,105 @@ export function addTableCardPage(doc, event, table, qrData) {
   const guests = table.guest_names || [];
   const centers = [PANEL_WIDTH / 2, PANEL_WIDTH * 1.5, PANEL_WIDTH * 2.5];
   const [leftX, centerX, rightX] = centers;
+  const ink = [66, 61, 49];
+  const soft = [151, 137, 111];
 
-  doc.setFillColor(255, 255, 255);
+  doc.setFillColor(255, 253, 249);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
-  // Volet gauche : Le Fil et son QR code.
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("LE FIL", leftX, 25, { align: "center" });
-  drawOrnament(doc, leftX, 32);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(32);
-  centeredLines(doc, "Partagez vos plus beaux souvenirs", leftX, 47, 78, { lineHeightFactor: 1.05 });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  centeredLines(doc, "Envoyez vos messages, photos et vidéos en direct !", leftX, 88, 72, { lineHeightFactor: 1.25 });
-  doc.addImage(qrData, "PNG", leftX - 21, 111, 42, 42);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text("SCANNEZ-MOI", leftX, 164, { align: "center" });
-  drawOrnament(doc, leftX, 179, 28);
-  doc.setFont("times", "italic");
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  doc.text("Merci", leftX, 191, { align: "center" });
 
-  // Volet central : table, événement et invités.
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("TABLE", centerX, 25, { align: "center" });
-  drawOrnament(doc, centerX, 32);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("times", "bold");
+  // Face 1 — numéro de table. Les noms des invités restent optionnels.
+  doc.setTextColor(...ink);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("TABLE", leftX, 38, { align: "center", charSpace: 2.2 });
+
+  doc.setFont("times", "normal");
   const tableNumber = String(table.table_number || "");
-  doc.setFontSize(tableNumber.length > 4 ? 62 : tableNumber.length > 2 ? 86 : tableNumber.length > 1 ? 104 : 120);
-  doc.text(tableNumber, centerX, 76, { align: "center", maxWidth: 82 });
+  doc.setFontSize(tableNumber.length > 4 ? 58 : tableNumber.length > 2 ? 78 : tableNumber.length > 1 ? 92 : 108);
+  doc.text(tableNumber, leftX, 92, { align: "center", maxWidth: 78 });
+
+  doc.setDrawColor(...soft);
+  doc.setLineWidth(0.35);
+  doc.line(leftX - 21, 107, leftX - 5, 107);
+  doc.line(leftX + 5, 107, leftX + 21, 107);
   doc.setFont("times", "italic");
-  const { intro: eventIntro, link: eventLink, title: eventTitle } = getTableCardEventWording(event);
-  let eventSize = 25;
-  doc.setFontSize(eventSize);
-  while ((doc.getTextWidth(eventIntro) > 82 || doc.getTextWidth(eventTitle) > 82) && eventSize > 11) {
-    eventSize -= 0.5;
-    doc.setFontSize(eventSize);
-  }
-  doc.text(eventIntro, centerX, 89, { align: "center" });
-  let centerY = 89 + eventSize * 0.3528 + 3;
-  if (eventLink) {
-    doc.text(eventLink, centerX, centerY, { align: "center" });
-    centerY += eventSize * 0.3528 + 3;
-  }
-  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(13);
+  doc.setTextColor(...soft);
+  doc.text("♡", leftX, 109, { align: "center" });
+
+  const { title: eventTitle } = getTableCardEventWording(event);
+  doc.setTextColor(...ink);
   doc.setFont("times", "italic");
-  doc.setFontSize(eventSize);
-  doc.text(eventTitle, centerX, centerY, { align: "center" });
-  centerY += eventSize * 0.3528 + 8;
-  drawOrnament(doc, centerX, centerY, 24);
-  centerY += 11;
+  doc.setFontSize(18);
+  centeredLines(doc, eventTitle, leftX, 128, 76, { lineHeightFactor: 1.08 });
 
   if (guests.length) {
-    const availableHeight = 192 - centerY;
-    const lineHeightFactor = 1.28;
-    const maximumGuestSize = guests.length <= 10 ? 11.5 : 10.5;
-    const guestSize = Math.min(maximumGuestSize, availableHeight / (guests.length * 0.3528 * lineHeightFactor));
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(guestSize);
-    doc.setTextColor(0, 0, 0);
-    doc.text(guests.map(String), centerX, centerY, { align: "center", lineHeightFactor, maxWidth: 76 });
+    const maxGuestSize = guests.length <= 8 ? 10.5 : guests.length <= 12 ? 9 : 7.8;
+    doc.setFontSize(maxGuestSize);
+    doc.setTextColor(...ink);
+    doc.text(guests.map(String), leftX, 151, { align: "center", lineHeightFactor: 1.25, maxWidth: 72 });
   }
 
-  // Volet droit : invitation musicale et participation au Fil.
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.text("LE FIL / DJ", rightX, 25, { align: "center" });
-  drawOrnament(doc, rightX, 32);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("times", "bolditalic");
-  doc.setFontSize(34);
-  centeredLines(doc, "Demandez votre musique", rightX, 49, 78, { lineHeightFactor: 1.05 });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  centeredLines(doc, "Proposez un titre au DJ et participez au Fil de l’événement.", rightX, 88, 72, { lineHeightFactor: 1.25 });
-
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.9);
-  doc.circle(rightX, 133, 13, "S");
-  doc.setFillColor(0, 0, 0);
-  doc.roundedRect(rightX - 16, 131, 5, 13, 1.5, 1.5, "F");
-  doc.roundedRect(rightX + 11, 131, 5, 13, 1.5, 1.5, "F");
-  doc.setDrawColor(255, 255, 255);
-  doc.setLineWidth(2.3);
-  doc.line(rightX - 10, 140, rightX + 10, 140);
-  drawOrnament(doc, rightX, 160, 28);
+  // Face 2 — Le Fil.
+  doc.setTextColor(...ink);
   doc.setFont("times", "italic");
-  doc.setFontSize(13);
-  doc.setTextColor(0, 0, 0);
-  doc.text("À vous de jouer !", rightX, 176, { align: "center" });
+  doc.setFontSize(31);
+  doc.text("Le Fil", centerX, 37, { align: "center" });
+  doc.setDrawColor(...soft);
+  doc.setLineWidth(0.35);
+  doc.line(centerX - 18, 45, centerX - 4, 45);
+  doc.line(centerX + 4, 45, centerX + 18, 45);
+  doc.setFontSize(11);
+  doc.setTextColor(...soft);
+  doc.text("♡", centerX, 47, { align: "center" });
+
+  doc.setTextColor(...ink);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10.5);
+  doc.text("ÉCRIVEZ UN MOT", centerX, 61, { align: "center", charSpace: 1.2 });
+  doc.text("LAISSEZ UNE PHOTO", centerX, 69, { align: "center", charSpace: 1.05 });
+  doc.text("OU UNE VIDÉO", centerX, 77, { align: "center", charSpace: 1.2 });
+
+  doc.addImage(qrData, "PNG", centerX - 22, 88, 44, 44);
+  doc.setFont("times", "italic");
+  doc.setFontSize(17);
+  doc.text("Scannez-moi !", centerX, 145, { align: "center" });
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(0, 0, 0);
-  centeredLines(doc, "Messages · photos · vidéos · musique", rightX, 190, 70);
+  doc.setTextColor(...soft);
+  doc.text("UN MOT   ·   UNE PHOTO   ·   UNE VIDÉO", centerX, 163, { align: "center" });
+  doc.setFontSize(7);
+  doc.text("MERCI D’ÊTRE LÀ", centerX, 188, { align: "center", charSpace: 1.5 });
+
+  // Face 3 — musique uniquement, sans cagnotte.
+  doc.setTextColor(...ink);
+  doc.setFont("times", "normal");
+  doc.setFontSize(30);
+  doc.text("♫", rightX, 44, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11.5);
+  doc.text("CHOISISSEZ", rightX, 65, { align: "center", charSpace: 1.6 });
+  doc.text("UNE MUSIQUE", rightX, 75, { align: "center", charSpace: 1.6 });
+
+  doc.setFontSize(9);
+  doc.setTextColor(...soft);
+  doc.text("POUR FAIRE DANSER", rightX, 90, { align: "center", charSpace: 1.1 });
+  doc.text("LA PISTE !", rightX, 98, { align: "center", charSpace: 1.2 });
+
+  // Le même QR ouvre Le Fil, où la demande de musique est accessible.
+  doc.addImage(qrData, "PNG", rightX - 19, 112, 38, 38);
+  doc.setTextColor(...ink);
+  doc.setFont("times", "italic");
+  doc.setFontSize(15);
+  doc.text("Scannez-moi !", rightX, 161, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(...soft);
+  doc.text("MERCI DE FAIRE PARTIE", rightX, 181, { align: "center", charSpace: 1.1 });
+  doc.text("DE CETTE BELLE JOURNÉE", rightX, 189, { align: "center", charSpace: 1.1 });
 }
 
 export const TABLE_CARD_DIMENSIONS = { pageWidth: PAGE_WIDTH, pageHeight: PAGE_HEIGHT, panelWidth: PANEL_WIDTH };

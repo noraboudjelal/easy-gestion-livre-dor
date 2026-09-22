@@ -163,8 +163,6 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.text("CHOISISSEZ UNE MUSIQUE", rightX, 66, { align: "center" });
   doc.setFontSize(8);
   doc.setTextColor(...soft);
-  doc.text("POUR FAIRE DANSER", rightX, 75, { align: "center" });
-  doc.text("LA PISTE !", rightX, 84, { align: "center" });
 
   doc.addImage(qrData, "PNG", rightX - qrSize / 2, qrY, qrSize, qrSize);
   doc.setTextColor(...ink);
@@ -176,7 +174,6 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFontSize(7);
   doc.setTextColor(...soft);
   doc.text("PROPOSEZ VOTRE TITRE", rightX, 174, { align: "center" });
-  doc.text("MERCI DE FAIRE PARTIE DE CETTE JOURNÉE", rightX, 190, { align: "center", maxWidth: 76 });
 }
 
 export const TABLE_CARD_DIMENSIONS = { pageWidth: PAGE_WIDTH, pageHeight: PAGE_HEIGHT, panelWidth: PANEL_WIDTH };

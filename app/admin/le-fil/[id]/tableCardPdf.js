@@ -129,7 +129,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setTextColor(...ink);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11.5);
-  doc.text("CHOISISSEZ UNE MUSIQUE", rightX, 66, { align: "center" });
+  doc.text("PROPOSEZ UNE MUSIQUE POUR LA SOIRÉE", rightX, 66, { align: "center" });
   doc.setFontSize(8);
   doc.setTextColor(...soft);
 

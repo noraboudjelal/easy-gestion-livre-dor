@@ -106,7 +106,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.addImage(qrData, "PNG", centerX - qrSize / 2, qrY, qrSize, qrSize);
   doc.setFont("times", "italic");
   doc.setFontSize(15);
-  doc.text("Scannez-moi !", centerX, 158, { align: "center" });
+  doc.text("Scannez pour participer", centerX, 158, { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
@@ -137,7 +137,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setTextColor(...ink);
   doc.setFont("times", "italic");
   doc.setFontSize(15);
-  doc.text("Scannez-moi !", rightX, 158, { align: "center" });
+  doc.text("Scannez pour participer", rightX, 158, { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);

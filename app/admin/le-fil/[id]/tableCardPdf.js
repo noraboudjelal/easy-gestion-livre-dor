@@ -53,6 +53,14 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
 
+  // Repères de pliage : la feuille A4 paysage est divisée en 3 volets égaux de 99 mm.
+  // Les traits restent très discrets pour faciliter le pliage sans casser le rendu.
+  doc.setDrawColor(225, 225, 225);
+  doc.setLineWidth(0.15);
+  doc.setLineDashPattern([1.2, 1.8], 0);
+  doc.line(PANEL_WIDTH, 4, PANEL_WIDTH, PAGE_HEIGHT - 4);
+  doc.line(PANEL_WIDTH * 2, 4, PANEL_WIDTH * 2, PAGE_HEIGHT - 4);
+  doc.setLineDashPattern([], 0);
 
   // FACE 1 — table.
   doc.setTextColor(...ink);
@@ -112,7 +120,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   doc.setFontSize(7);
   doc.setTextColor(...soft);
   doc.text("UN MOT  ·  UNE PHOTO  ·  UNE VIDÉO", centerX, 174, { align: "center" });
-  doc.text("MERCI D’ÊTRE LÀ", centerX, 190, { align: "center" });
+  doc.text("MERCI D’ÊTRE LÀ", centerX, 184, { align: "center" });
 
   // FACE 3 — musique, même grille verticale que Le Fil.
   doc.setTextColor(...ink);

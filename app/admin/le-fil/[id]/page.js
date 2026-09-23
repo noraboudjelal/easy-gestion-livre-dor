@@ -392,7 +392,7 @@ export default function EventFilAdminPage() {
                   width={104}
                   height={104}
                 />
-                <strong style={styles.previewScan}>SCANNEZ-MOI</strong>
+                <strong style={styles.previewScan}>SCANNEZ POUR PARTICIPER</strong>
               </div>
               <div className="fil-admin-preview-panel" style={styles.previewPanel}>
                 <span style={styles.previewLabel}>TABLE</span>

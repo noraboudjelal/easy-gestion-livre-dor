@@ -50,7 +50,7 @@ export function addTableCardPage(doc, event, table, qrData) {
   const qrY = 104;
   const qrSize = 42;
 
-  doc.setFillColor(255, 252, 246);
+  doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F");
 
 

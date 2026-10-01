@@ -12,9 +12,9 @@ export const metadata = {
 };
 
 const offers = [
-  {name:'Le Fil',price:'250 €',unit:'par événement',image:'/le-fil-mariage.png',alt:'Le Fil pour vos événements',details:'Réunissez les photos, vidéos et messages de vos invités dans une expérience personnalisée.',demo:'/demo-fil'},
-  {name:'Location de borne',price:'150 €',unit:'par événement',image:'/le-fil-souvenirs.png',alt:'Borne numérique pour événement',details:'Une borne numérique préparée pour faire participer vos invités ou vos visiteurs.',demo:'/demo-baby-shower'},
-  {name:'Système de ticket / file d’attente',price:'40 €',unit:'par événement ou par mois',image:'/vitrine-commerce.png',alt:'Système Lehnova Ticket',details:'Vos clients prennent un ticket par QR code et suivent simplement la file d’attente.',demo:'/demo-ticket-boucherie'},
+  {name:'Le Fil',price:'Sur devis',image:'/le-fil-mariage.png',alt:'Le Fil pour vos événements',details:'Réunissez les photos, vidéos et messages de vos invités dans une expérience personnalisée.',demo:'/demo-fil'},
+  {name:'Location de borne',price:'Sur devis',image:'/le-fil-souvenirs.png',alt:'Borne numérique pour événement',details:'Une borne numérique préparée pour faire participer vos invités ou vos visiteurs.',demo:'/demo-baby-shower'},
+  {name:'Système de ticket / file d’attente',price:'Sur devis',image:'/vitrine-commerce.png',alt:'Système Lehnova Ticket',details:'Vos clients prennent un ticket par QR code et suivent simplement la file d’attente.',demo:'/demo-ticket-boucherie'},
   {name:'Vitrine numérique',price:'Sur devis',image:'/page-artisan.png',alt:'Exemple de vitrine numérique',details:'Présentez votre activité, vos prestations et vos réalisations sur une page facile à consulter.',demo:'/demo-peintre'},
   {name:'Catalogue numérique avec stock et disponibilité',price:'Sur devis',image:'/vitrine-commerce.png',alt:'Exemple de catalogue numérique',details:'Affichez vos produits, leurs prix, leur stock ou leurs disponibilités depuis un seul lien.',demo:'/demo-epicerie'},
   {name:'Plaque NFC comptoir',price:'Sur devis',image:'/page-artisan-avant-apres.png',alt:'Plaque NFC pour comptoir professionnel',details:'Vos clients approchent leur téléphone ou scannent le QR code pour accéder directement à votre page.'},
@@ -46,7 +46,7 @@ export default function Home() {
             <p>{offer.details}</p>
             <div className={styles.actions}>
               {offer.demo && <a className={styles.secondary} href={offer.demo}>Voir un exemple</a>}
-              <a className={styles.primary} href={whatsappLink(offer.name)} target='_blank' rel='noreferrer'>Demander cette offre</a>
+              <a className={styles.primary} href={whatsappLink(offer.name)} target='_blank' rel='noreferrer'>Demander un devis</a>
             </div>
           </div>
         </details>)}

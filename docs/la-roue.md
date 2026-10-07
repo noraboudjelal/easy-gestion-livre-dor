@@ -9,6 +9,7 @@ Se connecter à `/gestion` avec le mot de passe administrateur existant, puis ou
 3. Renseigner les huit lots, puis cliquer sur **Enregistrer la roue**.
 4. Ouvrir ou copier le lien individuel `/la-roue/nom-du-commerce` dans la liste.
 5. Revenir à l'onglet et cliquer sur **Modifier les lots** pour reprendre une configuration sauvegardée.
+6. Pour retirer une roue, cliquer sur **Supprimer la roue**, puis confirmer. Ses lots sont supprimés et son ancien lien public affiche « Roue introuvable ». Les autres roues restent disponibles.
 
 Les données sont enregistrées dans `public.wheel_businesses`, indépendamment de Le Fil et des autres commerces. Les routes `/api/admin/wheels` utilisent `lib/admin/adminSession.js` et `getSupabaseAdmin()`. La table est protégée par RLS et ne donne aucun accès direct aux rôles navigateur. Les réglages sont accessibles uniquement avec la session administrateur existante.
 

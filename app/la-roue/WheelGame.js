@@ -46,7 +46,6 @@ export default function WheelGame({ lots, disabled = false, onSpinChange }) {
 
   return (
     <section className={styles.card} aria-label="Roue des lots">
-      <p className={styles.intro}>Huit lots, une surprise à chaque tour.</p>
       <div className={styles.stage}>
         <div className={styles.wheelWrap}>
           <div className={styles.pointer} aria-hidden="true" />
@@ -73,12 +72,8 @@ export default function WheelGame({ lots, disabled = false, onSpinChange }) {
         {spinning ? "🎡 Ça tourne…" : "🚀 Lancer la roue"}
       </button>
       <div aria-live="polite" aria-atomic="true">
-        {result !== null && !spinning && <div className={styles.result}><p>La roue a parlé</p><h2>{result}</h2></div>}
+        {result !== null && !spinning && <div className={styles.result}><h2>{result}</h2></div>}
       </div>
-      <details className={styles.lots}>
-        <summary>Voir les 8 lots</summary>
-        <ol>{lots.map((lot, index) => <li key={index}>{lot}</li>)}</ol>
-      </details>
     </section>
   );
 }

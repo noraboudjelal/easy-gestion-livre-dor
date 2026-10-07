@@ -20,9 +20,7 @@ export default async function CommerceWheel({ params }) {
   return <main className={styles.page}>
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.brand}>LEHNOVA</p>
-        <h1>La Roue</h1>
-        <p>{business.name}</p>
+        <h1>{business.name}</h1>
       </header>
       <WheelGame lots={business.lots} />
     </div>

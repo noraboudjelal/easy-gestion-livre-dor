@@ -1,5 +1,6 @@
 "use client";
 import TicketSettings from "./TicketSettings";
+import WheelManagement from "./WheelManagement";
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../lib/supabaseClient";
@@ -1008,7 +1009,7 @@ async function handleToggleTableSearch(ev) {
             <div>
               <p style={styles.brandKicker}>EASY GESTION TOULOUSE</p>
               <h1 style={styles.brandTitle}>
-                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : view === "vitrine" ? "Ma Page" : view === "tickets" ? "Mes Tickets" : "Suivi d'intervention"}
+                {view === "livres" ? "Mes livres d'or" : view === "catalogues" ? "Mes catalogues" : view === "vitrine" ? "Ma Page" : view === "tickets" ? "Mes Tickets" : view === "roue" ? "La Roue" : "Suivi d'intervention"}
               </h1>
             </div>
           </div>
@@ -1101,7 +1102,15 @@ async function handleToggleTableSearch(ev) {
           >
             Tickets
           </button>
+          <button
+            style={{ ...styles.tab, ...(view === "roue" ? styles.tabActive : {}) }}
+            onClick={() => setView("roue")}
+          >
+            La Roue
+          </button>
         </div>
+
+        {view === "roue" && <WheelManagement />}
 
         {view === "livres" && (
           <>

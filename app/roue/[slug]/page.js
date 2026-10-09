@@ -53,7 +53,7 @@ export default function CustomerWheel() {
   <h1>{wheel?.name || "La Roue"}</h1>
   {wheel && <>
    <p>Réservée aux clients ayant effectué un achat de {wheel.min_purchase} € minimum.</p>
-   <p>Une participation par jour et par navigateur · 1 chance sur {wheel.win_denominator} de gagner.</p>
+   <p>Une participation par jour et par navigateur.</p>
    <div style={{ position:"relative",width:"min(80vw,300px)",height:"min(80vw,300px)",margin:"28px auto" }}>
    <span aria-hidden="true" style={{position:"absolute",top:-15,left:"50%",transform:"translateX(-50%)",zIndex:2,color:"#795126",fontSize:26}}>▼</span>
    <div aria-label="Roue à huit lots" style={{position:"absolute",inset:0,border:"9px solid #b99560",borderRadius:"50%",background:"conic-gradient(#f6b7c4 0deg 45deg,#fff3dc 45deg 90deg,#f6b7c4 90deg 135deg,#fff3dc 135deg 180deg,#f6b7c4 180deg 225deg,#fff3dc 225deg 270deg,#f6b7c4 270deg 315deg,#fff3dc 315deg)",boxShadow:"0 8px 18px #e0c9c2",transform:`rotate(${angle}deg)`,transition:"transform 3s cubic-bezier(0.13,0.75,0.22,1)"}}>

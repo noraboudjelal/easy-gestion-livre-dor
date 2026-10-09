@@ -8,7 +8,7 @@ create table if not exists marketing_wheel_receipt_plays (
  won boolean not null,
  prize text,
  created_at timestamptz not null default now(),
- unique (wheel_id, play_day, receipt_hash)
+ unique (wheel_id, receipt_hash)
 );
 alter table marketing_wheel_receipt_plays enable row level security;
 -- No RLS policies: service-role calls only.
@@ -27,8 +27,8 @@ begin
  select mw.* into w from marketing_wheels mw where mw.slug = p_slug for update;
  if not found or not w.active then raise exception 'Roue indisponible'; end if;
  hashed := encode(digest(w.id::text || ':' || cleaned, 'sha256'), 'hex');
- if exists (select 1 from marketing_wheel_receipt_plays p where p.wheel_id = w.id and p.play_day = day_paris and p.receipt_hash = hashed) then
-   raise exception 'Ce ticket a déjà été utilisé aujourd''hui';
+ if exists (select 1 from marketing_wheel_receipt_plays p where p.wheel_id = w.id and p.receipt_hash = hashed) then
+   raise exception 'Ce ticket a déjà été utilisé';
  end if;
  if w.winners_count >= w.max_winners then raise exception 'Les cadeaux sont épuisés'; end if;
  result := floor(random() * w.win_denominator)::integer = 0;

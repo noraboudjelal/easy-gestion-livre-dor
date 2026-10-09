@@ -1002,6 +1002,7 @@ async function handleToggleTableSearch(ev) {
       `}</style>
 
       <div className="admin-shell" style={styles.shell}>
+        <a href="/admin/roue" style={{display:"inline-block",padding:"12px 18px",margin:"12px 0",borderRadius:12,background:"#c6a46a",color:"#38242e",fontWeight:700,textDecoration:"none"}}>🎡 Animation marketing · La Roue</a>
         <header style={styles.header}>
           <div style={styles.brandRow}>
             <span style={styles.logoMark}>LN</span>

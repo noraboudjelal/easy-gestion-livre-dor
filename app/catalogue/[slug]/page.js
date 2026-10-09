@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
+import ShowroomView from "./ShowroomView";
 import ActiveTicketBanner from '../../ticket/ActiveTicketBanner';
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -468,6 +469,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
   const accent = catalog?.accent_color || "#B5402D";
   const isShowroom = catalog?.catalog_kind === "showroom";
+  if (isShowroom && !categoryPages) return <ShowroomView catalog={catalog} products={products} transformations={transformations} />;
   const font = FONTS[catalog?.font_style] || FONTS.manuscrite;
   const groups = groupByCategory(products);
   const visibleGroups = categoryPages

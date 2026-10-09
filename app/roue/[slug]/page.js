@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 export default function CustomerWheel() {
- const { slug } = useParams(), search = useSearchParams(), token = search.get("token");
+ const { slug } = useParams();
+ const [token, setToken] = useState(null);
+ useEffect(() => { setToken(new URLSearchParams(window.location.search).get("token")); }, []);
  const [wheel, setWheel] = useState(null), [loading, setLoading] = useState(false), [angle, setAngle] = useState(0), [outcome, setOutcome] = useState(null), [error, setError] = useState("");
  useEffect(() => { fetch("/api/roue/" + encodeURIComponent(slug)).then(r => r.json()).then(d => { if (d.wheel) setWheel(d.wheel); else setError(d.error); }).catch(() => setError("Roue indisponible")); }, [slug]);
  async function spin() {

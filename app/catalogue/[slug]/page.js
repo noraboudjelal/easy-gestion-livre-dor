@@ -467,6 +467,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
   }
 
   const accent = catalog?.accent_color || "#B5402D";
+  const isShowroom = catalog?.catalog_kind === "showroom";
   const font = FONTS[catalog?.font_style] || FONTS.manuscrite;
   const groups = groupByCategory(products);
   const visibleGroups = categoryPages
@@ -493,7 +494,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
           <img src={catalog.cover_image_url} alt="" style={styles.coverImage} />
         )}
         <div style={{ ...styles.headerContent, ...(catalog?.cover_image_url ? styles.headerContentOnCover : {}) }}>
-          <p style={{ ...styles.eyebrow, color: catalog?.cover_image_url ? "#fff" : accent }}>MA VITRINE NUMÉRIQUE</p>
+          <p style={{ ...styles.eyebrow, color: catalog?.cover_image_url ? "#fff" : accent }}>{isShowroom ? "SHOWROOM NUMÉRIQUE · COLLECTIONS & RÉALISATIONS" : "MA VITRINE NUMÉRIQUE"}</p>
           <h1
             style={{
               ...styles.title,
@@ -508,6 +509,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
         </div>
       </header>
 
+      {!loading && isShowroom && <p style={{textAlign:"center",maxWidth:580,margin:"24px auto",padding:"0 20px",lineHeight:1.65,color:"#6b6257"}}>Explorez nos collections, découvrez nos réalisations et trouvez l’inspiration pour votre projet. Contactez-nous pour un conseil ou une demande de devis.</p>}
       {!loading && catalog?.offer_enabled && catalog?.offer_title && (
         <div style={{ ...styles.offerBanner, borderColor: accent }}>
           <p style={{ ...styles.offerEyebrow, color: accent }}>Offre du moment</p>
@@ -549,7 +551,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
         {!loading && products.length === 0 && (
           <div style={styles.empty}>
-            <p>Ce catalogue ne contient pas encore de produits.</p>
+            <p>{isShowroom ? "Les premières collections de ce showroom arrivent bientôt." : "Ce catalogue ne contient pas encore de produits."}</p>
           </div>
         )}
 
@@ -572,7 +574,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
       {!loading && catalog?.portfolio_photo_urls?.length > 0 && (
         <section style={styles.realisationsSection}>
-          <h2 style={{ ...styles.realisationsTitle, color: accent }}>À découvrir</h2>
+          <h2 style={{ ...styles.realisationsTitle, color: accent }}>{isShowroom ? "Nos réalisations & inspirations" : "À découvrir"}</h2>
           <div style={styles.realisationsScroller}>
             {catalog.portfolio_photo_urls.map((url, i) => (
               <img key={i} src={url} alt="Réalisation" style={styles.realisationsPhoto} loading="lazy" />

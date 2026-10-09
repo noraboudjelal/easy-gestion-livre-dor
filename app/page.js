@@ -45,6 +45,7 @@ export default function Home() {
           <div className={styles.details}>
             <p>{offer.details}</p>
             <div className={styles.actions}>
+              {offer.name === 'Plaque NFC comptoir' && <a className={styles.secondary} href='/plaques-nfc-toulouse'>Découvrir les plaques NFC</a>}
               {offer.demo && <a className={styles.secondary} href={offer.demo}>Voir un exemple</a>}
               <a className={styles.primary} href={whatsappLink(offer.name)} target='_blank' rel='noreferrer'>Demander un devis</a>
             </div>

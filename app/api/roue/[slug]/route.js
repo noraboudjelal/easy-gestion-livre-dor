@@ -5,7 +5,7 @@ import { requestHasValidOrigin } from "../../../../lib/admin/adminSession";
 export const dynamic = "force-dynamic";
 export async function GET(request, { params }) {
  const { data, error } = await getSupabaseAdmin().from("marketing_wheels")
- .select("name,slug,min_purchase,win_denominator,active").eq("slug", params.slug).maybeSingle();
+ .select("name,slug,min_purchase,win_denominator,lots,active").eq("slug", params.slug).maybeSingle();
  if (error || !data || !data.active) return NextResponse.json({ error: "Roue indisponible" }, { status: 404 });
  return NextResponse.json({ wheel: data });
 }

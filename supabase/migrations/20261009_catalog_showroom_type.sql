@@ -1,0 +1,1 @@
+alter table public.catalogs add column if not exists catalog_kind text not null default 'catalogue' check (catalog_kind in ('catalogue','showroom'));

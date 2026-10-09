@@ -1,0 +1,21 @@
+import Link from "next/link";
+const collections = [
+ {name:"Carrelage intérieur",category:"CARRELAGE",price:"À partir de 19,90 € / m²",image:"https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=900&q=85"},
+ {name:"Parquet effet chêne",category:"PARQUET",price:"Sur devis",image:"https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=85"},
+ {name:"Revêtements salle de bain",category:"SALLES DE BAIN",price:"Sur devis",image:"https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=900&q=85"},
+ {name:"Sols contemporains",category:"SOLS",price:"Sur devis",image:"https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=85"}
+];
+export const metadata={title:"Démo Showroom Rénovation | Lehnova",description:"Exemple de showroom numérique Lehnova pour magasins de revêtements de sol."};
+export default function DemoRenovation(){
+ return <main className="showroom">
+  <style>{`
+  .showroom{font-family:Arial,sans-serif;background:#fbfaf7;color:#2e2b28;min-height:100vh;max-width:900px;margin:auto}
+  .showroom *{box-sizing:border-box}.showroom .hero{min-height:460px;display:flex;flex-direction:column;justify-content:space-between;padding:28px;color:white;background:linear-gradient(180deg,#15120f44,#15120fbb),url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85') center/cover}
+  .showroom .eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:bold}.showroom h1{font:normal clamp(38px,7vw,67px) Georgia,serif;line-height:1.05;margin:12px 0}.showroom h2{font:normal 36px Georgia,serif;margin:8px 0 20px}.showroom p{line-height:1.7}.showroom .cta{display:inline-block;background:#c6a77e;color:#241d16;text-decoration:none;padding:14px 20px;border-radius:5px;font-weight:bold}.showroom section.content{padding:45px 22px}.showroom .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}.showroom .card{background:white;border:1px solid #e4ded4;border-radius:8px;overflow:hidden}.showroom .card img{width:100%;aspect-ratio:4/3;object-fit:cover}.showroom .desc{padding:14px}.showroom .desc small{color:#927657;letter-spacing:1px}.showroom .desc h3{font:normal 21px Georgia,serif;margin:8px 0}.showroom .foot{background:#2e2b28;color:white;padding:45px 22px;text-align:center}.showroom .foot .cta{margin-top:12px}@media(max-width:530px){.showroom .grid{gap:9px}.showroom .desc{padding:10px}.showroom .desc h3{font-size:17px}.showroom h2{font-size:29px}}
+  `}</style>
+  <section className="hero"><div className="eyebrow">MAISON & SOLS · EXEMPLE LEHNOVA</div><div><span className="eyebrow">SHOWROOM NUMÉRIQUE</span><h1>Imaginez votre intérieur autrement.</h1><p>Carrelage, parquet et inspirations pour vos projets de rénovation.</p><a className="cta" href="#collections">Découvrir nos collections ↓</a></div></section>
+  <section className="content" id="collections"><div className="eyebrow">Nos univers</div><h2>Les collections</h2><p>Explorez les styles, matières et finitions avant de venir en magasin.</p><div className="grid">{collections.map(c=><article className="card" key={c.name}><img loading="lazy" src={c.image} alt={c.name}/><div className="desc"><small>{c.category}</small><h3>{c.name}</h3><p>{c.price}</p></div></article>)}</div></section>
+  <section className="content" style={{background:"#ede8df"}}><div className="eyebrow">Inspirations</div><h2>Vos idées prennent forme</h2><p>Présentez ici vos véritables réalisations, photos de chantiers, ambiances et avant/après. Les photos, prix et coordonnées de cet exemple sont fictifs.</p></section>
+  <section className="foot"><span className="eyebrow">Un projet de rénovation ?</span><h2>Parlons de votre projet</h2><p>Dans un vrai showroom, ce bouton ouvrira le WhatsApp ou le formulaire de devis du commerçant.</p><Link className="cta" href="/catalogue-numerique-toulouse">Créer mon showroom avec Lehnova</Link><p style={{fontSize:12,opacity:.65,marginTop:28}}>Démonstration · Lehnova · Prix et visuels d'illustration</p></section>
+ </main>;
+}

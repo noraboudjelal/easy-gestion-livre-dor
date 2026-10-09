@@ -17,8 +17,8 @@ export default function CustomerWheel() {
  }
  return <main style={{ minHeight: "100vh", padding: 32, textAlign: "center", background: "#fbf1ee", color: "#463237", fontFamily: "system-ui" }}>
  <p>LEHNOVA · ANIMATION MARKETING</p><h1>{wheel?.name || "La Roue"}</h1>
- {wheel && <><p>Offerte après {wheel.min_purchase} € d'achat minimum</p>
- <div style={{ margin: "24px auto", width: 270, height: 270, borderRadius: "50%", border: "9px solid #b99560", background: "conic-gradient(#f6b7c4 0deg 45deg,#fff3dc 45deg 90deg,#f6b7c4 90deg 135deg,#fff3dc 135deg 180deg,#f6b7c4 180deg 225deg,#fff3dc 225deg 270deg,#f6b7c4 270deg 315deg,#fff3dc 315deg)", transform: "rotate(" + angle + "deg)", transition: "transform 3s ease-out", display: "grid", placeItems: "center", boxShadow: "0 5px 20px #d4bcb3" }}><span style={{ background: "white", padding: 12, borderRadius: 50 }}>🎁</span></div>
+ {wheel && <><p>Offerte après {wheel.min_purchase} € d'achat minimum · 1 chance sur {wheel.win_denominator} de gagner</p>
+ <div style={{ margin: "24px auto", width: 270, height: 270, borderRadius: "50%", border: "9px solid #b99560", background: `conic-gradient(#c6a46a 0deg ${360 / wheel.win_denominator}deg, #f6b7c4 ${360 / wheel.win_denominator}deg 360deg)`, transform: "rotate(" + angle + "deg)", transition: "transform 3s ease-out", display: "grid", placeItems: "center", boxShadow: "0 5px 20px #d4bcb3" }}><span style={{ background: "white", padding: 12, borderRadius: 50 }}>🎁</span></div>
  {!outcome ? <button disabled={loading || !token} onClick={spin} style={{ padding: "15px 30px", background: "#b99560", border: 0, borderRadius: 12, fontWeight: 700 }}>{loading ? "Tirage…" : "Faire tourner la roue"}</button> :
  <h2 role="status">{outcome.won ? "🎉 Bravo ! " + outcome.prize : "Pas gagné cette fois. Merci pour votre visite !"}</h2>}
  </>}

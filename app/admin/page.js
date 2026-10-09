@@ -94,6 +94,7 @@ export default function AdminPage() {
   const [catalogTitle, setCatalogTitle] = useState("");
   const [catalogColor, setCatalogColor] = useState("#B5402D");
   const [catalogFont, setCatalogFont] = useState("manuscrite");
+  const [catalogKind, setCatalogKind] = useState("catalogue");
   const [creatingCatalog, setCreatingCatalog] = useState(false);
   const [copiedCatalogId, setCopiedCatalogId] = useState(null);
 
@@ -672,7 +673,9 @@ async function handleToggleTableSearch(ev) {
       catalog_title: catalogTitle.trim(),
       slug,
       accent_color: catalogColor,
-      font_style: catalogFont,
+      font_style: catalogKind === "showroom" ? "elegante" : catalogFont,
+      catalog_kind: catalogKind,
+      avant_apres_enabled: catalogKind === "showroom",
       client_password: clientAccessCode(),
     });
     setCreatingCatalog(false);
@@ -684,6 +687,7 @@ async function handleToggleTableSearch(ev) {
     setCatalogTitle("");
     setCatalogColor("#B5402D");
     setCatalogFont("manuscrite");
+    setCatalogKind("catalogue");
     setShowCatalogForm(false);
     loadCatalogs();
   }
@@ -1019,7 +1023,7 @@ async function handleToggleTableSearch(ev) {
           )}
           {view === "catalogues" && (
             <button style={styles.newButton} onClick={() => setShowCatalogForm(true)}>
-              + Nouveau catalogue
+              + Catalogue / Showroom
             </button>
           )}
           {view === "vitrine" && (
@@ -1723,7 +1727,13 @@ async function handleToggleTableSearch(ev) {
             {showCatalogForm && (
               <div style={styles.modalOverlay} onClick={() => setShowCatalogForm(false)}>
                 <form style={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={handleCreateCatalog}>
-                  <h2 style={styles.modalTitle}>Créer un catalogue</h2>
+                  <h2 style={styles.modalTitle}>Créer un catalogue ou un showroom</h2>
+                  <label style={styles.label}>Type de présentation
+                    <select style={styles.input} value={catalogKind} onChange={(e) => { setCatalogKind(e.target.value); if (e.target.value === "showroom") { setCatalogColor("#85745E"); setCatalogFont("elegante"); setCatalogTitle("Nos collections et réalisations"); } }}>
+                      <option value="catalogue">Catalogue de produits</option>
+                      <option value="showroom">Showroom numérique · rénovation, décoration, sols</option>
+                    </select>
+                  </label>
                   <label style={styles.label}>
                     Nom du client
                     <input
@@ -1828,7 +1838,7 @@ async function handleToggleTableSearch(ev) {
                       <tr className="row" key={cat.id}>
                         <td style={styles.td}>
                           <strong>{cat.client}</strong>
-                          <div style={styles.subText}>{cat.catalog_title}</div>
+                          <div style={styles.subText}>{cat.catalog_kind === "showroom" ? "🏠 Showroom · " : ""}{cat.catalog_title}</div>
                         </td>
                         <td style={styles.td}>
                           <div style={styles.linkRow}>

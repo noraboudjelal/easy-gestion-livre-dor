@@ -44,6 +44,7 @@ export default function ManageCatalogPage() {
   const [accentColor, setAccentColor] = useState("#B5402D");
   const [fontStyle, setFontStyle] = useState("manuscrite");
   const [catalogTitle, setCatalogTitle] = useState("");
+  const [showroomContent, setShowroomContent] = useState({});
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleSaved, setStyleSaved] = useState(false);
   const [coverImageUrl, setCoverImageUrl] = useState("");
@@ -107,6 +108,7 @@ export default function ManageCatalogPage() {
     setCatalog(cat);
     setAccentColor(cat.accent_color || "#B5402D");
     setCatalogTitle(cat.catalog_title || "");
+    setShowroomContent(cat.showroom_content || {});
     setFontStyle(cat.font_style || "manuscrite");
     setCoverImageUrl(cat.cover_image_url || "");
     setCoverPreview("");
@@ -322,7 +324,7 @@ export default function ManageCatalogPage() {
     setSavingStyle(true);
     const { error } = await supabase
       .from("catalogs")
-      .update({ accent_color: accentColor, font_style: fontStyle, catalog_title: catalogTitle.trim() })
+      .update({ accent_color: accentColor, font_style: fontStyle, catalog_title: catalogTitle.trim(), ...(catalog?.catalog_kind === "showroom" ? {showroom_content: showroomContent} : {}) })
       .eq("id", catalogId);
     setSavingStyle(false);
     if (error) {
@@ -871,6 +873,27 @@ export default function ManageCatalogPage() {
                 placeholder="ex. Nos soins, Notre carte, Nos prestations…"
               />
             </label>
+            {catalog.catalog_kind === "showroom" && <div style={{padding:"20px",background:"#f8f5ef",border:"1px solid #ddd4c7",borderRadius:12,marginBottom:20}}>
+              <h3 style={{margin:"0 0 8px",fontFamily:"Georgia,serif",fontSize:24}}>Textes du showroom luxe</h3>
+              <p style={{fontSize:13,color:"#665f56",lineHeight:1.6}}>Écris simplement tes textes ici : ils apparaîtront dans le modèle, avec la même police et la même mise en page. Les photos se changent dans les rubriques couverture, produits et réalisations ci-dessous.</p>
+              {[
+                ["heroEyebrow","Petit bandeau sur la grande photo","L’art de vivre les matières"],
+                ["heroDescription","Description sous le grand titre","Des collections singulières, des textures inspirantes et des réalisations qui donnent vie à vos idées."],
+                ["heroButton","Bouton sur la grande photo","Découvrir nos univers"],
+                ["introEyebrow","Petit bandeau de présentation","Une expérience pensée pour vous"],
+                ["introTitle","Grand titre de présentation","La matière devient inspiration."],
+                ["introDescription","Texte de présentation","Parcourez nos univers, découvrez les détails de chaque collection et imaginez votre prochain espace."],
+                ["universTitle","Titre de la rubrique univers","Nos univers."],
+                ["collectionsTitle","Titre de la rubrique collections","Les collections."],
+                ["projectsTitle","Titre des réalisations","Des lieux, des histoires."],
+                ["contactEyebrow","Petit bandeau contact","Parlons de votre projet"],
+                ["contactTitle","Grand titre de contact","Et si tout commençait ici ?"],
+                ["contactDescription","Texte de contact","Une collection vous inspire ? Échangeons sur vos envies."]
+              ].map(([key,label,placeholder])=><label key={key} style={{display:"block",margin:"15px 0",fontSize:13,fontWeight:600}}>{label}
+                {["heroDescription","introDescription","contactDescription"].includes(key)?<textarea style={{...styles.input,minHeight:75,marginTop:6}} value={showroomContent[key]??""} placeholder={placeholder} onChange={e=>setShowroomContent(v=>({...v,[key]:e.target.value}))}/>:<input style={{...styles.input,marginTop:6}} value={showroomContent[key]??""} placeholder={placeholder} onChange={e=>setShowroomContent(v=>({...v,[key]:e.target.value}))}/>}
+              </label>)}
+              <p style={{fontSize:12,color:"#786f61"}}>Un champ vide utilise le texte d’exemple. Clique sur « Enregistrer l’apparence » pour appliquer tes changements.</p>
+            </div>}
             <div style={styles.coverField}>
               <span style={styles.label}>Photo de couverture</span>
               {(coverPreview || coverImageUrl) && (

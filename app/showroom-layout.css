@@ -1,0 +1,99 @@
+/* Shared geometry for the demo and every catalog using ShowroomView.
+   Keep colors, typography and imagery in each showroom's existing styles. */
+.showroom-layout {
+  --showroom-width: 980px;
+  --showroom-gutter: clamp(20px, 3vw, 28px);
+  --showroom-section-space: clamp(36px, 5vw, 44px);
+  --showroom-gap: 16px;
+}
+.showroom-layout.sr,
+.showroom-layout.showroom {
+  width: 100%;
+  max-width: var(--showroom-width);
+  margin-inline: auto;
+}
+.showroom-layout.showroom { --showroom-width: 900px; }
+.showroom-layout *, .showroom-layout *::before, .showroom-layout *::after { box-sizing: border-box; }
+.showroom-layout.sr .hero,
+.showroom-layout.showroom .hero,
+.showroom-layout.sr section.body,
+.showroom-layout.showroom section.content,
+.showroom-layout.sr .foot,
+.showroom-layout.showroom .foot {
+  padding-inline: var(--showroom-gutter);
+  text-align: left;
+}
+.showroom-layout.sr section.body,
+.showroom-layout.showroom section.content,
+.showroom-layout.sr .foot,
+.showroom-layout.showroom .foot {
+  padding-block: var(--showroom-section-space);
+}
+.showroom-layout.sr .hero,
+.showroom-layout.showroom .hero { gap: 32px; }
+.showroom-layout.sr h2,
+.showroom-layout.showroom h2 { margin: 10px 0 18px; }
+.showroom-layout.sr p,
+.showroom-layout.showroom p { margin: 0 0 18px; }
+.showroom-layout.sr .grid,
+.showroom-layout.showroom .grid,
+.showroom-layout.sr .pictures {
+  gap: var(--showroom-gap);
+  align-items: stretch;
+}
+.showroom-layout.sr .item,
+.showroom-layout.showroom .card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.showroom-layout.sr button.item {
+  padding: 0;
+  font: inherit;
+  justify-content: flex-start;
+}
+.showroom-layout.sr .item > img,
+.showroom-layout.showroom .card > img,
+.showroom-layout.sr .pictures img { display: block; flex-shrink: 0; }
+.showroom-layout.sr .desc,
+.showroom-layout.showroom .desc {
+  flex: 1;
+  min-width: 0;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}
+.showroom-layout.sr .desc > strong,
+.showroom-layout.showroom .desc > p { margin: auto 0 0; padding-top: 8px; }
+.showroom-layout.sr .cta,
+.showroom-layout.showroom .cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  max-width: 100%;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.showroom-layout.sr .foot .cta,
+.showroom-layout.showroom .foot .cta { margin-top: 0; }
+.showroom-layout .showroom-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-start; }
+.showroom-layout.sr .modalContent { display: flex; flex-direction: column; gap: 18px; }
+.showroom-layout.sr .modalContent .close { float: none; align-self: flex-end; }
+.showroom-layout.sr .modalContent h2,
+.showroom-layout.sr .modalContent p { margin: 0; }
+.showroom-layout.sr .modalContent img { display: block; }
+.showroom-layout.sr .hero > *,
+.showroom-layout.showroom .hero > * { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 540px) {
+  .showroom-layout { --showroom-gap: 12px; }
+  .showroom-layout.sr .desc,
+  .showroom-layout.showroom .desc { padding: 12px; }
+}
+@media (max-width: 380px) {
+  .showroom-layout.sr .grid,
+  .showroom-layout.showroom .grid,
+  .showroom-layout.sr .pictures { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,4 +1,5 @@
 import "./lehnova-game-cards.css";
+import "./showroom-layout.css";
 
 export const metadata = {
   title: "Lehnova — Supports numériques personnalisés",

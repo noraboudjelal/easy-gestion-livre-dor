@@ -42,7 +42,7 @@ export default function ShowroomView({catalog,products=[],transformations=[]}){
  .atelier .products{padding:105px clamp(22px,7vw,110px);background:#ebe8e1}.atelier .products-inner{max-width:1260px;margin:auto}
  .atelier .group{scroll-margin-top:25px;margin-top:72px}.atelier .group h3{font-size:36px;margin:0 0 28px;border-top:1px solid #c8c2b8;padding-top:25px}
  .atelier .product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
- .atelier .product{border:0;background:none;padding:0;text-align:left;cursor:pointer;color:inherit;min-width:0}
+ .atelier .product{border:0;background:none;padding:0;text-align:left;cursor:pointer;color:inherit;min-width:0;display:flex;flex-direction:column;height:100%;align-self:stretch}.atelier .product .visual{width:100%}.atelier .product h4{width:100%;overflow-wrap:anywhere;hyphens:auto;line-height:1.3;min-height:2.6em;margin-bottom:10px}.atelier .product small{margin-top:auto}
  .atelier .product .visual{width:100%;aspect-ratio:4/5;overflow:hidden;background:#d9d3c9;display:grid;place-items:center;color:#6e685d}
  .atelier .product img{width:100%;height:100%;object-fit:cover;transition:transform .5s}.atelier .product:hover img{transform:scale(1.05)}
  .atelier .product h4{font:normal 25px Georgia,serif;margin:16px 0 6px}.atelier .product small{color:#6b675f;font-size:12px}

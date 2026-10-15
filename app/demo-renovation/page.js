@@ -7,7 +7,7 @@ const collections = [
 ];
 export const metadata={title:"Démo Showroom Rénovation | Lehnova",description:"Exemple de showroom numérique Lehnova pour magasins de revêtements de sol."};
 export default function DemoRenovation(){
- return <main className="showroom">
+ return <main className="showroom showroom-layout">
   <style>{`
   .showroom{font-family:Arial,sans-serif;background:#fbfaf7;color:#2e2b28;min-height:100vh;max-width:900px;margin:auto}
   .showroom *{box-sizing:border-box}.showroom .hero{min-height:460px;display:flex;flex-direction:column;justify-content:space-between;padding:28px;color:white;background:linear-gradient(180deg,#15120f44,#15120fbb),url('https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=85') center/cover}

@@ -1,98 +1,75 @@
 "use client";
-import { useEffect, useState } from "react";
-
-const imageOf = (p) => p.photo_urls?.[0] || p.photo_url || "";
-const safeLink = (url) => /^https?:\/\//i.test(url || "") ? url : null;
-const slug = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
-export default function ShowroomView({ catalog, products = [], transformations = [] }) {
-  const [selected, setSelected] = useState(null);
-  const [photoIndex, setPhotoIndex] = useState(0);
-  const accent = catalog.accent_color || "#85745E";
-  const groups = [...new Set(products.map(p => p.category?.trim() || "Collections"))];
-  const contact = safeLink(catalog.instagram_url) || safeLink(catalog.facebook_url);
-  const contactLabel = safeLink(catalog.instagram_url) ? "Écrire sur Instagram" : "Nous contacter";
-  const gallery = selected ? (selected.photo_urls?.length ? selected.photo_urls : [selected.photo_url]).filter(Boolean) : [];
-  useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") setSelected(null); }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-  const openProduct = (p) => { setSelected(p); setPhotoIndex(0); };
-
-  return <main className="premium-showroom" style={{"--accent":accent}}>
-    <style>{`
-      .premium-showroom{font-family:Arial,Helvetica,sans-serif;background:#faf9f6;color:#282722;min-height:100vh}
-      .premium-showroom *{box-sizing:border-box}.premium-showroom a{color:inherit}
-      .premium-showroom .wrap{max-width:1220px;margin:auto;padding:0 28px}
-      .premium-showroom .top{background:#fdfcf9;border-bottom:1px solid #e9e5dd}
-      .premium-showroom .top .wrap{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-      .premium-showroom .brand{font:500 19px Georgia,serif;letter-spacing:.02em;overflow-wrap:anywhere}
-      .premium-showroom .toplink{font-size:11px;text-transform:uppercase;letter-spacing:1.8px;text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:5px;white-space:nowrap}
-      .premium-showroom .hero{position:relative;min-height:620px;background:#37342e center/cover no-repeat;display:flex;align-items:end;color:white}
-      .premium-showroom .hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(22,21,19,.76),rgba(22,21,19,.17)),linear-gradient(0deg,rgba(20,19,18,.5),transparent 65%)}
-      .premium-showroom .hero-inner{position:relative;width:100%;padding-top:100px;padding-bottom:90px}
-      .premium-showroom .eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:600}
-      .premium-showroom h1,.premium-showroom h2,.premium-showroom h3{font-family:Georgia,"Times New Roman",serif;font-weight:400}
-      .premium-showroom h1{font-size:clamp(42px,6vw,86px);line-height:1.06;max-width:760px;margin:22px 0;overflow-wrap:anywhere}
-      .premium-showroom .hero p{max-width:500px;line-height:1.8;font-size:16px;color:#eee8df}
-      .premium-showroom .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:white;text-decoration:none;border:1px solid var(--accent);padding:17px 24px;font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer}
-      .premium-showroom .hero .btn{margin-top:20px;background:#f8f6f0;border-color:#f8f6f0;color:#282722}
-      .premium-showroom .section{padding:88px 0}.premium-showroom .section-alt{background:#efede7}
-      .premium-showroom .section-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:36px}
-      .premium-showroom h2{font-size:clamp(35px,4vw,56px);margin:12px 0;line-height:1.12}
-      .premium-showroom .muted{color:#6c695f;line-height:1.8;max-width:590px}
-      .premium-showroom .category-nav{display:flex;gap:9px;overflow-x:auto;padding:0 0 20px;scrollbar-width:thin}
-      .premium-showroom .category-nav a{border:1px solid #d7d2c7;text-decoration:none;white-space:nowrap;padding:12px 18px;font-size:12px;letter-spacing:.5px}
-      .premium-showroom .category-title{font-size:29px;margin:38px 0 24px}
-      .premium-showroom .product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
-      .premium-showroom .product{padding:0;border:0;background:none;text-align:left;cursor:pointer;color:inherit;font:inherit;min-width:0}
-      .premium-showroom .photo-frame{aspect-ratio:4/5;background:#e9e6de;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#777168}
-      .premium-showroom .photo-frame img{width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
-      .premium-showroom .product:hover img{transform:scale(1.045)}
-      .premium-showroom .product-info{padding:18px 2px 4px}
-      .premium-showroom .product-info h3{font-size:23px;margin:8px 0;line-height:1.3}
-      .premium-showroom .product-info small{color:#847c6d;font-size:10px;letter-spacing:1.8px;text-transform:uppercase}
-      .premium-showroom .product-info .price{font-size:13px;color:#59544b}
-      .premium-showroom .portfolio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
-      .premium-showroom .portfolio img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block}
-      .premium-showroom .before-after{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-      .premium-showroom .transformation{background:#fff;padding:12px}
-      .premium-showroom .pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-      .premium-showroom .pair figure{margin:0}.premium-showroom .pair img{width:100%;aspect-ratio:3/4;object-fit:cover}
-      .premium-showroom .pair figcaption{padding:8px 0;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
-      .premium-showroom .transformation p{padding:0 8px;font-family:Georgia,serif;font-size:20px}
-      .premium-showroom .footer{background:#292822;color:#fff;text-align:center;padding:92px 20px}
-      .premium-showroom .footer h2{max-width:720px;margin:20px auto;font-size:clamp(40px,5vw,65px)}
-      .premium-showroom .footer p{color:#d1cec5;line-height:1.8}
-      .premium-showroom .footer-links{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:30px 0}
-      .premium-showroom .footer-links a{border:1px solid #8a867c;padding:13px 18px;text-decoration:none;font-size:12px}
-      .premium-showroom .credit{font-size:11px;opacity:.55;margin-top:52px}
-      .premium-showroom .overlay{position:fixed;z-index:1000;inset:0;background:rgba(16,15,13,.8);display:flex;align-items:center;justify-content:center;padding:20px}
-      .premium-showroom .dialog{background:#faf9f6;width:min(920px,100%);max-height:94vh;overflow-y:auto;position:relative;padding:30px}
-      .premium-showroom .close{position:absolute;right:16px;top:14px;border:0;background:#e9e6df;padding:11px 15px;cursor:pointer}
-      .premium-showroom .dialog-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:center}
-      .premium-showroom .dialog-img{width:100%;max-height:60vh;aspect-ratio:4/5;object-fit:contain;background:#e9e6df}
-      .premium-showroom .gallery-controls{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-      .premium-showroom .gallery-controls button{border:1px solid #d7d2c7;background:transparent;padding:10px 15px;cursor:pointer}
-      .premium-showroom .dialog h2{font-size:38px}
-      .premium-showroom .dialog p{white-space:pre-wrap;line-height:1.8;color:#69655c}
-      @media(max-width:760px){.premium-showroom .wrap{padding:0 19px}.premium-showroom .top .wrap{min-height:64px}.premium-showroom .brand{font-size:16px}.premium-showroom .hero{min-height:540px}.premium-showroom .hero-inner{padding-top:70px;padding-bottom:70px}.premium-showroom .section{padding:62px 0}.premium-showroom .section-head{display:block}.premium-showroom .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.premium-showroom .product-info h3{font-size:18px}.premium-showroom .portfolio{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.premium-showroom .before-after{grid-template-columns:1fr}.premium-showroom .dialog{padding:22px}.premium-showroom .dialog-grid{grid-template-columns:1fr;gap:12px}.premium-showroom .dialog-img{max-height:42vh}}
-      @media(prefers-reduced-motion:reduce){.premium-showroom .photo-frame img{transition:none}}
-    `}</style>
-    <header className="top"><div className="wrap"><span className="brand">{catalog.client}</span><a className="toplink" href="#collections">Explorer les collections ↗</a></div></header>
-    <section className="hero" style={{backgroundImage:catalog.cover_image_url ? `url("${catalog.cover_image_url}")` : "linear-gradient(125deg,#33302a,#958571)"}}>
-      <div className="wrap hero-inner"><div className="eyebrow">Collections · Inspirations · Réalisations</div><h1>{catalog.catalog_title || catalog.client}</h1><p>Découvrez des matières, des idées et des réalisations pour imaginer votre prochain projet.</p><a className="btn" href="#collections">Explorer le showroom ↓</a></div>
-    </section>
-    {catalog.offer_enabled && catalog.offer_title && <section className="section section-alt"><div className="wrap"><span className="eyebrow">À découvrir</span><h2>{catalog.offer_title}</h2>{catalog.offer_text && <p className="muted">{catalog.offer_text}</p>}</div></section>}
-    <section className="section" id="collections"><div className="wrap"><div className="section-head"><div><span className="eyebrow">Sélection & savoir-faire</span><h2>Nos collections</h2><p className="muted">Explorez les matières, les finitions et les inspirations.</p></div><span className="eyebrow">{products.length} référence{products.length > 1 ? "s" : ""}</span></div>
-      {groups.length > 1 && <nav className="category-nav" aria-label="Catégories">{groups.map((group,i)=><a key={group} href={`#collection-${slug(group)}-${i}`}>{group}</a>)}</nav>}
-      {!products.length && <p className="muted">Les premières collections arrivent bientôt.</p>}
-      {groups.map((group,i)=><div key={group} id={`collection-${slug(group)}-${i}`}><h3 className="category-title">{group}</h3><div className="product-grid">{products.filter(p=>(p.category?.trim()||"Collections")===group).map(p=><button type="button" className="product" key={p.id} onClick={()=>openProduct(p)} aria-label={`Voir ${p.name}`}><div className="photo-frame">{imageOf(p) ? <img src={imageOf(p)} alt={p.name} loading="lazy"/> : "Photo à venir"}</div><div className="product-info"><small>{group}</small><h3>{p.name}</h3>{p.price && <div className="price">{p.price}</div>}</div></button>)}</div></div>)}
-    </div></section>
-    {catalog.portfolio_photo_urls?.length > 0 && <section className="section section-alt"><div className="wrap"><span className="eyebrow">Le sens du détail</span><h2>Nos réalisations</h2><p className="muted">Une sélection de projets et d'ambiances.</p><div className="portfolio">{catalog.portfolio_photo_urls.map((url,i)=><img src={url} alt={`Réalisation ${i+1}`} key={i} loading="lazy"/>)}</div></div></section>}
-    {transformations.length > 0 && <section className="section"><div className="wrap"><span className="eyebrow">Notre savoir-faire</span><h2>Avant & après</h2><p className="muted">Découvrez la transformation de nos espaces.</p><div className="before-after">{transformations.map(t=><div className="transformation" key={t.id}><div className="pair">{t.before_url && <figure><img src={t.before_url} alt={`Avant : ${t.label || "transformation"}`} loading="lazy"/><figcaption>Avant</figcaption></figure>}{t.after_url && <figure><img src={t.after_url} alt={`Après : ${t.label || "transformation"}`} loading="lazy"/><figcaption>Après</figcaption></figure>}</div>{t.label && <p>{t.label}</p>}</div>)}</div></div></section>}
-    <footer className="footer" id="contact"><div className="eyebrow">Votre prochain projet commence ici</div><h2>Imaginons votre projet ensemble.</h2><p>Une question sur une collection ? Contactez directement notre équipe.</p>{contact && <a className="btn" href={contact} target="_blank" rel="noopener noreferrer">{contactLabel} ↗</a>}<div className="footer-links">{safeLink(catalog.instagram_url) && <a href={catalog.instagram_url} target="_blank" rel="noopener noreferrer">Instagram ↗</a>}{safeLink(catalog.facebook_url) && <a href={catalog.facebook_url} target="_blank" rel="noopener noreferrer">Facebook ↗</a>}{safeLink(catalog.google_review_url) && <a href={catalog.google_review_url} target="_blank" rel="noopener noreferrer">Avis Google ↗</a>}</div><div className="credit">Showroom réalisé par Lehnova</div></footer>
-    {selected && <div className="overlay" onClick={()=>setSelected(null)} role="presentation"><div className="dialog" role="dialog" aria-modal="true" aria-label={selected.name} onClick={e=>e.stopPropagation()}><button className="close" type="button" onClick={()=>setSelected(null)} aria-label="Fermer">✕</button><div className="dialog-grid"><div>{gallery.length > 0 ? <><img className="dialog-img" src={gallery[photoIndex]} alt={`${selected.name} — photo ${photoIndex+1}`}/>{gallery.length > 1 && <div className="gallery-controls"><button type="button" onClick={()=>setPhotoIndex((photoIndex-1+gallery.length)%gallery.length)}>← Précédente</button><span>{photoIndex+1} / {gallery.length}</span><button type="button" onClick={()=>setPhotoIndex((photoIndex+1)%gallery.length)}>Suivante →</button></div>}</> : <div className="photo-frame">Photo à venir</div>}</div><div><span className="eyebrow">{selected.category || "Collection"}</span><h2>{selected.name}</h2>{selected.description && <p>{selected.description}</p>}{selected.price && <p><strong>{selected.price}</strong></p>}{contact && <a className="btn" href={contact} target="_blank" rel="noopener noreferrer">Se renseigner ↗</a>}</div></div></div></div>}
-  </main>;
+import {useEffect,useState} from "react";
+const image=p=>p.photo_urls?.[0]||p.photo_url||"";
+const link=v=>/^https?:\/\//i.test(v||"")?v:null;
+export default function ShowroomView({catalog,products=[],transformations=[]}){
+ const [active,setActive]=useState(null),[photo,setPhoto]=useState(0),[menu,setMenu]=useState(false);
+ const groups=[...new Set(products.map(p=>p.category?.trim()||"Collection"))];
+ const cover=catalog.cover_image_url||image(products.find(p=>image(p))||{});
+ const heroImages=[cover,...products.map(image),...(catalog.portfolio_photo_urls||[])].filter(Boolean);
+ const primary=link(catalog.instagram_url)||link(catalog.facebook_url);
+ const primaryLabel=link(catalog.instagram_url)?"Écrire sur Instagram":"Nous contacter";
+ const gallery=active?(active.photo_urls?.length?active.photo_urls:[active.photo_url]).filter(Boolean):[];
+ useEffect(()=>{const fn=e=>{if(e.key==="Escape")setActive(null)};window.addEventListener("keydown",fn);return()=>window.removeEventListener("keydown",fn)},[]);
+ return <main className="atelier" style={{"--tone":catalog.accent_color||"#a68c73"}}>
+ <style>{`
+ .atelier{background:#f7f5f0;color:#22231f;font-family:Arial,Helvetica,sans-serif;min-height:100vh}.atelier *{box-sizing:border-box}.atelier a{color:inherit}.atelier button{font:inherit}
+ .atelier .nav{height:88px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,5vw,88px);background:#f7f5f0;position:relative;z-index:5}
+ .atelier .brand{font:normal 25px Georgia,serif;letter-spacing:-.7px;max-width:55%;overflow-wrap:anywhere}
+ .atelier .navlinks{display:flex;gap:33px;align-items:center}.atelier .navlinks a{text-decoration:none;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+ .atelier .navlinks .outline{border:1px solid #2c2b28;padding:15px 20px}.atelier .ey{font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:600}
+ .atelier h1,.atelier h2,.atelier h3{font-family:Georgia,"Times New Roman",serif;font-weight:400}.atelier .hero{position:relative;min-height:690px;background:#4c4942 center/cover no-repeat;color:white;display:flex;align-items:center}
+ .atelier .hero:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,15,13,.76) 0%,rgba(12,15,13,.38) 58%,rgba(12,15,13,.07) 100%)}
+ .atelier .hero-inner{position:relative;z-index:1;width:min(1260px,100%);margin:auto;padding:95px clamp(22px,7vw,110px)}
+ .atelier .hero h1{font-size:clamp(58px,8vw,124px);letter-spacing:-3.5px;line-height:.99;max-width:880px;margin:26px 0 28px}
+ .atelier .hero p{max-width:500px;font-size:16px;line-height:1.9;color:#f0eee9}
+ .atelier .line-btn{display:inline-flex;align-items:center;gap:30px;padding:17px 0;border-bottom:1px solid currentColor;text-decoration:none;text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:700;margin-top:23px}
+ .atelier .index{display:flex;gap:14px;align-items:center;position:absolute;bottom:32px;right:clamp(22px,7vw,110px);z-index:1;font-size:11px;letter-spacing:2px}
+ .atelier .intro{padding:110px clamp(22px,7vw,110px);display:grid;grid-template-columns:1fr 1.3fr;gap:9%;align-items:start;max-width:1480px;margin:auto}
+ .atelier .intro h2{font-size:clamp(38px,5vw,73px);line-height:1.1;letter-spacing:-1.8px;margin:0}.atelier .intro p{font-size:17px;line-height:1.95;color:#68675f;max-width:570px;margin:0}
+ .atelier .collection-section{padding:30px clamp(22px,7vw,110px) 120px;max-width:1480px;margin:auto}.atelier .section-title{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:50px}
+ .atelier .section-title h2{font-size:clamp(45px,6vw,86px);letter-spacing:-2.5px;margin:8px 0}.atelier .count{font-size:12px;letter-spacing:1px;color:#77736b}
+ .atelier .universes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+ .atelier .universe{position:relative;display:block;min-height:510px;background:#d7d1c6;overflow:hidden;text-decoration:none;color:white}
+ .atelier .universe:nth-child(3n+1){grid-column:span 2;min-height:580px}
+ .atelier .universe img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;transition:transform .7s ease}
+ .atelier .universe:hover img{transform:scale(1.04)}.atelier .universe:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(15,17,15,.72),transparent 65%)}
+ .atelier .universe .label{position:absolute;z-index:1;bottom:40px;left:45px;right:35px;display:flex;align-items:end;justify-content:space-between;gap:15px}
+ .atelier .universe h3{font-size:clamp(31px,4vw,58px);margin:10px 0 0}.atelier .arrow{font-size:30px}
+ .atelier .products{padding:105px clamp(22px,7vw,110px);background:#ebe8e1}.atelier .products-inner{max-width:1260px;margin:auto}
+ .atelier .group{scroll-margin-top:25px;margin-top:72px}.atelier .group h3{font-size:36px;margin:0 0 28px;border-top:1px solid #c8c2b8;padding-top:25px}
+ .atelier .product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+ .atelier .product{border:0;background:none;padding:0;text-align:left;cursor:pointer;color:inherit;min-width:0}
+ .atelier .product .visual{width:100%;aspect-ratio:4/5;overflow:hidden;background:#d9d3c9;display:grid;place-items:center;color:#6e685d}
+ .atelier .product img{width:100%;height:100%;object-fit:cover;transition:transform .5s}.atelier .product:hover img{transform:scale(1.05)}
+ .atelier .product h4{font:normal 25px Georgia,serif;margin:16px 0 6px}.atelier .product small{color:#6b675f;font-size:12px}
+ .atelier .editorial{padding:110px clamp(22px,7vw,110px);max-width:1480px;margin:auto}.atelier .editorial h2{font-size:clamp(45px,6vw,83px);margin:12px 0 45px}
+ .atelier .photo-wall{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:start}.atelier .photo-wall img{width:100%;object-fit:cover;display:block;aspect-ratio:4/5}
+ .atelier .photo-wall img:nth-child(even){margin-top:100px;aspect-ratio:3/4}
+ .atelier .compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:35px}
+ .atelier .compare .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}.atelier .compare img{width:100%;aspect-ratio:3/4;object-fit:cover}
+ .atelier .compare figure{margin:0}.atelier .compare figcaption{font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-top:12px}
+ .atelier .compare h3{font-size:26px}.atelier .final{background:#22241f;color:#f6f4ee;text-align:center;padding:130px 25px}
+ .atelier .final h2{font-size:clamp(55px,8vw,110px);letter-spacing:-3px;line-height:1.05;max-width:1000px;margin:25px auto}
+ .atelier .final p{color:#c7c6bd;line-height:1.8}.atelier .socials{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin-top:35px}.atelier .socials a{font-size:12px;text-decoration:none;border-bottom:1px solid #777;padding-bottom:7px}
+ .atelier .credit{font-size:11px;opacity:.5;margin-top:95px}.atelier .modal{position:fixed;z-index:100;inset:0;background:#161713dc;display:grid;place-items:center;padding:15px}
+ .atelier .dialog{position:relative;background:#f7f5f0;width:min(1000px,100%);max-height:95vh;overflow:auto;padding:35px}
+ .atelier .close{position:absolute;top:12px;right:12px;border:0;background:#e2ded5;padding:12px 15px;cursor:pointer}
+ .atelier .detail{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;align-items:center}.atelier .detail img{width:100%;height:480px;object-fit:contain;background:#e7e2d8}
+ .atelier .detail h2{font-size:clamp(38px,4vw,65px);line-height:1.1}.atelier .detail p{white-space:pre-wrap;line-height:1.8;color:#69665f}
+ .atelier .photo-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}.atelier .photo-controls button{border:1px solid #bbb5ab;background:none;padding:10px;cursor:pointer}
+ @media(max-width:750px){.atelier .nav{height:70px}.atelier .brand{font-size:19px}.atelier .navlinks a:not(.outline){display:none}.atelier .navlinks .outline{padding:12px;font-size:10px}.atelier .hero{min-height:660px}.atelier .hero h1{letter-spacing:-2px;font-size:clamp(49px,12vw,79px)}.atelier .intro{padding:75px 22px;grid-template-columns:1fr;gap:25px}.atelier .collection-section{padding:15px 18px 70px}.atelier .universes{grid-template-columns:1fr;gap:13px}.atelier .universe,.atelier .universe:nth-child(3n+1){grid-column:auto;min-height:390px}.atelier .universe .label{left:25px;bottom:25px}.atelier .products{padding:70px 18px}.atelier .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.atelier .product h4{font-size:19px}.atelier .editorial{padding:75px 18px}.atelier .photo-wall{gap:10px}.atelier .photo-wall img:nth-child(even){margin-top:40px}.atelier .compare{grid-template-columns:1fr}.atelier .final{padding:90px 20px}.atelier .detail{grid-template-columns:1fr;gap:10px}.atelier .detail img{height:290px}.atelier .dialog{padding:20px}}
+ @media(prefers-reduced-motion:reduce){.atelier img{transition:none!important}}
+ `}</style>
+ <header className="nav"><div className="brand">{catalog.client}</div><nav className="navlinks"><a href="#univers">Univers</a><a href="#collections">Collections</a><a href="#realisations">Réalisations</a><a className="outline" href="#contact">Votre projet ↗</a></nav></header>
+ <section className="hero" style={{backgroundImage:cover?`url("${cover}")`:"linear-gradient(135deg,#44463f,#988b79)"}}><div className="hero-inner"><span className="ey">L'art de vivre les matières</span><h1>{catalog.catalog_title||catalog.client}</h1><p>Des collections singulières, des textures inspirantes et des réalisations qui donnent vie à vos idées.</p><a className="line-btn" href="#univers">Découvrir nos univers <span>↗</span></a></div><div className="index">01 <span style={{opacity:.5}}>—</span> LE SHOWROOM</div></section>
+ <section className="intro"><span className="ey">Une expérience pensée pour vous</span><div><h2>La matière devient inspiration.</h2><p>Parcourez nos univers, découvrez les détails de chaque collection et imaginez votre prochain espace.</p></div></section>
+ <section className="collection-section" id="univers"><div className="section-title"><div><span className="ey">01 / Exploration</span><h2>Nos univers.</h2></div><span className="count">{groups.length} univers</span></div>
+ <div className="universes">{groups.map((group,i)=>{const items=products.filter(p=>(p.category?.trim()||"Collection")===group);const img=image(items.find(p=>image(p))||{});return <a className="universe" href={`#g-${i}`} key={group}>{img&&<img src={img} alt="" loading="lazy"/>}<div className="label"><div><span className="ey">UNIVERS {String(i+1).padStart(2,"0")}</span><h3>{group}</h3></div><span className="arrow">↗</span></div></a>})}</div>{!groups.length&&<p>Les collections arrivent bientôt.</p>}</section>
+ <section className="products" id="collections"><div className="products-inner"><div className="section-title"><div><span className="ey">02 / Sélection</span><h2>Les collections.</h2></div><span className="count">{products.length} références</span></div>{groups.map((group,i)=><div className="group" id={`g-${i}`} key={group}><h3>{group}</h3><div className="product-grid">{products.filter(p=>(p.category?.trim()||"Collection")===group).map(p=><button className="product" key={p.id} type="button" onClick={()=>{setActive(p);setPhoto(0)}}><div className="visual">{image(p)?<img src={image(p)} alt={p.name} loading="lazy"/>:"Photo à venir"}</div><h4>{p.name}</h4>{p.price&&<small>{p.price}</small>}</button>)}</div></div>)}</div></section>
+ {catalog.portfolio_photo_urls?.length>0&&<section className="editorial" id="realisations"><span className="ey">03 / Inspirations</span><h2>Des lieux, des histoires.</h2><div className="photo-wall">{catalog.portfolio_photo_urls.map((url,i)=><img key={i} src={url} alt={`Réalisation ${i+1}`} loading="lazy"/>)}</div></section>}
+ {transformations.length>0&&<section className="editorial"><span className="ey">04 / Transformations</span><h2>Avant. Après.</h2><div className="compare">{transformations.map(t=><div key={t.id}><div className="pair">{t.before_url&&<figure><img src={t.before_url} alt="Avant" loading="lazy"/><figcaption>Avant</figcaption></figure>}{t.after_url&&<figure><img src={t.after_url} alt="Après" loading="lazy"/><figcaption>Après</figcaption></figure>}</div><h3>{t.label}</h3></div>)}</div></section>}
+ <footer className="final" id="contact"><span className="ey">Parlons de votre projet</span><h2>Et si tout commençait ici ?</h2><p>Une collection vous inspire ? Échangeons sur vos envies.</p>{primary&&<a className="line-btn" href={primary} target="_blank" rel="noopener noreferrer">{primaryLabel} ↗</a>}<div className="socials">{link(catalog.instagram_url)&&<a href={catalog.instagram_url} target="_blank" rel="noopener noreferrer">Instagram ↗</a>}{link(catalog.facebook_url)&&<a href={catalog.facebook_url} target="_blank" rel="noopener noreferrer">Facebook ↗</a>}{link(catalog.google_review_url)&&<a href={catalog.google_review_url} target="_blank" rel="noopener noreferrer">Avis Google ↗</a>}</div><div className="credit">Showroom conçu par Lehnova</div></footer>
+ {active&&<div className="modal" onClick={()=>setActive(null)}><div className="dialog" role="dialog" aria-modal="true" aria-label={active.name} onClick={e=>e.stopPropagation()}><button type="button" className="close" onClick={()=>setActive(null)}>Fermer ✕</button><div className="detail"><div>{gallery.length>0&&<><img src={gallery[photo]} alt={active.name}/>{gallery.length>1&&<div className="photo-controls"><button onClick={()=>setPhoto((photo-1+gallery.length)%gallery.length)}>←</button><span>{photo+1} / {gallery.length}</span><button onClick={()=>setPhoto((photo+1)%gallery.length)}>→</button></div>}</>}</div><div><span className="ey">{active.category||"Collection"}</span><h2>{active.name}</h2><p>{active.description}</p>{active.price&&<p><strong>{active.price}</strong></p>}{primary&&<a className="line-btn" href={primary} target="_blank" rel="noopener noreferrer">Demander des renseignements ↗</a>}</div></div></div></div>}
+ </main>;
 }

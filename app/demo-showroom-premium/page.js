@@ -1,5 +1,5 @@
 import ShowroomView from "../catalogue/[slug]/ShowroomView";
-export const metadata = { title: "Démonstration Showroom Premium | Lehnova", robots: { index: false, follow: false } };
+export const metadata = { title: "Showroom Premium | Lehnova", robots: { index: false, follow: false } };
 const img=(id)=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=85`;
 const catalog={
  client:"ATELIER MATIÈRES",catalog_title:"Des matières qui subliment vos espaces",
@@ -20,4 +20,4 @@ const products=[
  {id:"5",category:"Décoration & ambiances",name:"Cuisine épurée",description:"Une ambiance raffinée aux lignes simples.",photo_url:img("photo-1600585154340-be6161a56a0c")},
  {id:"6",category:"Décoration & ambiances",name:"Matières chaleureuses",description:"Un jeu de textures et de lumière.",photo_url:img("photo-1600607687920-4e2a09cf159d")}
 ];
-export default function Page(){return <><div style={{background:"#292822",color:"#fff",padding:"11px 18px",textAlign:"center",font:"12px Arial,sans-serif",letterSpacing:"1px"}}>DÉMONSTRATION LEHNOVA — ENTREPRISE ET PRODUITS FICTIFS</div><ShowroomView catalog={catalog} products={products} transformations={[]}/></>;}
+export default function Page(){return <ShowroomView catalog={catalog} products={products} transformations={[]}/>;}

@@ -853,6 +853,7 @@ export default function ManageCatalogPage() {
         {catalog && (
           <div style={styles.linkBox}>
             <span style={styles.linkText}>{linkFor()}</span>
+            <a href={linkFor()} target="_blank" rel="noopener noreferrer" style={{...styles.iconButton,display:"inline-flex",alignItems:"center",justifyContent:"center",textDecoration:"none",background:"#332c26",color:"#fff",padding:"10px 15px",borderRadius:8,fontWeight:700,whiteSpace:"nowrap"}}>↗ Aperçu du catalogue</a>
             <button style={styles.iconButton} onClick={handleCopy}>
               {copied ? "✓ copié" : "copier le lien"}
             </button>

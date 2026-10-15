@@ -54,6 +54,7 @@ export default function ManageCatalogPage() {
 
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
   const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [portfolioFiles, setPortfolioFiles] = useState([]); // nouveaux fichiers à uploader
   const [portfolioPreviews, setPortfolioPreviews] = useState([]);
@@ -121,6 +122,7 @@ export default function ManageCatalogPage() {
     setVideoUrl(cat.video_url || "");
     setInstagramUrl(cat.instagram_url || "");
     setFacebookUrl(cat.facebook_url || "");
+    setTiktokUrl(cat.tiktok_url || "");
     setGoogleReviewUrl(cat.google_review_url || "");
     setExistingPortfolioUrls(cat.portfolio_photo_urls || []);
 
@@ -429,6 +431,7 @@ export default function ManageCatalogPage() {
       .update({
         instagram_url: instagramUrl.trim() || null,
         facebook_url: facebookUrl.trim() || null,
+        tiktok_url: tiktokUrl.trim() || null,
         google_review_url: googleReviewUrl.trim() || null,
         portfolio_photo_urls: finalPortfolioUrls,
       })
@@ -1030,6 +1033,10 @@ export default function ManageCatalogPage() {
                 onChange={(e) => setFacebookUrl(e.target.value)}
                 placeholder="https://facebook.com/..."
               />
+            </label>
+            <label style={styles.label}>
+              Lien TikTok
+              <input style={styles.input} value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://www.tiktok.com/@..." />
             </label>
             <label style={styles.label}>
               Lien avis Google

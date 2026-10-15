@@ -6,6 +6,7 @@ export default function StudioPage() {
   const canvas = useRef(null);
   const imagesRef = useRef([]);
   const [files, setFiles] = useState([]);
+  const [loaded, setLoaded] = useState(0);
   const [business, setBusiness] = useState("Burger 31");
   const [offer, setOffer] = useState("Menu à 9,90 €");
   const [cta, setCta] = useState("Commandez maintenant !");
@@ -14,11 +15,13 @@ export default function StudioPage() {
   const [message, setMessage] = useState("Ajoutez 3 à 5 photos pour commencer.");
   const [style, setStyle] = useState("impact");
   useEffect(() => {
+    setLoaded(0);
+    imagesRef.current = [];
     const urls = files.map(f => URL.createObjectURL(f));
     let alive = true;
     Promise.all(urls.map(url => new Promise(resolve => {
       const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = url;
-    }))).then(imgs => { if (alive) imagesRef.current = imgs.filter(Boolean); });
+    }))).then(imgs => { if (alive) { imagesRef.current = imgs.filter(Boolean); setLoaded(imagesRef.current.length); } });
     return () => { alive = false; urls.forEach(URL.revokeObjectURL); };
   }, [files]);
   const draw = (elapsed) => {
@@ -48,7 +51,7 @@ export default function StudioPage() {
     ctx.textAlign = "left";
   };
   const run = async (record) => {
-    if (!imagesRef.current.length || busy) { setMessage("Importez au moins une photo valide."); return; }
+    if (!imagesRef.current.length || busy || loaded !== files.length) { setMessage("Attendez que les photos soient chargées, ou choisissez des images JPG/PNG/WebP."); return; }
     if (record && (!window.MediaRecorder || !canvas.current.captureStream)) {
       setMessage("L'export n'est pas pris en charge par ce navigateur."); return;
     }
@@ -88,13 +91,14 @@ export default function StudioPage() {
       <p>Créez une publicité verticale animée à partir de photos. Aucun fichier n'est envoyé à un serveur dans cette version.</p>
       <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
         <section style={{flex:"1 1 320px",background:"white",borderRadius:18,padding:22,display:"grid",gap:14,alignContent:"start"}}>
-          <label>Photos du commerce (JPG, PNG, WebP)<input type="file" accept="image/*" multiple onChange={e=>setFiles(Array.from(e.target.files||[]).slice(0,5))} style={{display:"block",marginTop:8}} /></label>
+          <label>Photos du commerce (JPG, PNG, WebP)<input type="file" accept="image/*" multiple onChange={e=>{ const selected=Array.from(e.target.files||[]).filter(f=>f.type.startsWith("image/")).slice(0,5); setFiles(selected); setMessage(selected.length ? "Chargement de "+selected.length+" photo(s)…" : "Choisissez une ou plusieurs photos."); }} style={{display:"block",marginTop:8}} /></label>
+          <small>{loaded} / {files.length} photo(s) chargée(s). Vous pouvez en choisir plusieurs avec Ctrl + clic.</small>
           <label>Nom du commerce<input value={business} onChange={e=>setBusiness(e.target.value)} style={field}/></label>
           <label>Offre ou promotion<input value={offer} onChange={e=>setOffer(e.target.value)} style={field}/></label>
           <label>Appel à l'action<input value={cta} onChange={e=>setCta(e.target.value)} style={field}/></label>
           <label>Style<select value={style} onChange={e=>setStyle(e.target.value)} style={field}><option value="impact">TikTok dynamique</option><option value="premium">Premium</option></select></label>
-          <button disabled={busy} onClick={()=>run(false)} style={button}>Voir l'aperçu (15 s)</button>
-          <button disabled={busy} onClick={()=>run(true)} style={{...button,background:"#9c5765"}}>Exporter la vidéo WebM</button>
+          <button disabled={busy || !loaded || loaded !== files.length} onClick={()=>run(false)} style={button}>Voir l'aperçu (15 s)</button>
+          <button disabled={busy || !loaded || loaded !== files.length} onClick={()=>run(true)} style={{...button,background:"#9c5765"}}>Exporter la vidéo WebM</button>
           <p role="status" style={{fontSize:13}}>{message}</p>
           <small>Version de démonstration : zooms, séquences et textes automatiques. Pas encore de musique, de MP4, d'IA vidéo ou d'authentification. Ne pas publier sans sécurisation.</small>
         </section>

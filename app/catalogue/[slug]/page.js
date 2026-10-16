@@ -701,7 +701,7 @@ const styles = {
     overflow: "hidden",
   },
   headerWithCover: { minHeight: "clamp(230px, 46vw, 390px)", paddingBottom: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "#1E2A3A" },
-  coverImage: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "center", display: "block" },
+  coverImage: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block" },
   headerContent: { position: "relative", zIndex: 1 },
   headerContentOnCover: { width: "100%", padding: "64px 18px 20px", background: "linear-gradient(transparent, rgba(0,0,0,.62))" },
   eyebrow: { fontSize: "0.7rem", letterSpacing: "0.18em", margin: "0 0 6px 0", fontWeight: 600 },

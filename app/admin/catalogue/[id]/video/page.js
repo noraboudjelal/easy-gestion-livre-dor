@@ -31,7 +31,7 @@ function frame(ctx,images,name,title,t,model,headline,customDuration,fontId){
  ctx.fillStyle="#fff";ctx.textAlign="center";
  ctx.font="500 16px Arial";ctx.fillText(model==="flash"?"NOUVEAUTÉ · À DÉCOUVRIR":model==="avantapres"?(index%2===0?"AVANT":"APRÈS"):"L E H N O V A   ·   S T U D I O",W/2,90);
  const label=end?name:(model==="signature"?title:model==="flash"?(headline||"DÉCOUVREZ NOS OFFRES"):model==="avantapres"?(index%2===0?"AVANT":"APRÈS"):(headline||title));
- const selectedFont=FONTS.find(f=>f.id===fontId)?.css||"Georgia,serif";ctx.font=(model==="flash"?"bold 61px ":"normal 53px ")+selectedFont;
+ const selectedFont=FONTS.find(f=>f.id===fontId)?.css||"Georgia,serif";ctx.font=(model==="flash"?"bold 75px ":"normal 68px ")+selectedFont;
  const lines=wrap(ctx,label,440),height=63,baseline=H-170-lines.length*height;
  lines.forEach((line,i)=>ctx.fillText(line,W/2,baseline+i*height));
  ctx.font="17px Arial";ctx.fillText(end?"DÉCOUVREZ NOTRE UNIVERS":model==="collection"?"COLLECTION · "+(index+1)+" / "+images.length:"COLLECTIONS · INSPIRATIONS · RÉALISATIONS",W/2,H-83);

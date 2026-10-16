@@ -14,7 +14,7 @@ export default async function ContactPage({params}){
  <div style={{height:5,background:"linear-gradient(90deg,#8f7050,#ead4a9,#8f7050)"}}/>
  <header style={{textAlign:"center",padding:"48px 28px 34px"}}>
  <p style={{fontSize:10,fontWeight:700,letterSpacing:".33em",color:"#a48c72",margin:"0 0 38px"}}>LEHNOVA <span style={{color:"#c6b49f"}}>·</span> CONTACT</p>
- {c.photo_url?<img src={c.photo_url} alt={"Photo de "+c.name} style={{width:132,height:132,borderRadius:28,objectFit:"cover",border:"5px solid #f6f1eb",boxShadow:"0 8px 25px #30201516",marginBottom:19}}/>:<div style={{width:76,height:76,margin:"0 auto 22px",border:"1px solid #d8c8b5",borderRadius:22,display:"grid",placeItems:"center",background:"#f8f3ed",fontSize:27,color:"#a88c6f"}}>{(c.company||c.name||"L").slice(0,1).toUpperCase()}</div>}
+ {c.photo_url&&<img src={c.photo_url} alt={"Logo de "+(c.company||c.name)} style={{width:132,height:132,borderRadius:28,objectFit:"cover",border:"5px solid #f6f1eb",boxShadow:"0 8px 25px #30201516",marginBottom:19}}/>}
  <h1 style={{fontFamily:"Georgia,'Times New Roman',serif",fontWeight:400,fontSize:"clamp(34px,6vw,46px)",letterSpacing:"-.035em",lineHeight:1.12,margin:"0 0 12px"}}>{c.company||c.name}</h1>
  {c.name&&c.name!==c.company&&<p style={{fontSize:15,margin:"0 0 6px"}}>{c.name}</p>}
  {c.job&&<p style={{fontSize:12,letterSpacing:".12em",textTransform:"uppercase",color:"#967c63",margin:"10px 0 0"}}>{c.job}</p>}

@@ -1,4 +1,4 @@
-import {getSupabaseAdmin} from "../../../../../lib/supabaseAdmin";
+import {getSupabaseAdmin} from "../../../../lib/supabaseAdmin";
 export const dynamic="force-dynamic";
 const esc=x=>String(x||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;").replace(/\r/g,"");
 export async function GET(req,{params}){const {slug}=await params;const {data:c}=await getSupabaseAdmin().from("lehnova_contacts").select("*").eq("slug",slug).maybeSingle();if(!c)return new Response("Contact introuvable",{status:404});const base=new URL(req.url).origin;const url=base+"/contact/"+encodeURIComponent(slug);const lines=["BEGIN:VCARD","VERSION:3.0","FN:"+esc(c.name),"ORG:"+esc(c.company),"TITLE:"+esc(c.job),"TEL;TYPE=CELL:"+esc(c.phone),"EMAIL:"+esc(c.email),"URL:"+esc(url),c.website?"URL;TYPE=WORK:"+esc(c.website):"","NOTE:"+esc(c.description),"END:VCARD"].filter(Boolean);return new Response(lines.join("\r\n")+"\r\n",{headers:{"Content-Type":"text/vcard; charset=utf-8","Content-Disposition":'attachment; filename="contact-'+slug+'.vcf"',"Cache-Control":"no-store"}});}

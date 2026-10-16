@@ -347,7 +347,7 @@ export default function ClientManageCatalogPage() {
             <p style={styles.kicker}>MON CATALOGUE</p>
             <h1 style={styles.title}>{catalog?.catalog_title}</h1>
           </div>
-          <a href={catalogLink()} target="_blank" rel="noreferrer" style={styles.viewLink}>
+          <a href={`${catalogLink()}?managementPreview=1`} onClick={() => { try { sessionStorage.setItem("catalog-management-preview", String(catalog.id)); } catch {} }} style={styles.viewLink}>
             Voir mon catalogue en ligne ↗
           </a>
           <div style={styles.coverControls}>

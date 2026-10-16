@@ -470,7 +470,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
   const accent = catalog?.accent_color || "#B5402D";
   const isShowroom = catalog?.catalog_kind === "showroom";
-  if (isShowroom && !categoryPages) return <><CatalogPreviewReturn catalogId={catalog.id} /><ShowroomView catalog={catalog} products={products} transformations={transformations} /></>;
+  if (isShowroom && !categoryPages) return <><CatalogPreviewReturn catalogId={catalog.id} catalogSlug={catalog.slug} /><ShowroomView catalog={catalog} products={products} transformations={transformations} /></>;
   const font = FONTS[catalog?.font_style] || FONTS.manuscrite;
   const groups = groupByCategory(products);
   const visibleGroups = categoryPages
@@ -479,7 +479,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
   return (
     <div style={styles.page}>
-      <CatalogPreviewReturn catalogId={catalog?.id} />
+      <CatalogPreviewReturn catalogId={catalog?.id} catalogSlug={catalog?.slug} />
       <ActiveTicketBanner/>
       <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');

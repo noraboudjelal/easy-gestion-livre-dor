@@ -890,6 +890,7 @@ export default function ManageCatalogPage() {
 
         {catalog && (
           <div style={styles.linkBox}>
+            <a href={`/admin/catalogue/${catalogId}/statistiques`} style={{...styles.iconButton,textDecoration:"none",padding:"10px 15px"}}>Statistiques ↗</a>
             <span style={styles.linkText}>{linkFor()}</span>
             <a href={`/admin/catalogue/${catalogId}/video`} style={{...styles.iconButton,display:"inline-flex",alignItems:"center",textDecoration:"none",background:"#786956",color:"#fff",padding:"10px 15px",borderRadius:8,fontWeight:700}}>🎬 Créer une vidéo</a>
             <a href={`${linkFor()}?adminPreview=1`} onClick={() => { try { sessionStorage.setItem("catalog-admin-preview", String(catalogId)); } catch {} }} style={{...styles.iconButton,display:"inline-flex",alignItems:"center",justifyContent:"center",textDecoration:"none",background:"#332c26",color:"#fff",padding:"10px 15px",borderRadius:8,fontWeight:700,whiteSpace:"nowrap"}}>↗ Aperçu du catalogue</a>

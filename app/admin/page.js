@@ -1884,7 +1884,7 @@ async function handleToggleTableSearch(ev) {
                         <td style={styles.td}>{cat.catalog_products?.[0]?.count ?? 0}</td>
                         <td style={styles.td}>
                           <div style={{ display: "flex", gap: "6px" }}>
-                            <a href={`/admin/catalogue/${cat.id}`} style={styles.iconButton}>
+                            <a href={`/admin/catalogue/${cat.id}/statistiques`} style={styles.iconButton}>Statistiques</a><a href={`/admin/catalogue/${cat.id}`} style={styles.iconButton}>
                               gérer les produits
                             </a>
                             <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>
@@ -1940,7 +1940,7 @@ async function handleToggleTableSearch(ev) {
                       </div>
                       <div style={styles.subText}>{cat.catalog_products?.[0]?.count ?? 0} produit(s)</div>
                       <div style={{ display: "flex", gap: "6px" }}>
-                        <a href={`/admin/catalogue/${cat.id}`} style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
+                        <a href={`/admin/catalogue/${cat.id}/statistiques`} style={styles.iconButton}>Statistiques</a><a href={`/admin/catalogue/${cat.id}`} style={{ ...styles.iconButton, textAlign: "center", flex: 1 }}>
                           gérer les produits
                         </a>
                         <button style={styles.iconButtonDanger} onClick={() => handleDeleteCatalog(cat.id, cat.client)}>

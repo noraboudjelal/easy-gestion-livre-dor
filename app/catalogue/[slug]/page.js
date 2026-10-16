@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import ShowroomView from "./ShowroomView";
+import CatalogPreviewReturn from "../../../components/CatalogPreviewReturn";
 import ActiveTicketBanner from '../../ticket/ActiveTicketBanner';
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -469,7 +470,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
   const accent = catalog?.accent_color || "#B5402D";
   const isShowroom = catalog?.catalog_kind === "showroom";
-  if (isShowroom && !categoryPages) return <ShowroomView catalog={catalog} products={products} transformations={transformations} />;
+  if (isShowroom && !categoryPages) return <><CatalogPreviewReturn catalogId={catalog.id} /><ShowroomView catalog={catalog} products={products} transformations={transformations} /></>;
   const font = FONTS[catalog?.font_style] || FONTS.manuscrite;
   const groups = groupByCategory(products);
   const visibleGroups = categoryPages
@@ -478,6 +479,7 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
 
   return (
     <div style={styles.page}>
+      <CatalogPreviewReturn catalogId={catalog?.id} />
       <ActiveTicketBanner/>
       <style dangerouslySetInnerHTML={{__html:`
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');

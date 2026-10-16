@@ -21,10 +21,19 @@ function frame(ctx,images,name,title,t,model,headline,customDuration,fontId,font
   const width=ctx.canvas.width,height=ctx.canvas.height,step=customDuration||3;
   const index=Math.min(images.length-1,Math.floor(t/step)),progress=(t%step)/step;
   const photo=images[index];
-  ctx.fillStyle="#f0ede7";ctx.fillRect(0,0,width,height);
+  const box=scene==="tv"?[180,100,920,510]:scene==="projection"?[130,80,1020,560]:scene==="floating"?[155,95,970,530]:scene==="kiosk"?[430,55,420,550]:[0,0,width,height];
+  const [sx,sy,sw,sh]=box;
+  const bg=ctx.createLinearGradient(0,0,width,height);bg.addColorStop(0,"#f7f2eb");bg.addColorStop(1,"#d8cec0");
+  ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);
+  if(scene==="projection"){ctx.fillStyle="#d2c6b8";ctx.fillRect(0,640,width,80);}
+  if(scene==="floating"){ctx.fillStyle="#c6baad";ctx.beginPath();ctx.ellipse(640,660,400,24,0,0,Math.PI*2);ctx.fill();}
+  if(["tv","floating","kiosk"].includes(scene)){ctx.fillStyle="#272624";ctx.fillRect(sx-15,sy-15,sw+30,sh+30);}
+  if(scene==="tv"){ctx.fillRect(625,sy+sh+15,30,65);ctx.fillRect(515,sy+sh+75,250,12);}
+  if(scene==="kiosk"){ctx.fillRect(610,sy+sh+15,60,80);ctx.fillRect(525,sy+sh+90,230,12);}
+  ctx.save();ctx.beginPath();ctx.rect(sx,sy,sw,sh);ctx.clip();ctx.fillStyle="#eeeae3";ctx.fillRect(sx,sy,sw,sh);
   const paint=(img,alpha=1,zoom=1)=>{
-   const scale=Math.min(width/img.width,height/img.height)*zoom,w=img.width*scale,h=img.height*scale;
-   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(img,(width-w)/2,(height-h)/2,w,h);ctx.restore();
+   const scale=Math.min(sw/img.width,sh/img.height)*zoom,w=img.width*scale,h=img.height*scale;
+   ctx.save();ctx.globalAlpha=alpha;ctx.drawImage(img,sx+(sw-w)/2,sy+(sh-h)/2,w,h);ctx.restore();
   };
   const eased=progress*progress*(3-2*progress);
   const zoom=model==="signature"?1.025+eased*.035:model==="editorial"?1+eased*.018:model==="flash"?1+eased*.04:1;
@@ -38,10 +47,11 @@ function frame(ctx,images,name,title,t,model,headline,customDuration,fontId,font
    ctx.save();ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";
    ctx.shadowColor="rgba(0,0,0,.75)";ctx.shadowBlur=18;ctx.shadowOffsetY=3;
    ctx.font=`${model==="flash"?"bold ":""}${fontSize}px ${FONTS.find(f=>f.id===fontId)?.css||"Georgia,serif"}`;
-   const lines=wrap(ctx,headline.trim(),width*.82),lineHeight=fontSize*1.16;
-   lines.forEach((line,i)=>ctx.fillText(line,width/2,height/2+(i-(lines.length-1)/2)*lineHeight));
+   const lines=wrap(ctx,headline.trim(),sw*.82),lineHeight=fontSize*1.16;
+   lines.forEach((line,i)=>ctx.fillText(line,sx+sw/2,sy+sh/2+(i-(lines.length-1)/2)*lineHeight));
    ctx.restore();
   }
+  ctx.restore();
   return;
  }
  const style=MODELS.find(m=>m.id===model)||MODELS[0],step=customDuration??style.duration;

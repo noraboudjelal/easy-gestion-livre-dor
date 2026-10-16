@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import PrizeWheel from "../../../components/PrizeWheel";
 
 function parisDay() {
  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -54,13 +55,7 @@ export default function CustomerWheel() {
   {wheel && <>
    <p>Réservée aux clients ayant effectué un achat de {wheel.min_purchase} € minimum.</p>
    <p>Une participation par jour et par navigateur.</p>
-   <div style={{ position:"relative",width:"min(80vw,300px)",height:"min(80vw,300px)",margin:"28px auto" }}>
-   <span aria-hidden="true" style={{position:"absolute",top:-15,left:"50%",transform:"translateX(-50%)",zIndex:2,color:"#795126",fontSize:26}}>▼</span>
-   <div aria-label="Roue à huit lots" style={{position:"absolute",inset:0,border:"9px solid #b99560",borderRadius:"50%",background:"conic-gradient(#f6b7c4 0deg 45deg,#fff3dc 45deg 90deg,#f6b7c4 90deg 135deg,#fff3dc 135deg 180deg,#f6b7c4 180deg 225deg,#fff3dc 225deg 270deg,#f6b7c4 270deg 315deg,#fff3dc 315deg)",boxShadow:"0 8px 18px #e0c9c2",transform:`rotate(${angle}deg)`,transition:"transform 3s cubic-bezier(0.13,0.75,0.22,1)"}}>
-     {Array.isArray(wheel.lots) && wheel.lots.slice(0,8).map((lot,i)=><span key={i} title={lot} style={{position:"absolute",left:"50%",top:"50%",width:95,textAlign:"center",fontSize:10,fontWeight:700,color:"#57433d",transform:`rotate(${i*45+22.5}deg) translateY(-94px) rotate(-${i*45+22.5}deg) translateX(-50%)`,transformOrigin:"0 0"}}>{lot.length>18?lot.slice(0,17)+"…":lot}</span>)}
-   </div>
-   <span aria-hidden="true" style={{position:"absolute",left:"50%",top:"50%",transform:"translate(-50%,-50%)",borderRadius:50,background:"#fff",padding:13,boxShadow:"0 1px 5px #cba",fontSize:24}}>🎁</span>
-   </div>
+   <PrizeWheel lots={Array.isArray(wheel.lots) ? wheel.lots : []} rotation={angle} spinning={spinning} duration={3000} />
    {result ? <h2 role="status">{result.won ? "🎉 Félicitations ! " + result.prize : "Pas gagné cette fois. Merci pour votre visite !"}</h2>
     : spinning ? <p role="status">La roue tourne…</p>
     : blocked ? <h2 role="status">Vous avez déjà joué aujourd'hui ! Revenez demain.</h2>

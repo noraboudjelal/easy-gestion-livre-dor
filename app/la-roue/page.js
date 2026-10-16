@@ -2,26 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "./wheel.module.css";
+import PrizeWheel from "../../components/PrizeWheel";
 
 const STORAGE_KEY = "lehnova-la-roue-v1";
 const DEFAULT_CONFIG = {
   commerce: "",
   lots: ["Café offert", "Burger offert", "Dessert offert", "-10 %", "Soin offert", "Petit cadeau", "Retentez votre chance", "Cadeau surprise"],
 };
-const WHEEL_COLORS = ["#FF6B6B", "#4ECDC4", "#FFD93D", "#A78BFA", "#FF9F45", "#6BCB77", "#FF6FB5", "#5EC8F2"];
-
-// Geometry copied from the existing Le Fil wheel. Keep that wheel independent.
-function wheelPolarToCartesian(cx, cy, r, angleDeg) {
-  const a = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-}
-function describeWheelSlice(cx, cy, r, startAngle, endAngle) {
-  const start = wheelPolarToCartesian(cx, cy, r, endAngle);
-  const end = wheelPolarToCartesian(cx, cy, r, startAngle);
-  const largeArc = endAngle - startAngle <= 180 ? "0" : "1";
-  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
-}
-
 function validateConfig(value) {
   if (!value || typeof value.commerce !== "string" || value.commerce.length > 80 ||
       !Array.isArray(value.lots) || value.lots.length !== 8 ||
@@ -103,7 +90,7 @@ export default function LaRoue() {
     const sliceAngle = 360 / config.lots.length;
     const targetCenter = sliceAngle * winnerIndex + sliceAngle / 2;
     const currentMod = ((rotation % 360) + 360) % 360;
-    // Same five turns, easing and duration as the original wheel.
+    // Keep the existing five-turn target and result timing.
     setRotation(rotation - currentMod + 5 * 360 + (360 - targetCenter));
     spinTimeout.current = setTimeout(() => {
       setResult(config.lots[winnerIndex]);
@@ -132,31 +119,7 @@ export default function LaRoue() {
 
         <section className={styles.card} aria-label="Roue des lots">
           <p className={styles.intro}>Huit lots, une surprise à chaque tour.</p>
-          <div className={styles.stage}>
-            <div className={styles.wheelWrap}>
-              <div className={styles.pointer} aria-hidden="true" />
-              <svg viewBox="0 0 200 200" role="img" aria-label="Roue à huit lots"
-                className={styles.wheel}
-                style={{ transform: `rotate(${rotation}deg)`, transition: spinning ? "transform 4.5s cubic-bezier(0.17,0.89,0.32,1.13)" : "none" }}>
-                {config.lots.map((lot, index) => {
-                  const startAngle = 45 * index;
-                  const endAngle = 45 * (index + 1);
-                  const mid = (startAngle + endAngle) / 2;
-                  const pos = wheelPolarToCartesian(100, 100, 98 * 0.62, mid);
-                  return (
-                    <g key={index}>
-                      <title>{lot}</title>
-                      <path d={describeWheelSlice(100, 100, 98, startAngle, endAngle)} fill={WHEEL_COLORS[index]} stroke="#ffffff" strokeWidth="2" />
-                      <text x={pos.x} y={pos.y} fill="#241a15" fontSize="8" fontWeight="700" textAnchor="middle" dominantBaseline="middle" transform={`rotate(${mid + 90}, ${pos.x}, ${pos.y})`}>
-                        {lot.length > 14 ? `${lot.slice(0, 13)}…` : lot}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-              <div className={styles.hub} aria-hidden="true">🎉</div>
-            </div>
-          </div>
+          <PrizeWheel lots={config.lots} rotation={rotation} spinning={spinning} duration={4500} />
           <button type="button" className={styles.spinButton} disabled={!ready || spinning} onClick={spinWheel}>
             {spinning ? "🎡 Ça tourne…" : "🚀 Lancer la roue"}
           </button>

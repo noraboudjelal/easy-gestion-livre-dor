@@ -83,6 +83,7 @@ export default function ManageCatalogPage() {
   const [videoUrl, setVideoUrl] = useState("");
   const [savingVideo, setSavingVideo] = useState(false);
   const [videoSaved, setVideoSaved] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState([]); // [{id, question, step_order, options:[{id,label,product_ids}]}]
   const [savingQuestionId, setSavingQuestionId] = useState(null);
   const [savedQuestionFlash, setSavedQuestionFlash] = useState(null);
@@ -518,6 +519,40 @@ export default function ManageCatalogPage() {
     } else {
       setVideoSaved(true);
       setTimeout(() => setVideoSaved(false), 1800);
+    }
+  }
+
+  async function handleUploadVideo(event) {
+    const file = event.target.files?.[0];
+    if (!file || !supabase || !catalogId) return;
+    event.target.value = "";
+    if (!file.type.startsWith("video/")) {
+      setLoadError("Sélectionne un fichier vidéo.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setLoadError("La vidéo dépasse 50 Mo. Réduis sa taille avant de l’importer.");
+      return;
+    }
+    setUploadingVideo(true);
+    setLoadError("");
+    try {
+      const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `videos/${catalogId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("catalog-photos").upload(path, file, { contentType: file.type || "video/mp4" });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("catalog-photos").getPublicUrl(path);
+      if (!data?.publicUrl) throw new Error("Lien de la vidéo introuvable.");
+      const { error: saveError } = await supabase.from("catalogs").update({ video_url: data.publicUrl, video_enabled: true }).eq("id", catalogId);
+      if (saveError) throw saveError;
+      setVideoUrl(data.publicUrl);
+      setVideoEnabled(true);
+      setVideoSaved(true);
+      setTimeout(() => setVideoSaved(false), 1800);
+    } catch (error) {
+      setLoadError("Import impossible : " + (error.message || "réessaie avec un fichier plus petit."));
+    } finally {
+      setUploadingVideo(false);
     }
   }
 
@@ -1192,6 +1227,7 @@ export default function ManageCatalogPage() {
             </div>
             {videoEnabled && (
               <>
+                <label style={styles.label}>Importer une vidéo depuis mon téléphone ou mon ordinateur<input type="file" accept="video/mp4,video/webm,video/quicktime,video/*" onChange={handleUploadVideo} disabled={uploadingVideo} style={{display:"block",marginTop:10,maxWidth:"100%"}} /></label><p style={{fontSize:13,opacity:0.75}}>{uploadingVideo ? "Import de la vidéo en cours… Ne quitte pas cette page." : "Sélectionne ta vidéo créée avec Lehnova. Elle sera enregistrée et affichée automatiquement dans ton catalogue (50 Mo maximum, selon les limites du stockage)."}</p>
                 <label style={styles.label}>
                   Lien de la vidéo
                   <input

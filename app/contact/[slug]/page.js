@@ -1,6 +1,10 @@
+import {headers} from "next/headers";
+import {unstable_noStore as noStore} from "next/cache";
 import {getSupabaseAdmin} from "../../../lib/supabaseAdmin";
 export const dynamic="force-dynamic";
 export default async function ContactPage({params}){
+ noStore();
+ await headers();
  const {slug}=await params;
  const {data:c}=await getSupabaseAdmin().from("lehnova_contacts").select("*").eq("slug",slug).maybeSingle();
  if(!c)return <main style={{padding:48,fontFamily:"sans-serif"}}>Cette fiche n’existe pas.</main>;

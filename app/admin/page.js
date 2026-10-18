@@ -1107,6 +1107,7 @@ async function handleToggleTableSearch(ev) {
           </button>
           <a href="/admin/lehnova-contact" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Lehnova Contact · NFC</a>
           <a href="/admin/roue" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Animation marketing · La Roue</a>
+          <a href="/admin/events" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Lehnova Events · Souvenirs NFC</a>
         </div>
 
         {view === "livres" && (

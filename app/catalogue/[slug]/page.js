@@ -745,7 +745,7 @@ const styles = {
     backgroundSize: "400px 100%",
     animation: "shimmer 1.4s infinite linear",
   },
-  photo: { width: "100%", height: "100%", objectFit: "cover", display: "block", transition: "opacity 0.4s ease" },
+  photo: { width: "100%", height: "100%", objectFit: "contain", display: "block", transition: "opacity 0.4s ease" },
   carouselScroller: {
     display: "flex",
     overflowX: "auto",

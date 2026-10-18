@@ -1,0 +1,4 @@
+import {NextResponse} from "next/server";
+import {getSupabaseAdmin} from "../../../../../../lib/supabaseAdmin";
+export const dynamic="force-dynamic";
+export async function GET(req,{params}){if(!/^[0-9a-f-]{36}$/i.test(params.token||""))return NextResponse.json({error:"Introuvable"},{status:404});const db=getSupabaseAdmin();const {data}=await db.from("lehnova_souvenirs").select("recipient,sender,dedication,media_path,media_type,status").eq("view_token",params.token).eq("status","approved").single();if(!data)return NextResponse.json({error:"Ce souvenir n'est pas encore disponible"},{status:404});const {data:link,error}=await db.storage.from("lehnova-souvenirs").createSignedUrl(data.media_path,3600);if(error)return NextResponse.json({error:"Média indisponible"},{status:500});return NextResponse.json({recipient:data.recipient,sender:data.sender,dedication:data.dedication,media_type:data.media_type,url:link.signedUrl},{headers:{"Cache-Control":"no-store"}});}

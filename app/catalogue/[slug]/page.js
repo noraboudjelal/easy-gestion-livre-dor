@@ -470,6 +470,11 @@ export default function CatalogPage({ catalogSlug, categoryPages = false, catego
     );
   }
 
+  // Wait for the current catalogue before rendering any header or fallback showcase.
+  if (loading) {
+    return <div style={{ minHeight: "100vh", background: "#fff" }} aria-busy="true" aria-label="Chargement du catalogue" />;
+  }
+
   const accent = catalog?.accent_color || "#B5402D";
   const isShowroom = catalog?.catalog_kind === "showroom";
   if (isShowroom && !categoryPages) return <><CatalogStatistics catalogId={catalog.id} /><CatalogPreviewReturn catalogId={catalog.id} catalogSlug={catalog.slug} /><ShowroomView catalog={catalog} products={products} transformations={transformations} /></>;

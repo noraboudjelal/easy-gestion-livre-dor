@@ -11,7 +11,7 @@ export default function Souvenir({params}){
  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
  *{box-sizing:border-box}html,body{margin:0}.souvenir{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:65px 17px 34px;background:radial-gradient(ellipse at 50% 32%,#fffdf9 0%,#f8f0ec 56%,#eddfdb 100%);font-family:'DM Sans',Arial,sans-serif;color:#634b4e;text-align:center;overflow:hidden;position:relative}
  .scene{width:min(100%,480px);min-height:620px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:1}
- .brand{font-size:10px;letter-spacing:.35em;color:#a18a80;margin:0 0 46px;direction:ltr}.foot{font-size:9px;letter-spacing:.19em;color:#b9a9a2;margin-top:45px;direction:ltr}
+ .brand{font-size:10px;letter-spacing:.35em;color:#a18a80;margin:0 0 46px;direction:ltr}.foot{display:none}
  .heart{font:43px Georgia,serif;color:#c68b91;filter:drop-shadow(0 5px 10px #b9898950);animation:heartbeat 3.5s ease-in-out infinite}
  .intro{font:24px/1.5 'Cormorant Garamond',Georgia,serif;color:#765b5f;margin:23px 0 25px}.arabic .intro{font:27px/1.8 'Amiri',serif}
  .envelope-button{background:none;border:0;padding:0;cursor:pointer;display:block;width:min(82vw,340px);height:245px;position:relative;perspective:850px;filter:drop-shadow(0 17px 20px #88615b24);-webkit-tap-highlight-color:transparent}
@@ -25,7 +25,7 @@ export default function Souvenir({params}){
  .wax{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);height:60px;width:60px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#e8b5b6,#b87b85 75%);border:3px double #f5d4c8;box-shadow:0 4px 10px #6f4a4933;z-index:4;display:grid;place-items:center;color:white;font:30px Georgia,serif;transition:opacity .35s}
  .opened .envelope:before{transform:rotateX(180deg);z-index:0}.opened .letter{transform:translateY(-100px)}.opened .wax{opacity:0}
  .hint{margin:28px 0 0;color:#a17f79;font-size:12px;letter-spacing:.08em}.arabic .hint{font:20px 'Amiri',serif;letter-spacing:0}
- .reveal{width:100%;animation:rise .9s ease both;margin-top:8px}.reveal-card{background:#fffcf8;border:1px solid #e7d6c9;box-shadow:0 15px 40px #a17d7220;padding:35px 23px 28px;position:relative}.reveal-card:before{content:"♡";position:absolute;top:13px;left:50%;transform:translateX(-50%);color:#c88e94;font:23px Georgia,serif}
+ .reveal{width:100%;animation:rise 1.15s cubic-bezier(.2,.7,.2,1) both;margin-top:0;position:relative;padding:48px 0 20px}.reveal:before{content:"";position:absolute;left:3%;right:3%;bottom:6px;height:145px;background:linear-gradient(145deg,#f9eae0,#ead1c6);clip-path:polygon(0 0,50% 58%,100% 0,100% 100%,0 100%);box-shadow:0 14px 30px #8c655822;z-index:0}.reveal-card{background:linear-gradient(145deg,#fffefa,#fff9f4);border:1px solid #e8d5c6;box-shadow:0 18px 35px #8d685525,0 0 0 7px #fffaf6 inset;padding:51px 26px 42px;position:relative;z-index:1;width:89%;margin:0 auto 26px;min-height:310px}.reveal-card:before{content:"♡";position:absolute;top:17px;left:50%;transform:translateX(-50%);color:#c88e94;font:27px Georgia,serif}.reveal-card:after{content:"";position:absolute;left:25%;right:25%;bottom:24px;height:1px;background:linear-gradient(90deg,transparent,#d5b9a7,transparent)}
  .headline{font:normal clamp(30px,7vw,42px)/1.2 'Cormorant Garamond',Georgia,serif;margin:20px 0 24px}.arabic .headline{font:normal 36px/1.65 'Amiri',serif}
  .message{font:24px/1.8 'Cormorant Garamond',Georgia,serif;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0 24px;color:#654b4f}.arabic .message{font:25px/2 'Amiri',serif}
  .media{display:block;width:100%;max-width:390px;max-height:55vh;margin:15px auto 25px;border-radius:8px}.sender{font-size:13px;color:#957b78;line-height:1.7}
@@ -54,6 +54,6 @@ export default function Souvenir({params}){
  </div>
  <button className="replay" onClick={()=>setOpened(false)}>{ar?"↺ فتح الظرف مرة أخرى":"↺ Revoir l’ouverture"}</button>
  </div>}
- <div className="foot">UN SOUVENIR SIGNÉ LEHNOVA EVENTS</div>
+ 
  </section></main>
 }

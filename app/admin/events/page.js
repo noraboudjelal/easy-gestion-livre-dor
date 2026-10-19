@@ -12,7 +12,7 @@ return <main style={{minHeight:"100vh",background:"#f9eeeb",padding:"30px 14px",
 <h1 style={{textAlign:"center",font:"normal 38px Georgia,serif"}}>LEHNOVA EVENTS</h1><p style={{textAlign:"center"}}>Mes souvenirs connectés</p>
 <a href="/admin/events/cartes-nfc" target="_blank" rel="noreferrer" style={{display:"inline-block",padding:15,background:"#987350",color:"white",borderRadius:20,textDecoration:"none"}}>🖨 Imprimer les cartes NFC (A4 français / arabe)</a>
 <div style={{margin:"25px 0"}}><label>Langue du souvenir : <select value={language} onChange={e=>setLanguage(e.target.value)}><option value="fr">Français</option><option value="ar">العربية — Arabe</option></select></label><div style={{marginTop:15,padding:15,background:"#fffaf7",border:"1px solid #dfc7b9",borderRadius:14}}><strong>Choix du support du souvenir</strong><div style={{display:"grid",gap:10,marginTop:12}}><label><input type="radio" name="delivery" checked={deliveryMethod==="nfc"} onChange={()=>setDeliveryMethod("nfc")}/> NFC — approcher le porte-clés avec un téléphone compatible</label><label><input type="radio" name="delivery" checked={deliveryMethod==="qr"} onChange={()=>setDeliveryMethod("qr")}/> QR code — scanner avec l’appareil photo, notamment sur un ancien téléphone</label></div><small>iPhone XR / XS ou plus récent : NFC. Android : vérifier la compatibilité du modèle.</small></div><button disabled={busy} onClick={create} style={{display:"block",marginTop:14,padding:15,borderRadius:20,background:"#a46c7c",color:"white",border:0}}>＋ Créer un nouveau souvenir</button></div>
-{created&&<p>Souvenir créé ! <a href="/admin">← Retour à mon administrateur</a></p>}
+{created&&<div style={{background:"#fffaf7",padding:16,borderRadius:16,marginBottom:18}}><strong>✓ Souvenir créé !</strong><div style={{marginTop:12}}><button onClick={()=>{setCreated(false);window.scrollTo({top:0,behavior:"smooth"})}} style={{padding:12,borderRadius:12,background:"#a46c7c",color:"#fff",border:0}}>← Retour à Lehnova Events</button></div></div>}
 {error&&<p role="alert" style={{color:"#a33"}}>{error}</p>}{loading&&<p>Chargement…</p>}
 {items.map(x=><section key={x.id} style={{background:"#fffaf7",border:"1px solid #e7caca",borderRadius:18,padding:20,marginBottom:20,display:"grid",gap:12,overflowWrap:"anywhere"}}>
 <h2 style={{font:"normal 25px Georgia,serif",margin:0}}>{x.recipient||"Nouveau souvenir"}</h2>
@@ -20,12 +20,12 @@ return <main style={{minHeight:"100vh",background:"#f9eeeb",padding:"30px 14px",
 {x.language==="ar"&&<div style={{display:"grid",gap:8}}><label>Doua ou message en arabe (à remplir par toi)</label><textarea dir="rtl" lang="ar" rows={5} value={drafts[x.id]??x.arabic_message??""} onChange={e=>setDrafts(s=>({...s,[x.id]:e.target.value}))} style={{fontSize:21,padding:14,borderRadius:12}}/><button disabled={busy} onClick={()=>saveArabic(x.id)}>Enregistrer le texte arabe</button></div>}
 <div style={{display:"grid",gap:8,padding:16,background:"#f4e9e5",borderRadius:14}}>
 <strong>1. LIEN CLIENT — à envoyer pour l'audio ou la vidéo</strong>
-<a href={link("preparer",x.edit_code||x.edit_token)} target="_blank" rel="noreferrer">{link("preparer",x.edit_code||x.edit_token)}</a>
+
 <button onClick={()=>navigator.clipboard.writeText(link("preparer",x.edit_code||x.edit_token))}>📋 Copier le lien client</button></div>
 <div style={{display:"grid",gap:8,padding:16,background:"#f6efe5",borderRadius:14}}>
 <strong>2. TON LIEN POUR LE PORTE-CLÉS — page du souvenir</strong><small>{x.status==="approved"?"Lien actif":"Le destinataire pourra l'ouvrir après validation"}</small>
-<a href={link("souvenir",x.view_code||x.view_token)} target="_blank" rel="noreferrer">{link("souvenir",x.view_code||x.view_token)}</a>
-<a href={link("souvenir",x.view_code||x.view_token)} target="_blank" rel="noreferrer">↗ Ouvrir la page du souvenir</a>
+
+<a href={link("souvenir",x.view_code||x.view_token)} target="_blank" rel="noreferrer">↗ Voir le souvenir</a>
 <button onClick={()=>navigator.clipboard.writeText(link("souvenir",x.view_code||x.view_token))}>📋 Copier le lien du souvenir</button></div>
 {(x.status==="submitted"||(x.language==="ar"&&x.status==="draft"&&x.arabic_message?.trim()))&&<button onClick={()=>approve(x.id,true)}>✓ Valider et activer le souvenir</button>}
 {x.status==="approved"&&<button onClick={()=>approve(x.id,false)}>Désactiver le souvenir</button>}

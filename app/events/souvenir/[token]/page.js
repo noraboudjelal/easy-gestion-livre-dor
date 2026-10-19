@@ -2,51 +2,58 @@
 import {useEffect,useState} from "react";
 
 export default function Souvenir({params}){
- const [adminPreview,setAdminPreview]=useState(false),[data,setData]=useState(null),[open,setOpen]=useState(false),[error,setError]=useState("");
+ const [adminPreview,setAdminPreview]=useState(false),[data,setData]=useState(null),[opened,setOpened]=useState(false),[error,setError]=useState("");
  useEffect(()=>{setAdminPreview(new URLSearchParams(window.location.search).get("admin_preview")==="1")},[]);
  useEffect(()=>{fetch("/api/events/souvenirs/view/"+params.token,{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);setData(d)}).catch(e=>setError(e.message))},[params.token]);
  const ar=data?.language==="ar";
  return <main className="souvenir" dir={ar?"rtl":"ltr"} lang={ar?"ar":"fr"}>
  <style>{`
  @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
- *{box-sizing:border-box}html,body{margin:0}.souvenir{--ink:#513e42;--gold:#b68c55;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:36px 16px 50px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 4%,#fffaf5 0%,#f7eeea 48%,#ecdedb 100%);color:var(--ink);font-family:'DM Sans',Arial,sans-serif;text-align:center}
- .souvenir:before,.souvenir:after{content:"";position:absolute;width:480px;height:480px;border:1px solid #c4a87c45;border-radius:50%;pointer-events:none}.souvenir:before{top:-345px;left:-210px}.souvenir:after{right:-280px;bottom:-350px}
- .shell{position:relative;z-index:1;width:min(100%,520px);padding:9px;border:1px solid #d9c3a7;border-radius:4px;background:linear-gradient(145deg,#fffaf6,#f7eeea);box-shadow:0 30px 85px #694f4a20,0 3px 15px #694f4a0b}
- .frame{min-height:570px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:55px 34px 42px;border:1px solid #dfcdb6;position:relative}
- .frame:before,.frame:after{content:"✦";position:absolute;color:#c7a778;font-size:13px;top:13px}.frame:before{left:16px}.frame:after{right:16px}
- .brand{font:600 12px 'DM Sans',sans-serif;letter-spacing:.37em;color:#98754c;direction:ltr}.subbrand{margin-top:11px;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:#ad9690;direction:ltr}
- .ornament{display:flex;align-items:center;justify-content:center;gap:14px;color:#b8925e;margin:30px 0 15px;font-size:22px}.ornament:before,.ornament:after{content:"";height:1px;width:48px;background:linear-gradient(90deg,transparent,#c3a274)}.ornament:after{transform:rotate(180deg)}
- .eyebrow{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#a08279;margin:4px 0 15px}.headline{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(38px,8vw,58px);font-weight:500;line-height:1.08;letter-spacing:-.025em;margin:10px 0 18px;overflow-wrap:anywhere}.intro{font:400 15px/1.85 'DM Sans',sans-serif;color:#8b7775;max-width:310px;margin:0 auto 32px}
- .arabic .headline,.arabic .intro,.arabic .message{font-family:'Amiri',serif;letter-spacing:0}.arabic .headline{font-size:clamp(36px,8vw,52px);line-height:1.55}.arabic .intro{font-size:21px;line-height:1.8}
- .seal{height:94px;width:94px;display:grid;place-items:center;margin:8px auto 18px;border:1px solid #c8a977;border-radius:50%;background:radial-gradient(circle,#fffaf5 48%,#f0e2d3 100%);box-shadow:0 0 0 7px #f7eee7,0 0 0 8px #c7a77a55;color:#b38c5c;font:46px Georgia,serif;animation:appear .9s ease both}
- .action{border:1px solid #9d7a56;border-radius:2px;background:linear-gradient(120deg,#b69368,#96724f);color:#fffaf5;min-height:55px;padding:15px 26px;font:500 12px 'DM Sans',sans-serif;letter-spacing:.12em;cursor:pointer;box-shadow:0 9px 22px #88684b25;transition:transform .2s,box-shadow .2s}.action:hover{transform:translateY(-2px);box-shadow:0 13px 25px #88684b38}.action:focus-visible{outline:3px solid #9d7a56;outline-offset:4px}.arabic .action{font:22px 'Amiri',serif;letter-spacing:0}
- .message{width:100%;white-space:pre-wrap;overflow-wrap:anywhere;font:24px/1.8 'Cormorant Garamond',Georgia,serif;color:#604b4d;margin:6px 0 23px;padding:24px 16px;border-top:1px solid #ddc7ad;border-bottom:1px solid #ddc7ad}.arabic .message{font-size:26px;line-height:2.05}
- .media{display:block;width:100%;max-width:390px;margin:12px auto 24px;border-radius:4px;max-height:55vh}.sender{font:13px/1.8 'DM Sans',sans-serif;color:#8b7775;margin:0 0 25px}.reveal{width:100%;animation:appear .85s ease both}.foot{margin-top:auto;padding-top:40px;font-size:10px;letter-spacing:.16em;color:#b19a90;direction:ltr}
- .loading{color:#8b7775;line-height:1.8}.spark{position:absolute;color:#c6a477;opacity:.5;pointer-events:none;font-size:16px;animation:float 8s ease-in-out infinite}.spark.one{top:13%;left:8%}.spark.two{top:30%;right:9%;animation-delay:-3s}.spark.three{bottom:17%;left:11%;animation-delay:-5s}
- @keyframes appear{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}@keyframes float{50%{transform:translateY(-18px) rotate(18deg);opacity:.85}}
- @media(max-width:480px){.souvenir{padding:14px 10px}.frame{min-height:calc(100dvh - 48px);padding:45px 23px 30px}.shell{padding:6px}.headline{font-size:44px}.foot{padding-top:30px}}
- @media(prefers-reduced-motion:reduce){.spark,.seal,.reveal{animation:none}.action{transition:none}}
+ *{box-sizing:border-box}html,body{margin:0}.souvenir{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:65px 17px 34px;background:radial-gradient(ellipse at 50% 32%,#fffdf9 0%,#f8f0ec 56%,#eddfdb 100%);font-family:'DM Sans',Arial,sans-serif;color:#634b4e;text-align:center;overflow:hidden;position:relative}
+ .scene{width:min(100%,480px);min-height:620px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:1}
+ .brand{font-size:10px;letter-spacing:.35em;color:#a18a80;margin:0 0 46px;direction:ltr}.foot{font-size:9px;letter-spacing:.19em;color:#b9a9a2;margin-top:45px;direction:ltr}
+ .heart{font:43px Georgia,serif;color:#c68b91;filter:drop-shadow(0 5px 10px #b9898950);animation:heartbeat 3.5s ease-in-out infinite}
+ .intro{font:24px/1.5 'Cormorant Garamond',Georgia,serif;color:#765b5f;margin:23px 0 25px}.arabic .intro{font:27px/1.8 'Amiri',serif}
+ .envelope-button{background:none;border:0;padding:0;cursor:pointer;display:block;width:min(82vw,340px);height:245px;position:relative;perspective:850px;filter:drop-shadow(0 17px 20px #88615b24);-webkit-tap-highlight-color:transparent}
+ .envelope-button:focus-visible{outline:3px solid #b78b6b;outline-offset:12px}
+ .envelope{position:absolute;inset:28px 0 0;isolation:isolate;background:#f1ded4;border:1px solid #dfc5b7;border-radius:3px;overflow:visible}
+ .envelope:before{content:"";position:absolute;inset:0;background:#fff6ee;clip-path:polygon(0 0,50% 60%,100% 0);z-index:1;transform-origin:top;transition:transform 1s cubic-bezier(.2,.8,.25,1),z-index 0s .45s;backface-visibility:hidden}
+ .envelope:after{content:"";position:absolute;inset:0;background:linear-gradient(145deg,#f9ece3,#ebd4c9);clip-path:polygon(0 100%,50% 35%,100% 100%);z-index:3;pointer-events:none}
+ .side{position:absolute;inset:0;background:#f6e5da;clip-path:polygon(0 0,50% 57%,100% 0,100% 100%,0 100%);z-index:2;pointer-events:none}
+ .letter{position:absolute;left:7%;right:7%;top:13px;height:175px;background:#fffdf9;border:1px solid #e8d6c7;box-shadow:0 3px 8px #a47d6b15;display:flex;align-items:center;justify-content:center;z-index:0;transition:transform 1.1s .45s cubic-bezier(.22,.8,.2,1)}
+ .letter .heart{font-size:31px}
+ .wax{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);height:60px;width:60px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#e8b5b6,#b87b85 75%);border:3px double #f5d4c8;box-shadow:0 4px 10px #6f4a4933;z-index:4;display:grid;place-items:center;color:white;font:30px Georgia,serif;transition:opacity .35s}
+ .opened .envelope:before{transform:rotateX(180deg);z-index:0}.opened .letter{transform:translateY(-100px)}.opened .wax{opacity:0}
+ .hint{margin:28px 0 0;color:#a17f79;font-size:12px;letter-spacing:.08em}.arabic .hint{font:20px 'Amiri',serif;letter-spacing:0}
+ .reveal{width:100%;animation:rise .9s ease both;margin-top:8px}.reveal-card{background:#fffcf8;border:1px solid #e7d6c9;box-shadow:0 15px 40px #a17d7220;padding:35px 23px 28px;position:relative}.reveal-card:before{content:"♡";position:absolute;top:13px;left:50%;transform:translateX(-50%);color:#c88e94;font:23px Georgia,serif}
+ .headline{font:normal clamp(30px,7vw,42px)/1.2 'Cormorant Garamond',Georgia,serif;margin:20px 0 24px}.arabic .headline{font:normal 36px/1.65 'Amiri',serif}
+ .message{font:24px/1.8 'Cormorant Garamond',Georgia,serif;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0 24px;color:#654b4f}.arabic .message{font:25px/2 'Amiri',serif}
+ .media{display:block;width:100%;max-width:390px;max-height:55vh;margin:15px auto 25px;border-radius:8px}.sender{font-size:13px;color:#957b78;line-height:1.7}
+ .replay{border:0;background:transparent;text-decoration:underline;text-underline-offset:5px;color:#9d7975;font-size:12px;margin:26px auto 0;cursor:pointer}.arabic .replay{font:18px 'Amiri',serif}
+ .loading{color:#987b77}.admin-back{position:fixed;z-index:10;top:12px;left:12px;padding:12px 15px;background:#fffaf7;border:1px solid #e2cfc1;border-radius:12px;color:#704c57;text-decoration:none;font-size:12px}
+ @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}@keyframes heartbeat{50%{transform:scale(1.08)}}
+ @media(max-width:480px){.scene{min-height:calc(100dvh - 100px)}.brand{margin-bottom:34px}.envelope-button{height:215px}.envelope{inset:25px 0 0}.letter{height:155px}.opened .letter{transform:translateY(-80px)}}
+ @media(prefers-reduced-motion:reduce){.heart,.reveal{animation:none}.envelope:before,.letter,.wax{transition:none}}
  `}</style>
- {adminPreview&&<a href="/admin/events" style={{position:"fixed",top:12,left:12,zIndex:10,padding:"12px 16px",borderRadius:12,background:"#fffaf7",border:"1px solid #d9c3a7",color:"#704c57",font:"600 13px Arial,sans-serif",textDecoration:"none",boxShadow:"0 3px 14px #0001"}}>← Retour à Lehnova Events</a>}
- <span className="spark one" aria-hidden="true">✧</span><span className="spark two" aria-hidden="true">✦</span><span className="spark three" aria-hidden="true">✧</span>
- <section className={"shell"+(ar?" arabic":"")}><div className="frame">
- <div className="brand">LEHNOVA</div><div className="subbrand">EVENTS · SOUVENIRS CONNECTÉS</div>
- <div className="ornament" aria-hidden="true">✧</div>
- {error?<p className="loading" role="alert">{error}</p>:!data?<p className="loading">{ar?"جارٍ التحميل…":"Votre surprise se prépare…"}</p>:!open?<div className="reveal">
- <div className="seal" aria-hidden="true">♡</div>
- <p className="eyebrow">{ar?"":"UNE ATTENTION UNIQUE"}</p>
- <h1 className="headline">{ar?"رسالة خاصة لك":<>Un message<br/>rien que pour toi{data.recipient?", "+data.recipient:""}.</>}</h1>
- <p className="intro">{ar?"بعض الكلمات تبقى في القلب إلى الأبد":"Il y a des attentions qui se vivent… et des mots qui restent pour toujours."}</p>
- <button className="action" onClick={()=>setOpen(true)}>{ar?"افتح رسالتك ✧":"DÉCOUVRIR MON MESSAGE  ✧"}</button>
- </div>:<div className="reveal">
- <p className="eyebrow">{ar?"":"UN INSTANT À GARDER PRÉCIEUSEMENT"}</p>
- <h1 className="headline">{ar?"رسالة من القلب":<>Pour toi{data.recipient?", "+data.recipient:""} ♡</>}</h1>
- {ar&&data.arabic_message&&<div className="message" lang="ar" dir="rtl">{data.arabic_message}</div>}
+ {adminPreview&&<a className="admin-back" href="/admin/events">← Retour à Lehnova Events</a>}
+ <section className={"scene"+(ar?" arabic":"")}>
+ <div className="brand">LEHNOVA EVENTS</div>
+ {error?<p className="loading" role="alert">{error}</p>:!data?<p className="loading">{ar?"جارٍ التحميل…":"Votre surprise se prépare…"}</p>:!opened?<>
+ <div className="heart" aria-hidden="true">♡</div>
+ <p className="intro">{ar?"رسالة صغيرة، تحمل مشاعر كبيرة":<>Une attention toute particulière{data.recipient?" pour "+data.recipient:""}…</>}</p>
+ <button className="envelope-button" type="button" aria-label={ar?"افتح رسالتك":"Ouvrir mon message"} onClick={()=>setOpened(true)}>
+ <span className="envelope"><span className="letter"><span className="heart">♡</span></span><span className="side"/><span className="wax">♡</span></span>
+ </button>
+ <p className="hint">{ar?"المس الظرف لفتح رسالتك":"Touchez l’enveloppe pour découvrir votre message"}</p>
+ </>:<div className="reveal">
+ <div className="reveal-card"><h1 className="headline">{ar?"رسالة من القلب":<>Pour toi{data.recipient?", "+data.recipient:""} ♡</>}</h1>
+ {ar&&data.arabic_message&&<div className="message" dir="rtl" lang="ar">{data.arabic_message}</div>}
  {!ar&&data.dedication&&<div className="message">{data.dedication}</div>}
  {data.url&&(data.media_type==="audio"?<audio className="media" controls src={data.url}/>:<video className="media" controls playsInline src={data.url}/>)}
  {!ar&&<p className="sender">Avec tendresse, {data.sender||"quelqu’un qui pense à toi"} ♡</p>}
- <button className="action" onClick={()=>setOpen(false)}>{ar?"عرض الرسالة مرة أخرى ↺":"REVIVRE CET INSTANT  ↺"}</button>
+ </div>
+ <button className="replay" onClick={()=>setOpened(false)}>{ar?"↺ فتح الظرف مرة أخرى":"↺ Revoir l’ouverture"}</button>
  </div>}
  <div className="foot">UN SOUVENIR SIGNÉ LEHNOVA EVENTS</div>
- </div></section></main>
+ </section></main>
 }

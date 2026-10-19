@@ -15,10 +15,10 @@ export async function DELETE(req){
   const {id}=await req.json();
   if(typeof id!=="string"||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return NextResponse.json({error:"Identifiant invalide"},{status:400});
   const db=getSupabaseAdmin();
-  const {data:row,error:lookupError}=await db.from("lehnova_souvenirs").select("id,media_path").eq("id",id).single();
+  const {data:row,error:lookupError}=await db.from("lehnova_souvenirs").select("id,media_path,photo_paths").eq("id",id).single();
   if(lookupError||!row)return NextResponse.json({error:"Souvenir introuvable"},{status:404});
-  if(row.media_path){
-   const {error:storageError}=await db.storage.from("lehnova-souvenirs").remove([row.media_path]);
+  if(row.media_path||(row.photo_paths||[]).length){
+   const {error:storageError}=await db.storage.from("lehnova-souvenirs").remove([...(row.media_path?[row.media_path]:[]),...(row.photo_paths||[])]);
    if(storageError)return NextResponse.json({error:"Impossible de supprimer le fichier audio ou vidéo : "+storageError.message},{status:500});
   }
   const {error}=await db.from("lehnova_souvenirs").delete().eq("id",id);

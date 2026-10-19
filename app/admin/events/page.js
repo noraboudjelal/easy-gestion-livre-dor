@@ -21,7 +21,7 @@ return <main style={{minHeight:"100vh",background:"#f9eeeb",padding:"30px 14px",
 <div style={{display:"grid",gap:8,padding:16,background:"#f4e9e5",borderRadius:14}}>
 <strong>1. LIEN CLIENT — à envoyer pour l'audio ou la vidéo</strong>
 
-<button onClick={()=>navigator.clipboard.writeText(link("preparer",x.edit_code||x.edit_token))}>📋 Copier le lien client</button></div>
+<a href={link("preparer",x.edit_code||x.edit_token)} target="_blank" rel="noreferrer" style={{padding:12,borderRadius:12,background:"#fffaf7",color:"#765260",textAlign:"center",textDecoration:"none",fontWeight:600}}>↗ Ouvrir le lien client</a><button onClick={()=>navigator.clipboard.writeText(link("preparer",x.edit_code||x.edit_token))}>📋 Copier le lien client</button></div>
 <div style={{display:"grid",gap:8,padding:16,background:"#f6efe5",borderRadius:14}}>
 <strong>2. TON LIEN POUR LE PORTE-CLÉS — page du souvenir</strong><small>{x.status==="approved"?"Lien actif":"Le destinataire pourra l'ouvrir après validation"}</small>
 

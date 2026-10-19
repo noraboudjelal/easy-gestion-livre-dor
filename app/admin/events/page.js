@@ -25,7 +25,7 @@ return <main style={{minHeight:"100vh",background:"#f9eeeb",padding:"30px 14px",
 <div style={{display:"grid",gap:8,padding:16,background:"#f6efe5",borderRadius:14}}>
 <strong>2. TON LIEN POUR LE PORTE-CLÉS — page du souvenir</strong><small>{x.status==="approved"?"Lien actif":"Le destinataire pourra l'ouvrir après validation"}</small>
 
-<a href={link("souvenir",x.view_code||x.view_token)} target="_blank" rel="noreferrer">↗ Voir le souvenir</a>
+<a href={link("souvenir",x.view_code||x.view_token)+"?admin_preview=1"} target="_blank" rel="noreferrer">↗ Voir le souvenir</a>
 <button onClick={()=>navigator.clipboard.writeText(link("souvenir",x.view_code||x.view_token))}>📋 Copier le lien du souvenir</button>{x.delivery_method==="qr"&&<a href={"/admin/events/qr-print/"+encodeURIComponent(x.view_code||x.view_token)} target="_blank" rel="noreferrer" style={{display:"block",padding:13,textAlign:"center",background:"#9d7658",color:"#fff",borderRadius:12,textDecoration:"none",fontWeight:600}}>▦ Créer et imprimer mon QR code</a>}</div>
 {(x.status==="submitted"||(x.language==="ar"&&x.status==="draft"&&x.arabic_message?.trim()))&&<button onClick={()=>approve(x.id,true)}>✓ Valider et activer le souvenir</button>}
 {x.status==="approved"&&<button onClick={()=>approve(x.id,false)}>Désactiver le souvenir</button>}

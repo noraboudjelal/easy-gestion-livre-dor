@@ -2,7 +2,8 @@
 import {useEffect,useState} from "react";
 
 export default function Souvenir({params}){
- const [data,setData]=useState(null),[open,setOpen]=useState(false),[error,setError]=useState("");
+ const [adminPreview,setAdminPreview]=useState(false),[data,setData]=useState(null),[open,setOpen]=useState(false),[error,setError]=useState("");
+ useEffect(()=>{setAdminPreview(new URLSearchParams(window.location.search).get("admin_preview")==="1")},[]);
  useEffect(()=>{fetch("/api/events/souvenirs/view/"+params.token,{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw Error(d.error);setData(d)}).catch(e=>setError(e.message))},[params.token]);
  const ar=data?.language==="ar";
  return <main className="souvenir" dir={ar?"rtl":"ltr"} lang={ar?"ar":"fr"}>
@@ -26,6 +27,7 @@ export default function Souvenir({params}){
  @media(max-width:480px){.souvenir{padding:14px 10px}.frame{min-height:calc(100dvh - 48px);padding:45px 23px 30px}.shell{padding:6px}.headline{font-size:44px}.foot{padding-top:30px}}
  @media(prefers-reduced-motion:reduce){.spark,.seal,.reveal{animation:none}.action{transition:none}}
  `}</style>
+ {adminPreview&&<a href="/admin/events" style={{position:"fixed",top:12,left:12,zIndex:10,padding:"12px 16px",borderRadius:12,background:"#fffaf7",border:"1px solid #d9c3a7",color:"#704c57",font:"600 13px Arial,sans-serif",textDecoration:"none",boxShadow:"0 3px 14px #0001"}}>← Retour à Lehnova Events</a>}
  <span className="spark one" aria-hidden="true">✧</span><span className="spark two" aria-hidden="true">✦</span><span className="spark three" aria-hidden="true">✧</span>
  <section className={"shell"+(ar?" arabic":"")}><div className="frame">
  <div className="brand">LEHNOVA</div><div className="subbrand">EVENTS · SOUVENIRS CONNECTÉS</div>

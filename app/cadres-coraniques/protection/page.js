@@ -1,10 +1,17 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 // EveryAyah files contain ONE verse each, not an entire surah.
 // Demo recordings: verify licensing and reciter/distributor permission before selling.
-const base = "https://everyayah.com/data/Alafasy_128kbps/";
+const voices = [
+ {id:"Alafasy_128kbps",name:"Mishary Al-Afasy"},
+ {id:"Husary_128kbps",name:"Mahmoud Khalil Al-Husary"},
+ {id:"Minshawy_Murattal_128kbps",name:"Mohamed Siddiq Al-Minshawi"},
+ {id:"Abdul_Basit_Murattal_64kbps",name:"Abdul Basit Abdus Samad"},
+ {id:"Ghamadi_40kbps",name:"Saad Al-Ghamdi"}
+];
+const base = "https://everyayah.com/data/";
 const surahs = [
   { title:"Al-Ikhlas", arabic:"الإخلاص", number:112, verses:4 },
   { title:"Al-Falaq", arabic:"الفلق", number:113, verses:5 },
@@ -12,10 +19,13 @@ const surahs = [
 ];
 const playlist = surahs.flatMap((s,surahIndex)=>Array.from({length:s.verses},(_,v)=>({
   surahIndex, verse:v+1,
-  src:base+String(s.number).padStart(3,"0")+String(v+1).padStart(3,"0")+".mp3"
+  file:String(s.number).padStart(3,"0")+String(v+1).padStart(3,"0")+".mp3"
 })));
 export default function ProtectionPage(){
  const audio=useRef(null);
+ const [voice,setVoice]=useState("Alafasy_128kbps");
+ useEffect(()=>{const requested=new URLSearchParams(window.location.search).get("reciter") || window.localStorage.getItem("lehnova-quran-reciter");if(voices.some(v=>v.id===requested))setVoice(requested)},[]);
+ const changeVoice=(id)=>{setVoice(id);window.localStorage.setItem("lehnova-quran-reciter",id);if(audio.current){audio.current.pause();audio.current.removeAttribute("src");audio.current.load();setPlaying(false);}};
  const position=useRef(0);
  const [current,setCurrent]=useState(0);
  const [playing,setPlaying]=useState(false);
@@ -26,7 +36,7 @@ export default function ProtectionPage(){
    position.current=n;
    setCurrent(n);
    setError("");
-   audio.current.src=item.src;
+   audio.current.src=base+voice+"/"+item.file;
    try{await audio.current.play();setPlaying(true)}
    catch{setPlaying(false);setError("Lecture impossible. Vérifiez votre connexion et réessayez.")}
  };
@@ -36,6 +46,8 @@ export default function ProtectionPage(){
  <div style={{fontSize:32}}>☪</div>
  <h1 style={{fontSize:27,marginBottom:8}}>Les trois sourates de protection</h1>
  <p style={{color:"#817467"}}>Écoutez les 4 versets d'Al-Ikhlas, les 5 versets d'Al-Falaq puis les 6 versets d'An-Nas.</p>
+ <label style={{display:"block",marginTop:20}}>Choisir la voix du récitant</label>
+ <select aria-label="Récitant" value={voice} onChange={e=>changeVoice(e.target.value)} style={{width:"100%",padding:12,border:"1px solid #d8c8b6",borderRadius:10,marginTop:8,fontSize:16}}>{voices.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select>
  <button onClick={()=>playAt(0)} style={{background:"#846a4d",color:"white",border:0,borderRadius:30,padding:"15px 26px",fontSize:16,cursor:"pointer",margin:"20px 0"}}>▶ Tout écouter</button>
  <div style={{display:"grid",gap:10,marginTop:12}}>
  {surahs.map((s,i)=><button key={s.number} onClick={()=>playAt(playlist.findIndex(p=>p.surahIndex===i))} style={{padding:17,border:"1px solid #e7ded4",borderRadius:14,background:playlist[current].surahIndex===i&&playing?"#f3e9dd":"#fff",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",color:"#40352d",fontSize:16}}>

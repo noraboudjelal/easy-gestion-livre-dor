@@ -4,13 +4,12 @@ import Link from "next/link";
 
 // Full-surah recordings (one MP3 per surah). Verify each edition, availability and commercial licensing before selling.
 const voices = [
- {id:"Alafasy_128kbps",name:"Mishary Al-Afasy",edition:"ar.alafasy",bitrate:128},
- {id:"Husary_128kbps",name:"Mahmoud Khalil Al-Husary",edition:"ar.husary",bitrate:64},
- {id:"Minshawy_Murattal_128kbps",name:"Mohamed Siddiq Al-Minshawi",edition:"ar.minshawi",bitrate:128},
- {id:"Abdul_Basit_Murattal_64kbps",name:"Abdul Basit Abdus Samad",edition:"ar.abdulbasitmurattal",bitrate:64},
- {id:"Ghamadi_40kbps",name:"Saad Al-Ghamdi",edition:"ar.ghamadi",bitrate:40}
+ {id:"Alafasy_128kbps",name:"Mishary Al-Afasy",url:"https://cdn.mp3quran.net/audio/mishary-alafasy/r1/"},
+ {id:"Husary_128kbps",name:"Mahmoud Khalil Al-Husary",url:"https://cdn.mp3quran.net/audio/mahmoud-husary/r1/"},
+ {id:"Minshawy_Murattal_128kbps",name:"Mohamed Siddiq Al-Minshawi",url:"https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/"},
+ {id:"Abdul_Basit_Murattal_64kbps",name:"Abdul Basit Abdus Samad",url:"https://server7.mp3quran.net/basit/128/"},
+ {id:"Ghamadi_40kbps",name:"Saad Al-Ghamdi",url:"https://server7.mp3quran.net/s_gmd/128/"}
 ];
-const base = "https://cdn.islamic.network/quran/audio-surah/";
 const surahs = [
   { title:"Al-Ikhlas", arabic:"الإخلاص", number:112, verses:4 },
   { title:"Al-Falaq", arabic:"الفلق", number:113, verses:5 },
@@ -33,7 +32,7 @@ export default function ProtectionPage(){
    setCurrent(n);
    setError("");
    const selected=voices.find(v=>v.id===voice)||voices[0];
-   audio.current.src=base+selected.bitrate+"/"+selected.edition+"/"+item.number+".mp3";
+   audio.current.src=selected.url+String(item.number).padStart(3,"0")+".mp3";
    try{await audio.current.play();setPlaying(true)}
    catch{setPlaying(false);setError("Lecture impossible. Vérifiez votre connexion et réessayez.")}
  };

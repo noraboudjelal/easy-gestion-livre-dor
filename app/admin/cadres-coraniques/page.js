@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const audioPath="/cadres-coraniques/protection";
+const voices=[
+ {id:"Alafasy_128kbps",name:"Mishary Al-Afasy"},
+ {id:"Husary_128kbps",name:"Mahmoud Khalil Al-Husary"},
+ {id:"Minshawy_Murattal_128kbps",name:"Mohamed Siddiq Al-Minshawi"},
+ {id:"Abdul_Basit_Murattal_64kbps",name:"Abdul Basit Abdus Samad"},
+ {id:"Ghamadi_40kbps",name:"Saad Al-Ghamdi"}
+];
 const chapters=[
  {name:"Al-Ikhlas",arabic:"سُورَةُ الْإِخْلَاصِ",meaning:"Le Monothéisme pur",lines:["قُلْ هُوَ اللَّهُ أَحَدٌ","اللَّهُ الصَّمَدُ","لَمْ يَلِدْ وَلَمْ يُولَدْ","وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ"]},
  {name:"Al-Falaq",arabic:"سُورَةُ الْفَلَقِ",meaning:"L'Aube naissante",lines:["قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ","مِنْ شَرِّ مَا خَلَقَ","وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ","وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ","وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ"]},
@@ -12,10 +19,12 @@ export default function AdminCadresCoraniques(){
  const [authorized,setAuthorized]=useState(null);
  const [link,setLink]=useState("");
  const [copied,setCopied]=useState(false);
- useEffect(()=>{fetch("/api/admin/session",{cache:"no-store"}).then(r=>r.json()).then(d=>setAuthorized(Boolean(d.authenticated))).catch(()=>setAuthorized(false));setLink(window.location.origin+audioPath);},[]);
+ const [voice,setVoice]=useState("Alafasy_128kbps");
+ useEffect(()=>{fetch("/api/admin/session",{cache:"no-store"}).then(r=>r.json()).then(d=>setAuthorized(Boolean(d.authenticated))).catch(()=>setAuthorized(false));const saved=window.localStorage.getItem("lehnova-quran-reciter");if(voices.some(v=>v.id===saved))setVoice(saved);setLink(window.location.origin+audioPath);},[]);
  if(authorized===null)return <main style={{padding:32}}>Vérification de la session…</main>;
  if(!authorized)return <main style={{padding:32}}><h1>Accès réservé</h1><Link href="/admin">Se connecter</Link></main>;
- const qr="https://api.qrserver.com/v1/create-qr-code/?size=500x500&margin=12&data="+encodeURIComponent(link);
+ const voiceLink=link+"?reciter="+encodeURIComponent(voice);
+ const qr="https://api.qrserver.com/v1/create-qr-code/?size=500x500&margin=12&data="+encodeURIComponent(voiceLink);
  return <main className="q-page">
   <style>{`
   .q-page{min-height:100vh;background:#e8e0d5;padding:24px 12px;font-family:Georgia,serif;color:#5a3a19}
@@ -43,7 +52,7 @@ export default function AdminCadresCoraniques(){
   @media(max-width:550px){.q-inner{padding:12px 10px}.q-frame{padding:9px}.q-title{font-size:23px}.q-verse{font-size:16px}.q-section{padding:8px}.q-arabic-title{font-size:22px}}
   @media print{@page{size:A4;margin:5mm}html,body{background:white!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.q-page{padding:0;background:white}.q-tools{display:none!important}.q-frame{width:200mm;max-width:none;box-shadow:none;padding:5mm}.q-inner{min-height:275mm;padding:5mm 9mm}.q-arch{padding:22px 10px 10px;margin-top:5px}.q-section{margin:8px 0;padding:6px 12px}.q-verse{font-size:17px;line-height:1.7}.q-bottom{padding:8px;margin-top:8px}.q-qr{width:85px;height:85px}}
   `}</style>
-  <div className="q-tools"><p><Link href="/admin">← Retour à l'administration</Link></p><h1>Cadres coraniques · NFC / QR</h1><p>Nouveau modèle inspiré de ton cadre doré, avec les trois sourates de protection.</p><p style={{overflowWrap:"anywhere",fontSize:13}}>{link}</p><button onClick={async()=>{await navigator.clipboard.writeText(link);setCopied(true)}}>{copied?"Lien copié ✓":"Copier le lien NFC"}</button><button onClick={()=>window.print()}>Imprimer le cadre A4</button><Link href={audioPath} target="_blank" style={{marginLeft:10}}>Tester l'écoute ↗</Link><p style={{fontSize:12,color:"#806c58"}}>Le QR code est généré par un service tiers. Vérifier la mise en page et les textes avant toute commercialisation.</p></div>
+  <div className="q-tools"><p><Link href="/admin">← Retour à l'administration</Link></p><h1>Cadres coraniques · NFC / QR</h1><p>Nouveau modèle inspiré de ton cadre doré, avec les trois sourates de protection.</p><p style={{overflowWrap:"anywhere",fontSize:13}}>{voiceLink}</p><label style={{display:"block",marginBottom:6}}>Choisir la voix du récitant</label><select value={voice} onChange={e=>{setVoice(e.target.value);window.localStorage.setItem("lehnova-quran-reciter",e.target.value);setCopied(false)}} style={{padding:12,borderRadius:8,maxWidth:"100%",marginBottom:12}}>{voices.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select><p style={{fontSize:13}}>Le QR code change selon la voix choisie. Pour un NFC déjà programmé, il faut mettre à jour son lien.</p><button onClick={async()=>{await navigator.clipboard.writeText(voiceLink);setCopied(true)}}>{copied?"Lien copié ✓":"Copier le lien NFC"}</button><button onClick={()=>window.print()}>Imprimer le cadre A4</button><Link href={audioPath+"?reciter="+encodeURIComponent(voice)} target="_blank" style={{marginLeft:10}}>Tester l'écoute ↗</Link><p style={{fontSize:12,color:"#806c58"}}>Le QR code est généré par un service tiers. Vérifier la mise en page et les textes avant toute commercialisation.</p></div>
   <div className="q-frame"><div className="q-inner">
    <div className="q-lamps"><span>🏮</span><span>🏮</span></div>
    <header className="q-arch"><div className="q-ornament">۞</div><h1 className="q-title">Les trois sourates de protection</h1><p className="q-subtitle">AL-IKHLAS · AL-FALAQ · AN-NAS</p><div className="q-ornament">❦</div></header>

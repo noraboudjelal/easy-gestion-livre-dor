@@ -1108,6 +1108,7 @@ async function handleToggleTableSearch(ev) {
           <a href="/admin/lehnova-contact" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Lehnova Contact · NFC</a>
           <a href="/admin/roue" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Animation marketing · La Roue</a>
           <a href="/admin/events" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Lehnova Events · Souvenirs NFC</a>
+          <a href="/admin/cadres-coraniques" style={{ ...styles.tab, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>Cadres coraniques · NFC / QR</a>
         </div>
 
         {view === "livres" && (

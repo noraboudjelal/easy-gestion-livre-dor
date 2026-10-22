@@ -33,26 +33,34 @@ export default function AdminCadresCoraniques(){
  const endQr=e=>{dragging.current=false;if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);};
  const [exporting,setExporting]=useState(false);
  const downloadFrame=async()=>{
-  if(!poster){alert("Importe d’abord ton image.");return;}
+  if(!poster){alert("Importe d’abord ton cadre.");return;}
   setExporting(true);
   try{
-   const load=src=>new Promise((resolve,reject)=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>resolve(im);im.onerror=()=>reject(new Error("Image impossible à charger"));im.src=src;});
+   const {jsPDF}=await import("jspdf");
+   const load=src=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error("Chargement de l’image impossible"));im.src=src;});
    const original=await load(poster);
-   const canvas=document.createElement("canvas");canvas.width=original.naturalWidth;canvas.height=original.naturalHeight;
+   const pdf=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+   const pw=210,ph=297,margin=3;
+   const scale=Math.min((pw-2*margin)/original.naturalWidth,(ph-2*margin)/original.naturalHeight);
+   const width=original.naturalWidth*scale,height=original.naturalHeight*scale;
+   const left=(pw-width)/2,top=(ph-height)/2;
+   const canvas=document.createElement("canvas");
+   canvas.width=original.naturalWidth;canvas.height=original.naturalHeight;
    const ctx=canvas.getContext("2d");ctx.drawImage(original,0,0);
    if(showQr){
-    const qrImage=await load(qr);
-    const size=canvas.width*qrSize/100;
-    const x=canvas.width*qrX/100-size/2;
-    const y=canvas.height*qrY/100-size/2;
-    ctx.fillStyle="#fff";ctx.fillRect(x,y,size,size);ctx.drawImage(qrImage,x,y,size,size);
+    const response=await fetch("/api/cadres-coraniques/qr?data="+encodeURIComponent(voiceLink),{cache:"no-store"});
+    if(!response.ok)throw new Error("Le QR code n’a pas pu être généré");
+    const blob=await response.blob();
+    const url=URL.createObjectURL(blob);
+    try{
+     const q=await load(url);const size=canvas.width*qrSize/100;
+     const x=canvas.width*qrX/100-size/2,y=canvas.height*qrY/100-size/2;
+     ctx.fillStyle="#fff";ctx.fillRect(x,y,size,size);ctx.drawImage(q,x,y,size,size);
+    }finally{URL.revokeObjectURL(url);}
    }
-   const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
-   if(!blob)throw new Error("Impossible de créer l’image");
-   const url=URL.createObjectURL(blob);
-   const a=document.createElement("a");a.href=url;a.download="cadre-coraniques-lehnova-A4.png";document.body.appendChild(a);a.click();a.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }catch(e){alert("Impossible d’enregistrer le cadre : "+e.message);}
+   pdf.addImage(canvas.toDataURL("image/jpeg",0.94),"JPEG",left,top,width,height);
+   pdf.save("cadre-coraniques-lehnova-A4.pdf");
+  }catch(e){alert("Impossible de créer le PDF : "+e.message);}
   finally{setExporting(false);}
  };
  const uploadPoster=(e)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/")){alert("Choisis une image JPG ou PNG.");return;}if(file.size>12*1024*1024){alert("Image trop volumineuse (12 Mo maximum).");return;}const reader=new FileReader();reader.onload=()=>{const src=String(reader.result);const img=new Image();img.onload=()=>setPosterRatio(img.naturalWidth/img.naturalHeight);img.src=src;setPoster(src);};reader.readAsDataURL(file);};
@@ -107,7 +115,7 @@ export default function AdminCadresCoraniques(){
     .q-qr{width:75px!important;height:75px!important}
   }
   `}</style>
-  <div className="q-tools"><p><Link href="/admin">← Retour à l'administration</Link></p><h1>Cadres coraniques · NFC / QR</h1><p>Nouveau modèle inspiré de ton cadre doré, avec les trois sourates de protection.</p><p style={{overflowWrap:"anywhere",fontSize:13}}>{voiceLink}</p><label style={{display:"block",marginBottom:6}}>Choisir la voix du récitant</label><select value={voice} onChange={e=>{setVoice(e.target.value);window.localStorage.setItem("lehnova-quran-reciter",e.target.value);setCopied(false)}} style={{padding:12,borderRadius:8,maxWidth:"100%",marginBottom:12}}>{voices.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select><p style={{fontSize:13}}>Le QR code change selon la voix choisie. Pour un NFC déjà programmé, il faut mettre à jour son lien.</p><button onClick={async()=>{await navigator.clipboard.writeText(voiceLink);setCopied(true)}}>{copied?"Lien copié ✓":"Copier le lien NFC"}</button><div style={{margin:"16px 0",padding:"15px",background:"#faf5ed",borderRadius:10}}><label style={{display:"block",fontWeight:700,marginBottom:8}}>Importer ton image (JPG ou PNG)</label><input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadPoster} style={{width:"100%"}}/><p style={{fontSize:13}}>L'image reste sur ton appareil. Le QR code est ajouté par-dessus pour l'impression.</p>{poster&&<><label style={{display:"block"}}><input type="checkbox" checked={showQr} onChange={e=>setShowQr(e.target.checked)}/> Afficher le QR code</label><label style={{display:"block",marginTop:8}}>Position horizontale : {qrX}% <input type="range" min="8" max="92" value={qrX} onChange={e=>setQrX(Number(e.target.value))}/></label><label style={{display:"block"}}>Position verticale : {qrY}% <input type="range" min="8" max="92" value={qrY} onChange={e=>setQrY(Number(e.target.value))}/></label><label style={{display:"block"}}>Taille du QR code : {qrSize}% <input type="range" min="9" max="25" value={qrSize} onChange={e=>setQrSize(Number(e.target.value))}/></label><button onClick={()=>setPoster("")}>Retirer l'image</button></>}</div><button disabled={!poster||exporting} onClick={downloadFrame}>{exporting?"Préparation…":"Télécharger mon cadre complet (PNG)"}</button><p style={{fontSize:13}}>Sur iPhone : enregistre l’image dans Photos puis imprime-la au format A4. Cela évite les pages coupées dans Safari.</p><button onClick={()=>window.print()}>Imprimer directement (Safari)</button><Link href={audioPath+"?reciter="+encodeURIComponent(voice)} target="_blank" style={{marginLeft:10}}>Tester l'écoute ↗</Link><p style={{fontSize:12,color:"#806c58"}}>Le QR code est généré par un service tiers. Vérifier la mise en page et les textes avant toute commercialisation.</p></div>
+  <div className="q-tools"><p><Link href="/admin">← Retour à l'administration</Link></p><h1>Cadres coraniques · NFC / QR</h1><p>Nouveau modèle inspiré de ton cadre doré, avec les trois sourates de protection.</p><p style={{overflowWrap:"anywhere",fontSize:13}}>{voiceLink}</p><label style={{display:"block",marginBottom:6}}>Choisir la voix du récitant</label><select value={voice} onChange={e=>{setVoice(e.target.value);window.localStorage.setItem("lehnova-quran-reciter",e.target.value);setCopied(false)}} style={{padding:12,borderRadius:8,maxWidth:"100%",marginBottom:12}}>{voices.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select><p style={{fontSize:13}}>Le QR code change selon la voix choisie. Pour un NFC déjà programmé, il faut mettre à jour son lien.</p><button onClick={async()=>{await navigator.clipboard.writeText(voiceLink);setCopied(true)}}>{copied?"Lien copié ✓":"Copier le lien NFC"}</button><div style={{margin:"16px 0",padding:"15px",background:"#faf5ed",borderRadius:10}}><label style={{display:"block",fontWeight:700,marginBottom:8}}>Importer ton image (JPG ou PNG)</label><input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadPoster} style={{width:"100%"}}/><p style={{fontSize:13}}>L'image reste sur ton appareil. Le QR code est ajouté par-dessus pour l'impression.</p>{poster&&<><label style={{display:"block"}}><input type="checkbox" checked={showQr} onChange={e=>setShowQr(e.target.checked)}/> Afficher le QR code</label><label style={{display:"block",marginTop:8}}>Position horizontale : {qrX}% <input type="range" min="8" max="92" value={qrX} onChange={e=>setQrX(Number(e.target.value))}/></label><label style={{display:"block"}}>Position verticale : {qrY}% <input type="range" min="8" max="92" value={qrY} onChange={e=>setQrY(Number(e.target.value))}/></label><label style={{display:"block"}}>Taille du QR code : {qrSize}% <input type="range" min="9" max="25" value={qrSize} onChange={e=>setQrSize(Number(e.target.value))}/></label><button onClick={()=>setPoster("")}>Retirer l'image</button></>}</div><button disabled={!poster||exporting} onClick={downloadFrame}>{exporting?"Préparation…":"Créer mon PDF A4 automatiquement"}</button><p style={{fontSize:13}}>Le PDF est automatiquement ajusté sur une seule page A4, avec ton QR code. Ouvre ensuite le fichier et imprime-le.</p><button onClick={()=>window.print()}>Imprimer directement (Safari)</button><Link href={audioPath+"?reciter="+encodeURIComponent(voice)} target="_blank" style={{marginLeft:10}}>Tester l'écoute ↗</Link><p style={{fontSize:12,color:"#806c58"}}>Le QR code est généré par un service tiers. Vérifier la mise en page et les textes avant toute commercialisation.</p></div>
   {poster?<div className="q-uploaded" ref={frameRef} style={{"--poster-ratio":posterRatio}}><img src={poster} alt="Image du cadre à imprimer"/>{showQr&&<div className="q-overlay" onPointerDown={beginQr} onPointerMove={moveQr} onPointerUp={endQr} onPointerCancel={endQr} style={{left:qrX+"%",top:qrY+"%",width:qrSize+"%"}}><img src={qr} alt="QR code de la récitation"/></div>}</div>:<div className="q-frame"><div className="q-inner">
    <div className="q-lamps"><span>🏮</span><span>🏮</span></div>
    <header className="q-arch"><div className="q-ornament">۞</div><h1 className="q-title">Les trois sourates de protection</h1><p className="q-subtitle">AL-IKHLAS · AL-FALAQ · AN-NAS</p><div className="q-ornament">❦</div></header>

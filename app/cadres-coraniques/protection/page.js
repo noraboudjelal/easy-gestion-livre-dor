@@ -38,12 +38,24 @@ export default function ProtectionPage(){
    if(!item||!audio.current)return;
    position.current=n;
    setCurrent(n);
+   setElapsed(0);
+   setDuration(0);
    setError("");
    const selected=voices.find(v=>v.id===voice)||voices[0];
    audio.current.src=item.ayah? "https://cdn.islamic.network/quran/audio/128/ar.alafasy/262.mp3" : selected.url+String(item.number).padStart(3,"0")+".mp3";
    try{await audio.current.play();setPlaying(true)}
    catch{setPlaying(false);setError("Lecture impossible. Vérifiez votre connexion et réessayez.")}
  };
+ const [elapsed,setElapsed]=useState(0);
+ const [duration,setDuration]=useState(0);
+ const togglePlayback=async()=>{
+  if(!audio.current)return;
+  if(playing){audio.current.pause();return;}
+  if(!audio.current.src||!audio.current.getAttribute("src")){await playAt(current);return;}
+  try{await audio.current.play();setError("");}catch{setError("Impossible de reprendre la lecture.");}
+ };
+ const seekTo=value=>{if(audio.current&&Number.isFinite(audio.current.duration)){audio.current.currentTime=Number(value);setElapsed(Number(value));}};
+ const formatTime=seconds=>{const n=Math.floor(Number.isFinite(seconds)?seconds:0);return Math.floor(n/60)+":"+String(n%60).padStart(2,"0");};
  const isKursi=activeSurahs.length===1&&activeSurahs[0].number===2;
  const isProtection=activeSurahs.length===3&&[112,113,114].every(n=>chosenNumbers.includes(n));
  const next=()=>{const n=position.current+1;if(n<activeSurahs.length)playAt(n);else setPlaying(false)};
@@ -62,7 +74,15 @@ export default function ProtectionPage(){
  <span style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}><span lang="ar" dir="rtl" style={{fontSize:24,fontFamily:"serif",color:"#8f6b3d"}}>{s.arabic}</span><span aria-hidden="true" style={{width:48,height:48,borderRadius:"50%",background:current===i&&playing?"#87643c":"#e9d6b7",color:current===i&&playing?"#fff":"#785631",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:23,fontWeight:800,boxShadow:"0 2px 7px #73502b18"}}>{current===i&&playing?"♫":"▶"}</span></span>
  </button>)}
  </div>
- <audio ref={audio} onEnded={next} onPause={()=>setPlaying(false)} onPlay={()=>setPlaying(true)} onError={()=>setError("Cet enregistrement est indisponible pour cette voix. Essayez un autre récitant.")} preload="none" />
+ <div style={{marginTop:14,padding:"14px",background:"#f8f1e6",border:"1px solid #dec8a5",borderRadius:16,fontFamily:"system-ui,sans-serif"}}>
+ <p style={{margin:"0 0 10px",fontSize:14,fontWeight:600,color:"#72502d"}}>{activeSurahs[current]?.title||"Récitation"}</p>
+ <button type="button" onClick={togglePlayback} style={{border:0,borderRadius:30,background:"#86643c",color:"#fff",fontSize:16,fontWeight:700,padding:"12px 28px",cursor:"pointer"}}>{playing?"⏸ Pause":"▶ "+(elapsed>0?"Reprendre":"Écouter")}</button>
+ <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}>
+ <span style={{fontSize:12,minWidth:34}}>{formatTime(elapsed)}</span>
+ <input type="range" aria-label="Avancer ou reculer dans la récitation" min="0" max={duration>0?duration:1} step="1" value={Math.min(elapsed,duration>0?duration:1)} onChange={e=>seekTo(e.target.value)} disabled={!duration} style={{flex:1,minWidth:0,accentColor:"#86643c"}}/>
+ <span style={{fontSize:12,minWidth:34}}>{formatTime(duration)}</span>
+ </div></div>
+ <audio ref={audio} onEnded={next} onPause={()=>setPlaying(false)} onPlay={()=>setPlaying(true)} onTimeUpdate={e=>setElapsed(e.currentTarget.currentTime)} onDurationChange={e=>setDuration(Number.isFinite(e.currentTarget.duration)?e.currentTarget.duration:0)} onLoadedMetadata={e=>setDuration(Number.isFinite(e.currentTarget.duration)?e.currentTarget.duration:0)} onError={()=>setError("Cet enregistrement est indisponible pour cette voix. Essayez un autre récitant.")} preload="none" />
  {error&&<p role="alert" style={{color:"#a33224",fontSize:13}}>{error}</p>}
  <div style={{marginTop:16}}><button type="button" onClick={()=>setShowVerses(v=>!v)} style={{width:"100%",padding:14,borderRadius:12,border:"1px solid #c6a16a",background:"#fff7e9",color:"#684a2b",fontWeight:700,fontSize:15,cursor:"pointer"}}>{showVerses?"Masquer les versets":"Afficher les versets · arabe, phonétique et français"}</button>{showVerses&&<div style={{marginTop:12,textAlign:"left"}}>{verseError&&<p role="alert">{verseError}</p>}{activeSurahs.map(item=><section key={item.number} style={{marginBottom:18}}><h2 style={{fontSize:19,color:"#805b32"}}>{item.title} · {item.arabic}</h2>{!verses[item.number]&&!verseError&&<p>Chargement des versets…</p>}{(verses[item.number]||[]).map(v=><article key={v.number} style={{padding:"16px 13px",marginBottom:10,background:"#fffaf2",border:"1px solid #e5d7bf",borderRadius:12}}><p style={{fontSize:12,color:"#99774b"}}>Verset {v.number}</p><p dir="rtl" lang="ar" style={{fontSize:28,lineHeight:2.2,textAlign:"right",fontFamily:"'Amiri', 'Noto Naskh Arabic', serif"}}>{v.arabic} <span style={{display:"inline-block",whiteSpace:"nowrap",color:"#a47d45",fontSize:"0.85em"}}>۝{new Intl.NumberFormat("ar-EG",{useGrouping:false}).format(v.number)}</span></p><div style={{borderTop:"1px solid #eee0ca",paddingTop:12,marginTop:12}}><p style={{fontSize:11,fontWeight:700,letterSpacing:1,color:"#99774b",margin:"0 0 6px"}}>PHONÉTIQUE</p><p style={{fontSize:16,lineHeight:1.9,fontStyle:"italic",color:"#71553a",margin:"0 0 14px"}}>{v.phonetic}</p><p style={{fontSize:11,fontWeight:700,letterSpacing:1,color:"#99774b",margin:"0 0 6px"}}>TRADUCTION FRANÇAISE</p><p lang="fr" style={{fontSize:16,lineHeight:1.9,color:"#433a30",margin:0}}>{v.french}</p></div></article>)}</section>)}</div>}</div>
  <div style={{marginTop:14,textAlign:"left",fontFamily:"system-ui,sans-serif"}}>

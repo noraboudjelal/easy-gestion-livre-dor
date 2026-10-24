@@ -14,6 +14,7 @@ const surahs = [
   { title:"Al-Ikhlas", arabic:"الإخلاص", number:112, verses:4 },
   { title:"Al-Falaq", arabic:"الفلق", number:113, verses:5 },
   { title:"An-Nas", arabic:"الناس", number:114, verses:6 },
+  { title:"Ayat al-Kursi", arabic:"آية الكرسي", number:2, verses:1, ayah:255 },
 ];
 
 export default function ProtectionPage(){
@@ -21,6 +22,8 @@ export default function ProtectionPage(){
  const [chosenNumbers,setChosenNumbers]=useState([112,113,114]);
  const activeSurahs=surahs.filter(s=>chosenNumbers.includes(s.number));
  const [voice,setVoice]=useState("Alafasy_128kbps");
+ const [selection,setSelection]=useState([112,113,114]);
+ const chosen=surahs.filter(s=>selection.includes(s.number));
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const requested=params.get("reciter") || window.localStorage.getItem("lehnova-quran-reciter");if(voices.some(v=>v.id===requested))setVoice(requested);const selection=params.get("surahs");if(selection){const numbers=selection.split(",").map(Number).filter(n=>[112,113,114].includes(n));if(numbers.length)setChosenNumbers([...new Set(numbers)]);}},[]);
  const changeVoice=(id)=>{setVoice(id);window.localStorage.setItem("lehnova-quran-reciter",id);if(audio.current){audio.current.pause();audio.current.removeAttribute("src");audio.current.load();setPlaying(false);}};
  const position=useRef(0);
@@ -34,7 +37,7 @@ export default function ProtectionPage(){
    setCurrent(n);
    setError("");
    const selected=voices.find(v=>v.id===voice)||voices[0];
-   audio.current.src=selected.url+String(item.number).padStart(3,"0")+".mp3";
+   audio.current.src=item.ayah? "https://cdn.islamic.network/quran/audio/128/ar.alafasy/262.mp3" : selected.url+String(item.number).padStart(3,"0")+".mp3";
    try{await audio.current.play();setPlaying(true)}
    catch{setPlaying(false);setError("Lecture impossible. Vérifiez votre connexion et réessayez.")}
  };
@@ -65,7 +68,7 @@ export default function ProtectionPage(){
  <label htmlFor="reciter-select" style={{display:"block",fontSize:13,fontWeight:600,color:"#66533e",marginBottom:9}}>Choisir la voix du récitant</label>
  <select id="reciter-select" aria-label="Récitant" value={voice} onChange={e=>changeVoice(e.target.value)} style={{width:"100%",padding:"14px 12px",border:"1px solid #ddcdb8",borderRadius:12,fontSize:15,background:"#fffdf9",color:"#453525"}}>{voices.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select>
  </div>
- <p style={{fontFamily:"system-ui,sans-serif",fontSize:11,color:"#9a8b7a",marginTop:30}}>Chaque sourate est diffusée dans un enregistrement complet.</p>
+ <p style={{fontFamily:"system-ui,sans-serif",fontSize:11,color:"#9a8b7a",marginTop:30}}>Chaque sourate est diffusée en entier. Ayat al-Kursi utilise une récitation dédiée.</p>
  <p style={{fontFamily:"system-ui,sans-serif",fontSize:12,marginTop:12}}><Link href="/" style={{color:"#8d6e43",textDecoration:"none"}}>Lehnova</Link></p>
  </section></main>;
 }

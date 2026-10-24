@@ -21,7 +21,7 @@ export default function ProtectionPage(){
  const audio=useRef(null);
  const [chosenNumbers,setChosenNumbers]=useState([]);
  const [ready,setReady]=useState(false);
- const [showVerses,setShowVerses]=useState(false);
+ const [showVerses,setShowVerses]=useState(true);
  const [verses,setVerses]=useState({});
  const [verseError,setVerseError]=useState("");
  const activeSurahs=surahs.filter(s=>chosenNumbers.includes(s.number));

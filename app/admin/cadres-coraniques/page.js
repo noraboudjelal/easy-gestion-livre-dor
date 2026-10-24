@@ -145,7 +145,7 @@ const imageLeft=left*printScale,imageTop=top*printScale,imageWidth=width*printSc
  const safeBannerHalfHeight=safeBannerWidth*0.22*posterRatio/2;
  const safeBannerY=Math.max(safeBannerHalfHeight+3,Math.min(97-safeBannerHalfHeight,bannerY));
  const voiceLink=link+"?reciter="+encodeURIComponent(voice)+"&selection="+encodeURIComponent(selectedSurahs.join(","))+"&cadre="+encodeURIComponent(frameId);
- const qr="https://api.qrserver.com/v1/create-qr-code/?size=500x500&margin=12&data="+encodeURIComponent(voiceLink);
+ const qr="/api/cadres-coraniques/qr?data="+encodeURIComponent(voiceLink);
  return <main className="q-page">
   <style>{`
   @import url("https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap");

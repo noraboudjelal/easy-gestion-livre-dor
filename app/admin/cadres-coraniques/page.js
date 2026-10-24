@@ -89,7 +89,7 @@ export default function AdminCadresCoraniques(){
    if(width>pw-10||height>ph-10)throw new Error("Ce format est trop grand pour une feuille A4. Choisis un format plus petit.");
    const pdf=new jsPDF({orientation:landscape?"landscape":"portrait",unit:"mm",format:"a4",compress:true});
    const left=(pw-width)/2,top=(ph-height)/2;
-   const printDpi=300,printScale=printDpi/25.4;
+   const printDpi=240,printScale=printDpi/25.4;
    const canvas=document.createElement("canvas");
    canvas.width=Math.round(width*printScale);canvas.height=Math.round(height*printScale);
    const ctx=canvas.getContext("2d");
@@ -128,7 +128,7 @@ const imageLeft=left*printScale,imageTop=top*printScale,imageWidth=width*printSc
     }finally{URL.revokeObjectURL(url);}
    }
    // Preserve the entire artwork within the selected paper dimensions.
-   pdf.addImage(canvas.toDataURL("image/png"),"PNG",left,top,width,height);
+   pdf.addImage(canvas.toDataURL("image/jpeg",0.91),"JPEG",left,top,width,height);
    if(showBanner)pdf.addImage(overlay.toDataURL("image/png"),"PNG",0,0,pw,ph);
    // Thin cut guide at the precise requested dimensions.
    pdf.setDrawColor(175,175,175);pdf.setLineWidth(0.12);pdf.rect(left,top,width,height);

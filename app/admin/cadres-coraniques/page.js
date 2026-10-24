@@ -22,7 +22,6 @@ export default function AdminCadresCoraniques(){
  const [copied,setCopied]=useState(false);
  const [voice,setVoice]=useState("Alafasy_128kbps");
  const [selectedSurahs,setSelectedSurahs]=useState([112,113,114]);
- const [selectedSurahs,setSelectedSurahs]=useState([112,113,114]);
  const [poster,setPoster]=useState("");
  const [paperFormat,setPaperFormat]=useState("20x25");
  const [customWidth,setCustomWidth]=useState("20");

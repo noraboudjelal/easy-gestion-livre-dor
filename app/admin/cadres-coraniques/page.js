@@ -82,14 +82,22 @@ export default function AdminCadresCoraniques(){
    const original=await load(poster);
    await document.fonts.load("bold 36px \""+arabicFont+"\"","السلام عليكم");
    await document.fonts.ready;
-   const pw=frameWidth*10,ph=frameHeight*10,margin=0;
-   const pdf=new jsPDF({orientation:pw>ph?"landscape":"portrait",unit:"mm",format:[pw,ph],compress:true});
-   const scale=Math.min((pw-2*margin)/original.naturalWidth,(ph-2*margin)/original.naturalHeight);
-   const width=original.naturalWidth*scale,height=original.naturalHeight*scale;
+   // A4 sheet with an exact-size, edge-to-edge artwork that can be cut out.
+   const width=frameWidth*10,height=frameHeight*10;
+   const landscape=width>height;
+   const pw=landscape?297:210,ph=landscape?210:297;
+   if(width>pw-10||height>ph-10)throw new Error("Ce format est trop grand pour une feuille A4. Choisis un format plus petit.");
+   const pdf=new jsPDF({orientation:landscape?"landscape":"portrait",unit:"mm",format:"a4",compress:true});
    const left=(pw-width)/2,top=(ph-height)/2;
+   const printDpi=300,printScale=printDpi/25.4;
    const canvas=document.createElement("canvas");
-   canvas.width=original.naturalWidth;canvas.height=original.naturalHeight;
-   const ctx=canvas.getContext("2d");ctx.drawImage(original,0,0);
+   canvas.width=Math.round(width*printScale);canvas.height=Math.round(height*printScale);
+   const ctx=canvas.getContext("2d");
+   const targetRatio=width/height,sourceRatio=original.naturalWidth/original.naturalHeight;
+   let sx=0,sy=0,sw=original.naturalWidth,sh=original.naturalHeight;
+   if(sourceRatio>targetRatio){sw=sh*targetRatio;sx=(original.naturalWidth-sw)/2;}
+   else{sh=sw/targetRatio;sy=(original.naturalHeight-sh)/2;}
+   ctx.drawImage(original,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
    if(showName&&displayedName.trim()){
     const size=canvas.width*nameSize/100;
     ctx.font="bold "+size+"px 'Noto Naskh Arabic', 'Geeza Pro', 'Arial', serif";ctx.fillStyle=nameColor;ctx.textAlign="center";ctx.textBaseline="middle";ctx.direction="rtl";
@@ -113,7 +121,7 @@ export default function AdminCadresCoraniques(){
 
     }finally{URL.revokeObjectURL(url);}
    }
-   const printDpi=300;const printScale=printDpi/25.4;const overlay=document.createElement("canvas");overlay.width=Math.round(pw*printScale);overlay.height=Math.round(ph*printScale);const overlayCtx=overlay.getContext("2d");
+   const overlay=document.createElement("canvas");overlay.width=Math.round(pw*printScale);overlay.height=Math.round(ph*printScale);const overlayCtx=overlay.getContext("2d");
    if(showBanner){
     const response=await fetch("/api/cadres-coraniques/qr?data="+encodeURIComponent(voiceLink),{cache:"no-store"});if(!response.ok)throw new Error("QR indisponible");const url=URL.createObjectURL(await response.blob());try{const q=await load(url);
 const imageLeft=left*printScale,imageTop=top*printScale,imageWidth=width*printScale,imageHeight=height*printScale;const bw=imageWidth*safeBannerWidth/100,bh=bw*0.22;const bx=imageLeft+imageWidth*safeBannerX/100-bw/2;const by=imageTop+imageHeight*safeBannerY/100-bh/2;overlayCtx.fillStyle=bannerColor;overlayCtx.beginPath();overlayCtx.roundRect(bx,by,bw,bh,bh*0.08);overlayCtx.fill();overlayCtx.strokeStyle="#b68a44";overlayCtx.lineWidth=Math.max(2,bw*0.003);overlayCtx.stroke();overlayCtx.fillStyle="#e2bc7d";overlayCtx.textAlign="center";overlayCtx.direction="ltr";const py=by+bh*0.43,px=bx+bw*0.12;const tx=bx+bw*0.48;overlayCtx.font="bold "+Math.round(bh*0.16)+"px Georgia";overlayCtx.fillText("SCANNER OU",tx,by+bh*0.39,bw*0.43);overlayCtx.fillText("APPROCHER VOTRE",tx,by+bh*0.56,bw*0.43);overlayCtx.fillText("TÉLÉPHONE",tx,by+bh*0.73,bw*0.43);const qs=bh*0.72,qx=bx+bw*0.79,qy=by+(bh-qs)/2;overlayCtx.fillStyle="#fff";overlayCtx.fillRect(qx,qy,qs,qs);overlayCtx.drawImage(q,qx,qy,qs,qs);overlayCtx.fillStyle="#e2bc7d";overlayCtx.font="bold "+Math.round(bh*0.19)+"px Arial";overlayCtx.textAlign="center";overlayCtx.font="bold "+Math.round(bh*0.25)+"px Arial";overlayCtx.fillText("NFC",bx+bw*0.13,by+bh*0.57,bw*0.22);
@@ -122,6 +130,8 @@ const imageLeft=left*printScale,imageTop=top*printScale,imageWidth=width*printSc
    // Preserve the entire artwork within the selected paper dimensions.
    pdf.addImage(canvas.toDataURL("image/png"),"PNG",left,top,width,height);
    if(showBanner)pdf.addImage(overlay.toDataURL("image/png"),"PNG",0,0,pw,ph);
+   // Thin cut guide at the precise requested dimensions.
+   pdf.setDrawColor(175,175,175);pdf.setLineWidth(0.12);pdf.rect(left,top,width,height);
    pdf.save("cadre-lehnova-"+frameWidth+"x"+frameHeight+"cm.pdf");
   }catch(e){alert("Impossible de créer le PDF : "+e.message);}
   finally{setExporting(false);}

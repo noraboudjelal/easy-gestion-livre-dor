@@ -9,7 +9,7 @@ export async function GET(request) {
   try { parsed = new URL(data); } catch {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
-  if (parsed.protocol !== "https:" || !["lehnova.fr", "www.lehnova.fr"].includes(parsed.hostname)) {
+  if (parsed.protocol !== "https:" || !["lehnova.fr", "www.lehnova.fr", "easy-gestion-toulouse.vercel.app"].includes(parsed.hostname)) {
     return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
   }
   try {

@@ -18,15 +18,17 @@ const surahs = [
 
 export default function ProtectionPage(){
  const audio=useRef(null);
+ const [chosenNumbers,setChosenNumbers]=useState([112,113,114]);
+ const activeSurahs=surahs.filter(s=>chosenNumbers.includes(s.number));
  const [voice,setVoice]=useState("Alafasy_128kbps");
- useEffect(()=>{const requested=new URLSearchParams(window.location.search).get("reciter") || window.localStorage.getItem("lehnova-quran-reciter");if(voices.some(v=>v.id===requested))setVoice(requested)},[]);
+ useEffect(()=>{const params=new URLSearchParams(window.location.search);const requested=params.get("reciter") || window.localStorage.getItem("lehnova-quran-reciter");if(voices.some(v=>v.id===requested))setVoice(requested);const selection=params.get("surahs");if(selection){const numbers=selection.split(",").map(Number).filter(n=>[112,113,114].includes(n));if(numbers.length)setChosenNumbers([...new Set(numbers)]);}},[]);
  const changeVoice=(id)=>{setVoice(id);window.localStorage.setItem("lehnova-quran-reciter",id);if(audio.current){audio.current.pause();audio.current.removeAttribute("src");audio.current.load();setPlaying(false);}};
  const position=useRef(0);
  const [current,setCurrent]=useState(0);
  const [playing,setPlaying]=useState(false);
  const [error,setError]=useState("");
  const playAt=async (n)=>{
-   const item=surahs[n];
+   const item=activeSurahs[n];
    if(!item||!audio.current)return;
    position.current=n;
    setCurrent(n);
@@ -36,26 +38,26 @@ export default function ProtectionPage(){
    try{await audio.current.play();setPlaying(true)}
    catch{setPlaying(false);setError("Lecture impossible. Vérifiez votre connexion et réessayez.")}
  };
- const next=()=>{const n=position.current+1;if(n<surahs.length)playAt(n);else setPlaying(false)};
+ const next=()=>{const n=position.current+1;if(n<activeSurahs.length)playAt(n);else setPlaying(false)};
  return <main style={{minHeight:"100vh",background:"radial-gradient(circle at top,#f8edda 0%,#e9dcc7 58%,#dfcdb4 100%)",color:"#453525",padding:"2px 8px 20px",fontFamily:"Georgia,serif"}}>
  <section style={{maxWidth:590,margin:"auto",background:"#fffcf6",border:"2px solid #c5a16a",borderRadius:26,padding:"8px 15px 18px",boxShadow:"0 20px 55px #6a4b2820, inset 0 0 0 7px #fffaf0, inset 0 0 0 8px #e9d6b7",textAlign:"center"}}>
  <div aria-hidden="true" style={{fontSize:16,color:"#a6814c",marginBottom:0}}>✧ ۞ ✧</div>
  <p style={{letterSpacing:3,fontSize:11,fontWeight:700,color:"#a6814c",fontFamily:"system-ui,sans-serif",margin:"0 0 1px"}}>LEHNOVA · ÉCOUTE CORANIQUE</p>
- <h1 style={{fontSize:"clamp(23px,5vw,32px)",lineHeight:1.25,margin:"0 0 4px",fontWeight:600}}>Les trois sourates<br/>de protection</h1>
+ <h1 style={{fontSize:"clamp(23px,5vw,32px)",lineHeight:1.25,margin:"0 0 4px",fontWeight:600}}>Écoutez les sourates<br/>de protection</h1>
  <p lang="ar" dir="rtl" style={{fontSize:"clamp(22px,5vw,30px)",lineHeight:1.35,color:"#997544",margin:"0 0 4px",fontFamily:"serif"}}>سُوَرُ الْمُعَوِّذَاتِ</p>
- <p style={{color:"#817261",fontFamily:"system-ui,sans-serif",fontSize:14,lineHeight:1.7,maxWidth:410,margin:"0 auto 5px"}}>Al-Ikhlas · Al-Falaq · An-Nas<br/>Un moment de paix et de recueillement.</p>
+ <p style={{color:"#817261",fontFamily:"system-ui,sans-serif",fontSize:14,lineHeight:1.7,maxWidth:410,margin:"0 auto 5px"}}>{activeSurahs.map(s=>s.title).join(" · ")}<br/>Un moment de paix et de recueillement.</p>
  <div style={{height:1,background:"linear-gradient(90deg,transparent,#c7a978,transparent)",marginBottom:5}}/>
  <button onClick={()=>playAt(0)} style={{width:"100%",background:"linear-gradient(135deg,#b79255,#76532b)",color:"white",border:0,borderRadius:16,padding:"14px 18px",fontSize:18,fontWeight:600,cursor:"pointer",fontFamily:"system-ui,sans-serif",boxShadow:"0 8px 18px #84643a25"}}>▶ &nbsp; Tout écouter</button>
- <p style={{fontSize:12,color:"#8c7d6c",fontFamily:"system-ui,sans-serif",margin:"3px 0 5px"}}>Lecture complète des trois sourates à la suite</p>
+ <p style={{fontSize:12,color:"#8c7d6c",fontFamily:"system-ui,sans-serif",margin:"3px 0 5px"}}>Lecture des sourates sélectionnées à la suite</p>
  <div style={{display:"grid",gap:12,textAlign:"left"}}>
- {surahs.map((s,i)=><button key={s.number} onClick={()=>playAt(i)} aria-label={"Lire la sourate "+s.title} style={{width:"100%",padding:"12px 14px",border:current===i&&playing?"1px solid #b89561":"1px solid #e9dece",borderRadius:12,background:current===i&&playing?"#f8f0e3":"#fffaf4",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,cursor:"pointer",color:"#453525",fontFamily:"system-ui,sans-serif",textAlign:"left"}}>
+ {activeSurahs.map((s,i)=><button key={s.number} onClick={()=>playAt(i)} aria-label={"Lire la sourate "+s.title} style={{width:"100%",padding:"12px 14px",border:current===i&&playing?"1px solid #b89561":"1px solid #e9dece",borderRadius:12,background:current===i&&playing?"#f8f0e3":"#fffaf4",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,cursor:"pointer",color:"#453525",fontFamily:"system-ui,sans-serif",textAlign:"left"}}>
  <span style={{display:"flex",alignItems:"center",gap:12,minWidth:0}}><span style={{width:32,height:32,borderRadius:"50%",background:"#efe3d1",color:"#86683f",display:"inline-flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontWeight:700,fontSize:13}}>{i+1}</span><span><strong style={{display:"block",fontSize:16}}>{s.title}</strong><span style={{display:"block",fontSize:12,color:"#867768",marginTop:4}}>{s.verses} versets · Sourate {s.number}</span></span></span>
  <span style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}><span lang="ar" dir="rtl" style={{fontSize:24,fontFamily:"serif",color:"#8f6b3d"}}>{s.arabic}</span><span aria-hidden="true" style={{width:48,height:48,borderRadius:"50%",background:current===i&&playing?"#87643c":"#e9d6b7",color:current===i&&playing?"#fff":"#785631",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:23,fontWeight:800,boxShadow:"0 2px 7px #73502b18"}}>{current===i&&playing?"♫":"▶"}</span></span>
  </button>)}
  </div>
  <div style={{marginTop:14,padding:"12px 12px",borderRadius:17,background:"#f8f3ec",border:"1px solid #eee2d2",fontFamily:"system-ui,sans-serif"}}>
  <p style={{fontSize:12,letterSpacing:1,textTransform:"uppercase",color:"#98774d",margin:"0 0 8px"}}>{playing?"En cours de lecture":"Lecteur audio"}</p>
- <p aria-live="polite" style={{fontSize:15,fontWeight:600,margin:"0 0 14px"}}>{surahs[current].title} — sourate complète</p>
+ <p aria-live="polite" style={{fontSize:15,fontWeight:600,margin:"0 0 14px"}}>{activeSurahs[current]?.title} — sourate complète</p>
  <audio ref={audio} controls onEnded={next} onPause={()=>setPlaying(false)} onPlay={()=>setPlaying(true)} onError={()=>setError("Cet enregistrement complet est indisponible pour cette voix. Essayez un autre récitant.")} style={{width:"100%",display:"block"}} preload="none"/>
  {error&&<p role="alert" style={{color:"#a33224",fontSize:13}}>{error}</p>}
  </div>
